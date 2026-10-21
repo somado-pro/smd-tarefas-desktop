@@ -1,7 +1,7 @@
 // Somado Tarefas na bandeja do Windows: uma janela que carrega
 // https://tarefas.somado.com.br, fica do lado do relógio e avisa com
-// notificação nativa. A página consulta /api/desktop/notificacoes (script em
-// injetado.js) e chama os comandos daqui.
+// notificação nativa. O próprio programa consulta /api/desktop/notificacoes
+// com o login da janela (vigiar_notificacoes).
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::sync::Mutex;
@@ -119,10 +119,10 @@ fn icone_com_numero(n: u32) -> Image<'static> {
     Image::new_owned(px, w as u32, h as u32)
 }
 
-// ---------- comandos chamados pela página ----------
+// ---------- notificações: o programa pergunta direto ao site ----------
 
-#[tauri::command]
-fn smd_nao_lidas(app: AppHandle, estado: tauri::State<Estado>, n: u32) {
+fn atualizar_icone(app: &AppHandle, n: u32) {
+    let estado = app.state::<Estado>();
     let mut atual = estado.nao_lidas.lock().unwrap();
     if *atual == n {
         return;
@@ -139,16 +139,15 @@ fn smd_nao_lidas(app: AppHandle, estado: tauri::State<Estado>, n: u32) {
     }
 }
 
-#[tauri::command]
-fn smd_notificar(app: AppHandle, titulo: String, corpo: String, url: String) {
+fn notificar(app: &AppHandle, titulo: &str, corpo: &str, url: String) {
     #[cfg(windows)]
     {
         use tauri_winrt_notification::Toast;
         let aumid = app.config().identifier.clone();
         let app2 = app.clone();
         let _ = Toast::new(&aumid)
-            .title(&titulo)
-            .text1(&corpo)
+            .title(titulo)
+            .text1(corpo)
             .on_activated(move |_| {
                 let app3 = app2.clone();
                 let url = url.clone();
@@ -159,6 +158,54 @@ fn smd_notificar(app: AppHandle, titulo: String, corpo: String, url: String) {
     }
     #[cfg(not(windows))]
     let _ = (app, titulo, corpo, url);
+}
+
+/// Usa o login da própria janela (cookies do WebView2) pra consultar
+/// /api/desktop/notificacoes de 30 em 30 s. Roda fora da thread principal,
+/// porque ler cookies dela trava no Windows.
+fn vigiar_notificacoes(app: AppHandle) {
+    std::thread::spawn(move || {
+        let mut desde: Option<String> = None;
+        std::thread::sleep(std::time::Duration::from_secs(5));
+        loop {
+            if let Some(w) = janela(&app) {
+                let site: tauri::Url = SITE.parse().unwrap();
+                if let Ok(cookies) = w.cookies_for_url(site) {
+                    let cabecalho = cookies
+                        .iter()
+                        .map(|c| format!("{}={}", c.name(), c.value()))
+                        .collect::<Vec<_>>()
+                        .join("; ");
+                    let mut url = format!("{SITE}/api/desktop/notificacoes");
+                    if let Some(d) = &desde {
+                        url.push_str("?desde=");
+                        url.push_str(&d.replace(':', "%3A").replace('+', "%2B"));
+                    }
+                    let resp = ureq::get(&url)
+                        .set("Cookie", &cabecalho)
+                        .timeout(std::time::Duration::from_secs(15))
+                        .call();
+                    if let Ok(r) = resp {
+                        if let Ok(d) = r.into_json::<serde_json::Value>() {
+                            desde = d["agora"].as_str().map(String::from).or(desde);
+                            let n = d["naoLidas"].as_u64().unwrap_or(0) as u32;
+                            let app2 = app.clone();
+                            let _ = app.run_on_main_thread(move || atualizar_icone(&app2, n));
+                            for nv in d["novas"].as_array().cloned().unwrap_or_default() {
+                                notificar(
+                                    &app,
+                                    nv["titulo"].as_str().unwrap_or("Somado Tarefas"),
+                                    nv["corpo"].as_str().unwrap_or(""),
+                                    nv["url"].as_str().unwrap_or("/inbox").to_string(),
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+            std::thread::sleep(std::time::Duration::from_secs(30));
+        }
+    });
 }
 
 // ---------- atualização automática ----------
@@ -200,7 +247,6 @@ fn main() {
                 .build(),
         )
         .manage(Estado { nao_lidas: Mutex::new(0) })
-        .invoke_handler(tauri::generate_handler![smd_nao_lidas, smd_notificar])
         .setup(move |app| {
             let handle = app.handle().clone();
             let minimizado = std::env::args().any(|a| a == ARG_MINIMIZADO);
@@ -209,7 +255,6 @@ fn main() {
                 .title("Somado Tarefas")
                 .inner_size(1280.0, 820.0)
                 .min_inner_size(420.0, 500.0)
-                .initialization_script(include_str!("injetado.js"))
                 .build()?;
             // Criar já escondida quebra o WebView2 ("identificador da janela é
             // inválido"): nasce visível e some logo em seguida no início com o Windows.
@@ -271,6 +316,7 @@ fn main() {
             let _ = gs.register(atalho_janela);
             let _ = gs.register(atalho_nova);
 
+            vigiar_notificacoes(handle.clone());
             tauri::async_runtime::spawn(procurar_atualizacao(handle));
             Ok(())
         })

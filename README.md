@@ -20,12 +20,11 @@ WebView2 do Windows; instalador de poucos MB). Tarefa: SMD-1109.
 
 ## Como funciona
 
-A janela carrega o site em produção. O `src-tauri/src/injetado.js` roda dentro
-dela e, a cada 30 s, consulta `GET /api/desktop/notificacoes?desde=<ISO>`
-(rota do smd-gerencia, PR #204, usa a sessão da própria janela) e chama dois
-comandos do programa: `smd_nao_lidas` (ícone) e `smd_notificar` (toast). Só o
-domínio `tarefas.somado.com.br` pode chamar esses comandos
-(`src-tauri/capabilities/default.json`).
+A janela carrega o site em produção. O próprio programa (thread
+`vigiar_notificacoes` em `src-tauri/src/main.rs`) lê o login da janela (cookies
+do WebView2) e, a cada 30 s, consulta `GET /api/desktop/notificacoes?desde=<ISO>`
+(rota do smd-gerencia, PR #204): atualiza o número no ícone e mostra um toast
+pra cada nova. A página não fala com o programa (sem IPC aberto pro site).
 
 ## Gerar o instalador
 
