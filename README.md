@@ -34,6 +34,14 @@ encarte, abrem no navegador).
 
 ### Atualizar o app que vai dentro
 
+**Automático (desde 21/10/2026, SMD-1134):** no PC do Matheus, o `atualiza-somado-tarefas.ps1`
+do cofre (a cada 15 min) chama `scripts/publicar-se-mudou.ps1`. Se a `master` do smd-gerencia
+mudou algo que vai no app (app/, components/, lib/, local/, public/, types/), ele gera os pacotes,
+sobe a versão (patch), faz commit, tag e push. A Release sai sozinha e os programas instalados
+se atualizam. Log em `skills/cofre-sync.log` com `[programa]`.
+
+Na mão (quando precisar):
+
 `dist/` é gerado, não se edita à mão. Quando o front do smd-gerencia mudar:
 
 ```powershell
