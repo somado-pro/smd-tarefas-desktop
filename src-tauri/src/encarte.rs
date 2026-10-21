@@ -31,6 +31,13 @@ impl Default for Config {
     }
 }
 
+/// O Tauri devolve caminhos no formato longo do Windows (\\?\C:\...). O Node não
+/// entende esse prefixo (lê só "C:" e morre com EISDIR): tira antes de passar.
+fn sem_prefixo(p: &std::path::Path) -> PathBuf {
+    let s = p.to_string_lossy();
+    PathBuf::from(s.strip_prefix(r"\\?\").unwrap_or(&s).to_string())
+}
+
 #[derive(Default)]
 pub struct Servidor(pub Mutex<Option<Child>>);
 
@@ -59,9 +66,9 @@ pub fn parar(app: &AppHandle) {
 pub fn subir(app: &AppHandle) {
     parar(app);
     let Ok(recursos) = app.path().resource_dir() else { return };
-    let script = recursos.join("encarte-pc").join("servidor.mjs");
+    let script = sem_prefixo(&recursos.join("encarte-pc").join("servidor.mjs"));
     let Ok(dados) = app.path().app_local_data_dir() else { return };
-    let pasta = dados.join("encarte");
+    let pasta = sem_prefixo(&dados.join("encarte"));
     let _ = std::fs::create_dir_all(&pasta);
     let cfg = ler(app);
 
