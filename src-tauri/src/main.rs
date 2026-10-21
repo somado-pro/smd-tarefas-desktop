@@ -209,11 +209,14 @@ fn main() {
                 .title("Somado Tarefas")
                 .inner_size(1280.0, 820.0)
                 .min_inner_size(420.0, 500.0)
-                .visible(false)
                 .initialization_script(include_str!("injetado.js"))
                 .build()?;
-            if !minimizado {
-                mostrar(&handle);
+            // Criar já escondida quebra o WebView2 ("identificador da janela é
+            // inválido"): nasce visível e some logo em seguida no início com o Windows.
+            if minimizado {
+                if let Some(w) = janela(&handle) {
+                    let _ = w.hide();
+                }
             }
 
             // Inicia com o Windows: ligado na 1ª vez; depois vale o que a pessoa escolher.
