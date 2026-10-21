@@ -502,13 +502,13 @@ function __disposeResources(env) {
   }
   return next();
 }
-function __rewriteRelativeImportExtension(path10, preserveJsx) {
-  if (typeof path10 === "string" && /^\.\.?\//.test(path10)) {
-    return path10.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
+function __rewriteRelativeImportExtension(path11, preserveJsx) {
+  if (typeof path11 === "string" && /^\.\.?\//.test(path11)) {
+    return path11.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
       return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m : d + ext + "." + cm.toLowerCase() + "js";
     });
   }
-  return path10;
+  return path11;
 }
 var extendStatics, __assign, __createBinding, __setModuleDefault, ownKeys, _SuppressedError, tslib_es6_default;
 var init_tslib_es6 = __esm({
@@ -5554,12 +5554,12 @@ var require_helpers = __commonJS({
       return typeof maybeResponse === "object" && maybeResponse !== null && "status" in maybeResponse && "ok" in maybeResponse && "json" in maybeResponse && typeof maybeResponse.json === "function";
     };
     exports.looksLikeFetchResponse = looksLikeFetchResponse;
-    var setItemAsync = async (storage, key, data) => {
-      await storage.setItem(key, JSON.stringify(data));
+    var setItemAsync = async (storage2, key, data) => {
+      await storage2.setItem(key, JSON.stringify(data));
     };
     exports.setItemAsync = setItemAsync;
-    var getItemAsync = async (storage, key) => {
-      const value = await storage.getItem(key);
+    var getItemAsync = async (storage2, key) => {
+      const value = await storage2.getItem(key);
       if (!value) {
         return null;
       }
@@ -5570,8 +5570,8 @@ var require_helpers = __commonJS({
       }
     };
     exports.getItemAsync = getItemAsync;
-    var removeItemAsync = async (storage, key) => {
-      await storage.removeItem(key);
+    var removeItemAsync = async (storage2, key) => {
+      await storage2.removeItem(key);
     };
     exports.removeItemAsync = removeItemAsync;
     var Deferred = class _Deferred {
@@ -5669,13 +5669,13 @@ var require_helpers = __commonJS({
       const hashed = await sha256(verifier);
       return btoa(hashed).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     }
-    async function getCodeChallengeAndMethod(storage, storageKey, isPasswordRecovery = false) {
+    async function getCodeChallengeAndMethod(storage2, storageKey, isPasswordRecovery = false) {
       const codeVerifier = generatePKCEVerifier();
       let storedCodeVerifier = codeVerifier;
       if (isPasswordRecovery) {
         storedCodeVerifier += "/recovery";
       }
-      await (0, exports.setItemAsync)(storage, `${storageKey}-code-verifier`, storedCodeVerifier);
+      await (0, exports.setItemAsync)(storage2, `${storageKey}-code-verifier`, storedCodeVerifier);
       const codeChallenge = await generatePKCEChallenge(codeVerifier);
       const codeChallengeMethod = codeVerifier === codeChallenge ? "plain" : "s256";
       return [codeChallenge, codeChallengeMethod];
@@ -14529,8 +14529,8 @@ var init_next_headers = __esm({
 // local/encarte-pc/servidor.ts
 init_contexto();
 import { createServer } from "node:http";
-import { promises as fs11 } from "node:fs";
-import path9 from "node:path";
+import { promises as fs12 } from "node:fs";
+import path10 from "node:path";
 import { fileURLToPath } from "node:url";
 
 // app/api/encarte/biblioteca/[id]/[acao]/route.ts
@@ -14556,8 +14556,8 @@ var NextResponse = class extends Response {
 };
 
 // lib/encarte/biblioteca.ts
-import fs4 from "fs/promises";
-import path4 from "path";
+import fs5 from "fs/promises";
+import path5 from "path";
 import { createHash as createHash2, randomUUID as randomUUID2 } from "crypto";
 
 // lib/encarte/arquivos.ts
@@ -15092,1575 +15092,13 @@ async function lerCorpo(req) {
 }
 
 // lib/encarte/projetos-template.ts
-import fs2 from "fs/promises";
-import path2 from "path";
-import { randomUUID } from "crypto";
-
-// lib/encarte/divisorias.ts
-function divisoriasDaZona(cells, o = {}) {
-  const v = o.v !== false, h = o.h !== false, recuo = Math.max(0, Number(o.recuo) || 0);
-  const vaoMax = Number(o.vaoMax) > 0 ? Number(o.vaoMax) : 40;
-  const cs = (cells || []).filter((c) => c && c.w > 0 && c.h > 0);
-  const r22 = (n) => Math.round(n * 100) / 100;
-  const ver = [], hor = [];
-  for (const a of cs) for (const b of cs) {
-    if (a === b) continue;
-    const gx = b.x - (a.x + a.w);
-    if (v && gx >= -1 && gx <= vaoMax) {
-      const t = Math.max(a.y, b.y), f = Math.min(a.y + a.h, b.y + b.h);
-      if (f - t > 0.5 * Math.min(a.h, b.h)) ver.push({ c: a.x + a.w + gx / 2, a: t, b: f });
-    }
-    const gy = b.y - (a.y + a.h);
-    if (h && gy >= -1 && gy <= vaoMax) {
-      const e = Math.max(a.x, b.x), d = Math.min(a.x + a.w, b.x + b.w);
-      if (d - e > 0.25 * Math.min(a.w, b.w)) hor.push({ c: a.y + a.h + gy / 2, a: Math.min(a.x, b.x), b: Math.max(a.x + a.w, b.x + b.w) });
-    }
-  }
-  const juntar = (segs, folga) => {
-    const out = [];
-    for (const s of segs.slice().sort((p, q) => p.c - q.c || p.a - q.a)) {
-      const u = out.find((x) => Math.abs(x.c - s.c) < 1 && s.a <= x.b + folga && s.b >= x.a - folga);
-      if (u) {
-        u.a = Math.min(u.a, s.a);
-        u.b = Math.max(u.b, s.b);
-      } else out.push({ ...s });
-    }
-    return out;
-  };
-  const res = [];
-  const empurra = (div, s) => {
-    const a = s.a + recuo, b = s.b - recuo;
-    if (b - a < 4) return;
-    res.push(div === "v" ? { div, x1: r22(s.c), y1: r22(a), x2: r22(s.c), y2: r22(b) } : { div, x1: r22(a), y1: r22(s.c), x2: r22(b), y2: r22(s.c) });
-  };
-  for (const s of juntar(ver, 0.5)) empurra("v", s);
-  for (const s of juntar(hor, vaoMax)) empurra("h", s);
-  return res;
-}
-
-// lib/encarte/gerador-template.ts
-function dadosTrava(b, trava) {
-  const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
-  const lado = trava === "esq" || trava === "dir" || trava === "centro" ? trava : cx < 40 ? "esq" : cx > 60 ? "dir" : "centro";
-  const alt = cy < 40 ? "cima" : cy > 60 ? "baixo" : "meio";
-  const t = trava === "preco" || trava === "nome" || trava === "imagem" ? ` data-trava="${trava}"` : "";
-  return ` data-ancora="${lado}" data-ancora-v="${alt}"${t}`;
-}
-function divisoriasValidas(d) {
-  if (!d || d.v === false && d.h === false) return null;
-  const cor = /^#[0-9a-f]{6}$/i.test(String(d.cor || "")) ? String(d.cor).toLowerCase() : "#000000";
-  const px = Number.isFinite(+d.px) && +d.px > 0 ? Math.min(200, Math.max(0.5, +d.px)) : 2;
-  const estilo = ["solida", "pontilhada", "tracejada"].includes(d.estilo) ? d.estilo : "solida";
-  const recuo = Number.isFinite(+(d.recuo ?? 0)) ? Math.max(0, +(d.recuo ?? 0)) : 0;
-  return { v: d.v !== false, h: d.h !== false, cor, px, estilo, ...recuo ? { recuo } : {} };
-}
-function tracoDivisoria(estilo, px) {
-  if (estilo === "pontilhada") return ` stroke-dasharray="0 ${n2(px * 2)}" stroke-linecap="round"`;
-  if (estilo === "tracejada") return ` stroke-dasharray="${n2(px * 3)} ${n2(px * 2)}" stroke-linecap="butt"`;
-  return ' stroke-linecap="butt"';
-}
-function svgDivisorias(gaId, casas, d, vaoMax) {
-  const ls = divisoriasDaZona(casas, { v: d.v, h: d.h, recuo: d.recuo, vaoMax });
-  const traco = tracoDivisoria(d.estilo, d.px);
-  return [
-    `<g class="divisorias-tpl" data-zona="${gaId}">`,
-    ...ls.map((l) => `  <line x1="${l.x1}" y1="${l.y1}" x2="${l.x2}" y2="${l.y2}" fill="none" stroke="${d.cor}" stroke-width="${d.px}"${traco}/>`),
-    `</g>`
-  ].join("\n");
-}
-var PROPORCAO_HORIZONTAL = 1.35;
-function esc(s) {
-  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-var n2 = (v) => +v.toFixed(2);
-var fontStr = (fonte, tamanho) => `font-family="${esc(fonte)}" font-size="${tamanho}"`;
-var anchor = (a) => `text-anchor="${a === "middle" ? "middle" : a === "end" ? "end" : "start"}"`;
-var baseline = (y, h) => n2(y + h * 0.78);
-var baselineTexto = (b, c) => c.alinha_v === "centro" ? n2(b.y + b.h / 2 + (c.tamanho || 0) * 0.36) : c.alinha_v === "baixo" ? n2(b.y + b.h) : baseline(b.y, b.h);
-var GATILHO_EXEMPLO = "NA COMPRA DE // 10 UN OU MAIS!";
-var linhasGatilho = (t) => String(t || GATILHO_EXEMPLO).split(/\s*(?:\n|\/\/)\s*/).map((s) => s.trim()).filter(Boolean).slice(0, 2);
-function ancoraVGatilho(c) {
-  if (c.gatilho_ancora && c.gatilho_ancora !== "auto") return c.gatilho_ancora;
-  const bs = [c.gatilho_fundo, c.gatilho].filter(Boolean);
-  if (!bs.length) return "cima";
-  const y0 = Math.min(...bs.map((b) => b.y)), y1 = Math.max(...bs.map((b) => b.y + b.h)), cy = (y0 + y1) / 2;
-  return cy < 40 ? "cima" : cy > 60 ? "baixo" : "meio";
-}
-function baseGatilho(b, c, n) {
-  const entre = n2(c.tamanho * 1.1), bloco = entre * (n - 1);
-  const y = c.alinha_v === "topo" ? b.y + c.tamanho * 0.8 : c.alinha_v === "baixo" ? b.y + b.h - bloco - c.tamanho * 0.1 : b.y + b.h / 2 - bloco / 2 + c.tamanho * 0.36;
-  return { y: n2(y), entre };
-}
-var IMG = (r) => r;
-var href = (ref) => {
-  const v = IMG(ref);
-  return /^[A-Za-z]:\\/.test(v) ? `xlink:href="${esc(v)}"` : `href="${esc(v)}"`;
-};
-var caixa = (c, card) => ({
-  x: card.x + c.x / 100 * card.w,
-  y: card.y + c.y / 100 * card.h,
-  w: c.w / 100 * card.w,
-  h: c.h / 100 * card.h
-});
-var xTexto = (b, a) => n2(a === "middle" ? b.x + b.w / 2 : a === "end" ? b.x + b.w : b.x);
-var DEFS = [];
-var hexA = (c) => c.length === 9 ? parseInt(c.slice(7), 16) / 255 : 1;
-function svgDegrade(id, g) {
-  const s = (g.escala ?? 100) / 100;
-  const paradas = [...g.paradas].sort((a2, b) => a2.pos - b.pos).map((p) => `<stop offset="${n2(p.pos)}%" stop-color="${esc(p.cor.slice(0, 7))}" stop-opacity="${+((p.a ?? 1) * hexA(p.cor)).toFixed(3)}"/>`).join("");
-  if (g.tipo === "radial") return `<radialGradient id="${id}" cx="0.5" cy="0.5" r="${n2(0.5 * s)}">${paradas}</radialGradient>`;
-  const a = (g.angulo ?? 0) * Math.PI / 180, dx = Math.cos(a) * s / 2, dy = -Math.sin(a) * s / 2;
-  return `<linearGradient id="${id}" x1="${n2(0.5 - dx)}" y1="${n2(0.5 - dy)}" x2="${n2(0.5 + dx)}" y2="${n2(0.5 + dy)}">${paradas}</linearGradient>`;
-}
-var defsSvg = () => DEFS.length ? `<defs>${DEFS.join("")}</defs>` : "";
-function pinta(attr, cor) {
-  if (cor && typeof cor === "object") {
-    const id = `degrade_${DEFS.length + 1}`;
-    DEFS.push(svgDegrade(id, cor));
-    return `${attr}="url(#${id})"`;
-  }
-  const m = /^#([0-9a-f]{6})([0-9a-f]{2})$/i.exec(cor || "");
-  if (!m) return `${attr}="${esc(cor || "none")}"`;
-  return `${attr}="#${m[1]}" ${attr}-opacity="${+(parseInt(m[2], 16) / 255).toFixed(3)}"`;
-}
-function borda(o, texto = false) {
-  if (!o.borda || !o.borda_cor) return "";
-  return ` ${pinta("stroke", o.borda_cor)} stroke-width="${o.borda}"${texto ? ' paint-order="stroke" stroke-linejoin="round"' : ""}`;
-}
-function svgForma(id, b, f) {
-  const geo = `x="${n2(b.x)}" y="${n2(b.y)}" width="${n2(b.w)}" height="${n2(b.h)}"`;
-  if (f.imagem_url) return `<image id="${esc(id)}" ${geo} preserveAspectRatio="none" ${href(f.imagem_url)}/>`;
-  const fill = `${pinta("fill", f.cor || "none")}${borda(f)}`;
-  const r = Math.min(f.raio || 0, b.w / 2, b.h / 2);
-  const c = f.cantos && f.cantos.length === 4 ? f.cantos : [true, true, true, true];
-  if (!r || c.every(Boolean)) return `<rect id="${esc(id)}" ${geo} ${fill}${r ? ` rx="${n2(r)}" ry="${n2(r)}"` : ""}/>`;
-  const [tl, tr, br, bl] = c.map((on) => on ? r : 0);
-  const { x, y, w, h } = b;
-  const arco = (k, ex, ey) => k ? ` A${n2(k)} ${n2(k)} 0 0 1 ${n2(ex)} ${n2(ey)}` : ` L${n2(ex)} ${n2(ey)}`;
-  const d = `M${n2(x + tl)} ${n2(y)} H${n2(x + w - tr)}${arco(tr, x + w, y + tr)} V${n2(y + h - br)}${arco(br, x + w - br, y + h)} H${n2(x + bl)}${arco(bl, x, y + h - bl)} V${n2(y + tl)}${arco(tl, x + tl, y)} Z`;
-  return `<path id="${esc(id)}" d="${d}" ${fill}/>`;
-}
-function estiloTexto(c, tachar = false) {
-  const deco = [c.sublinhado && "underline", (c.tachado || tachar) && "line-through"].filter(Boolean).join(" ");
-  const css = [c.caixa_alta && "text-transform:uppercase", c.versalete && "font-variant:small-caps"].filter(Boolean).join(";");
-  return (c.italico ? ' font-style="italic"' : "") + (deco ? ` text-decoration="${deco}"` : "") + (css ? ` style="${css}"` : "") + (c.espacamento ? ` letter-spacing="${n2(c.espacamento / 1e3 * c.tamanho)}"` : "");
-}
-function svgTexto(id, c, b, conteudo, ancoraFixa, tachar = false, dados = "") {
-  const al = ancoraFixa || c.alinhamento;
-  return `<text id="${esc(id)}"${dados} ${fontStr(c.fonte, c.tamanho)} ${pinta("fill", c.cor)}${borda(c, true)}${estiloTexto(c, tachar)} transform="translate(${xTexto(b, al)} ${/_nome(_texto)?$/.test(id) ? baseline(b.y, b.h) : baselineTexto(b, c)})" ${anchor(al)}>${esc(conteudo)}</text>`;
-}
-var margensNome = (f) => ({ t: f?.margem_t ?? 6, r: f?.margem_r ?? 6, b: f?.margem_b ?? 6, l: f?.margem_l ?? 6 });
-function caixaDoNome(campos, card) {
-  if (!campos.nome) return null;
-  if (!campos.nome_fundo) return caixa(campos.nome, card);
-  const f = caixa(campos.nome_fundo, card), m = margensNome(campos.nome_fundo);
-  return { x: f.x + m.l, y: f.y + m.t, w: Math.max(4, f.w - m.l - m.r), h: Math.max(4, f.h - m.t - m.b) };
-}
-function areaPorRegra(campos, card) {
-  const a = campos.area;
-  if (!a || a.modo !== "regras") return null;
-  const gap = a.espaco ?? 6;
-  let top = card.y + (a.margem_t ?? 6), bot = card.y + card.h - (a.margem_b ?? 6);
-  const l = card.x + (a.margem_l ?? 6), r = card.x + card.w - (a.margem_r ?? 6);
-  if (a.resp_nome !== false && campos.nome) {
-    const n = campos.nome_fundo ? caixa(campos.nome_fundo, card) : caixa(campos.nome, card);
-    top = Math.max(top, n.y + n.h + gap);
-  }
-  const pecas = [campos.preco_fundo, campos.moeda_fundo, campos.moeda, campos.preco, campos.centavos, campos.unidade].filter(Boolean).map((c) => caixa(c, card));
-  if (pecas.length) {
-    const y0 = Math.min(...pecas.map((b) => b.y)), y1 = Math.max(...pecas.map((b) => b.y + b.h));
-    if ((y0 + y1) / 2 > card.y + card.h / 2) {
-      if (a.resp_preco_baixo !== false) bot = Math.min(bot, y0 - gap);
-    } else if (a.resp_preco_cima) top = Math.max(top, y1 + gap);
-  }
-  return { x: l, y: top, w: Math.max(10, r - l), h: Math.max(10, bot - top) };
-}
-var PECAS_PRECO = ["preco_fundo", "moeda_fundo", "moeda", "preco", "centavos", "unidade"];
-var PECAS_JUNTO = ["de_fundo", "de_rotulo", "de_valor", "selo_fundo", "selo_rotulo", "selo_moeda", "selo_valor"];
-var MEDIDAS_PRECO = ["tamanho", "borda", "raio", "respiro", "largura_max", "margem_t", "margem_r", "margem_b", "margem_l"];
-function precoProporcional(campos, ref, casa) {
-  if (!(ref.w > 0 && ref.h > 0 && casa.w > 0 && casa.h > 0)) return campos;
-  if (Math.abs(ref.w - casa.w) < 0.01 && Math.abs(ref.h - casa.h) < 0.01) return campos;
-  const c = campos;
-  const pecas = PECAS_PRECO.filter((k) => c[k]).map((k) => c[k]);
-  if (!pecas.length) return campos;
-  const x0 = Math.min(...pecas.map((b) => b.x)) / 100 * ref.w, x1 = Math.max(...pecas.map((b) => b.x + b.w)) / 100 * ref.w;
-  const y0 = Math.min(...pecas.map((b) => b.y)) / 100 * ref.h, y1 = Math.max(...pecas.map((b) => b.y + b.h)) / 100 * ref.h;
-  const cx = (x0 + x1) / 2 / ref.w, cy = (y0 + y1) / 2 / ref.h;
-  const s = Math.min(
-    casa.w / ref.w,
-    casa.h / ref.h,
-    cx > 0.6 || cx < 0.4 ? Math.max(0.05, (casa.w - (cx > 0.6 ? ref.w - x1 : x0)) / (x1 - x0)) : Infinity,
-    Math.max(0.05, (casa.h - (cy > 0.5 ? ref.h - y1 : y0)) / (y1 - y0))
-  );
-  const X0 = cx > 0.6 ? casa.w - (ref.w - x1) - (x1 - x0) * s : cx < 0.4 ? x0 : cx * casa.w - (x1 - x0) * s / 2;
-  const Y0 = cy > 0.5 ? casa.h - (ref.h - y1) - (y1 - y0) * s : y0;
-  const ptX = (x) => X0 + (x / 100 * ref.w - x0) * s, ptY = (y) => Y0 + (y / 100 * ref.h - y0) * s;
-  const r = (v) => +v.toFixed(3);
-  const out = { ...campos };
-  const ks = [...PECAS_PRECO, ...PECAS_JUNTO.filter((k) => !k.startsWith("de_") || !campos.de_trava || campos.de_trava === "preco")];
-  for (const k of ks) {
-    const o = c[k];
-    if (!o) continue;
-    const n = {
-      ...o,
-      x: r(ptX(o.x) / casa.w * 100),
-      y: r(ptY(o.y) / casa.h * 100),
-      w: r(o.w / 100 * ref.w * s / casa.w * 100),
-      h: r(o.h / 100 * ref.h * s / casa.h * 100)
-    };
-    for (const m of MEDIDAS_PRECO) if (typeof o[m] === "number") n[m] = Math.round(o[m] * s * 100) / 100;
-    out[k] = n;
-  }
-  if (campos.com_selo) {
-    const pc = campos.com_selo.pecas;
-    out.com_selo = {
-      ...campos.com_selo,
-      x: r(ptX(campos.com_selo.x) / casa.w * 100),
-      y: r(ptY(campos.com_selo.y) / casa.h * 100),
-      ...pc ? { pecas: Object.fromEntries(Object.entries(pc).map(([k, o]) => [k, { ...o, ...o.x != null ? { x: r(ptX(o.x) / casa.w * 100) } : {}, ...o.y != null ? { y: r(ptY(o.y) / casa.h * 100) } : {} }])) } : {}
-    };
-  }
-  if (campos.extras) out.extras = campos.extras.map((e) => e.trava !== "preco" ? e : {
-    ...e,
-    x: r(ptX(e.x) / casa.w * 100),
-    y: r(ptY(e.y) / casa.h * 100),
-    w: r(e.w / 100 * ref.w * s / casa.w * 100),
-    h: r(e.h / 100 * ref.h * s / casa.h * 100),
-    ...Object.fromEntries(MEDIDAS_PRECO.filter((m) => typeof e[m] === "number").map((m) => [m, Math.round(e[m] * s * 100) / 100]))
-  });
-  return out;
-}
-function camposNaCasa(campos, ref, casa) {
-  if (!(ref.w > 0 && ref.h > 0 && casa.w > 0 && casa.h > 0)) return campos;
-  if (Math.abs(ref.w - casa.w) < 0.01 && Math.abs(ref.h - casa.h) < 0.01) return campos;
-  const r = (v) => +v.toFixed(3);
-  const pt = (b) => ({ x: b.x / 100 * ref.w, y: b.y / 100 * ref.h, w: b.w / 100 * ref.w, h: b.h / 100 * ref.h });
-  const pct = (b) => ({ x: r(b.x / casa.w * 100), y: r(b.y / casa.h * 100), w: r(b.w / casa.w * 100), h: r(b.h / casa.h * 100) });
-  const out = precoProporcional(campos, ref, casa);
-  const c = campos;
-  const estica = (B) => {
-    const w = Math.max(10, casa.w - B.x - (ref.w - B.x - B.w)), h = Math.max(10, casa.h - B.y - (ref.h - B.y - B.h));
-    return { x: B.x, y: B.y, w, h };
-  };
-  for (const k of ["area", "foto"]) {
-    const o = c[k];
-    if (o) out[k] = { ...o, ...pct(estica(pt(o))) };
-  }
-  const nomeNa = (B) => {
-    const w = Math.max(10, casa.w - B.x - (ref.w - B.x - B.w));
-    const y = (B.y + B.h / 2) / ref.h <= 0.5 ? B.y : casa.h - (ref.h - B.y);
-    return { x: B.x, y, w, h: B.h };
-  };
-  let dNome = null;
-  for (const k of ["nome_fundo", "nome"]) {
-    const o = c[k];
-    if (!o) continue;
-    const B = pt(o), N = nomeNa(B);
-    out[k] = { ...o, ...pct(N) };
-    if (!dNome || k === "nome") dNome = { dx: N.x + N.w / 2 - (B.x + B.w / 2), dy: N.y + N.h - (B.y + B.h) };
-  }
-  const A0 = c.area ? pt(c.area) : null, A1 = A0 ? estica(A0) : null;
-  const sB = Math.min(casa.w / ref.w, casa.h / ref.h);
-  const bloco = (U, trava) => {
-    let ax = 0.5, ay = 0.5, PX, PY;
-    if (trava === "nome" && dNome) {
-      ay = 1;
-      PX = U.x + U.w / 2 + dNome.dx;
-      PY = U.y + U.h + dNome.dy;
-    } else if (trava === "imagem" && A0 && A1) {
-      PX = A1.x + (U.x + U.w / 2 - A0.x) / (A0.w || 1) * A1.w;
-      PY = A1.y + (U.y + U.h / 2 - A0.y) / (A0.h || 1) * A1.h;
-    } else {
-      const cx = (U.x + U.w / 2) / ref.w, cy = (U.y + U.h / 2) / ref.h;
-      const lado = trava === "esq" || trava === "dir" || trava === "centro" ? trava : cx < 0.4 ? "esq" : cx > 0.6 ? "dir" : "centro";
-      ax = lado === "esq" ? 0 : lado === "dir" ? 1 : 0.5;
-      ay = cy < 0.4 ? 0 : cy > 0.6 ? 1 : 0.5;
-      const px = U.x + ax * U.w, py = U.y + ay * U.h;
-      PX = ax === 0 ? px : ax === 1 ? casa.w - (ref.w - px) : px / ref.w * casa.w;
-      PY = ay === 0 ? py : ay === 1 ? casa.h - (ref.h - py) : py / ref.h * casa.h;
-    }
-    const ox = U.x + ax * U.w, oy = U.y + ay * U.h;
-    return (o) => {
-      const B = pt(o), n = { ...o, ...pct({ x: PX + (B.x - ox) * sB, y: PY + (B.y - oy) * sB, w: B.w * sB, h: B.h * sB }) };
-      for (const m of MEDIDAS_PRECO) if (typeof o[m] === "number") n[m] = Math.round(o[m] * sB * 100) / 100;
-      return n;
-    };
-  };
-  const uniaoPt = (bs) => {
-    const x0 = Math.min(...bs.map((b) => b.x)), y0 = Math.min(...bs.map((b) => b.y));
-    return { x: x0, y: y0, w: Math.max(...bs.map((b) => b.x + b.w)) - x0, h: Math.max(...bs.map((b) => b.y + b.h)) - y0 };
-  };
-  if (campos.de_trava && campos.de_trava !== "preco") {
-    const ks = ["de_fundo", "de_rotulo", "de_valor"].filter((k) => c[k]);
-    if (ks.length) {
-      const f = bloco(uniaoPt(ks.map((k) => pt(c[k]))), campos.de_trava);
-      for (const k of ks) out[k] = f(c[k]);
-    }
-  }
-  if (campos.extras) out.extras = out.extras.map((e, i) => {
-    const o = campos.extras[i];
-    if (o.trava === "preco") return e;
-    return bloco(pt(o), o.trava)(o);
-  });
-  const gks = ["gatilho_fundo", "gatilho"].filter((k) => campos[k]);
-  if (gks.length) {
-    const U = uniaoPt(gks.map((k) => pt(campos[k]))), v = ancoraVGatilho(campos);
-    const dy = v === "cima" ? 0 : v === "baixo" ? casa.h - ref.h : (U.y + U.h / 2) * (casa.h / ref.h - 1);
-    for (const k of gks) {
-      const B = pt(campos[k]);
-      out[k] = { ...campos[k], ...pct({ x: B.x, y: B.y + dy, w: Math.max(4, casa.w - B.x - (ref.w - B.x - B.w)), h: B.h }) };
-    }
-  }
-  return out;
-}
-var r1 = (v) => Math.round(v * 10) / 10;
-var chaveFormato = (v, w, h) => `${v}:${r1(w)}x${r1(h)}`;
-function versaoNaCasa(m, v, casa, refLegado) {
-  const f = m.formatos && m.formatos[chaveFormato(v, casa.w, casa.h)];
-  if (f) return precoNaCasa(f, casa, casa);
-  return precoNaCasa(m[v], refLegado, casa);
-}
-function precoNaCasa(campos, ref, casa) {
-  const r = campos.preco_ref && campos.preco_ref.w > 0 && campos.preco_ref.h > 0 ? campos.preco_ref : ref;
-  return r ? camposNaCasa(campos, r, casa) : campos;
-}
-function svgCampos(campos, num, card) {
-  const out = [];
-  const { foto, area, nome, preco_fundo, moeda_fundo, moeda, preco, centavos, unidade } = campos;
-  const porRegra = areaPorRegra(campos, card);
-  if (area) {
-    const b = porRegra || caixa(area, card);
-    const dados = porRegra ? ` data-regra="1" data-margem="${[area.margem_t, area.margem_r, area.margem_b, area.margem_l].map((v) => v ?? 6).join(" ")}" data-nome="${area.resp_nome !== false ? 1 : 0}" data-preco-baixo="${area.resp_preco_baixo !== false ? 1 : 0}" data-preco-cima="${area.resp_preco_cima ? 1 : 0}" data-espaco="${area.espaco ?? 6}"` : ' data-fixa="1"';
-    const alinha = area.foto_alinha && /^(cima|centro|baixo) (esq|centro|dir)$/.test(area.foto_alinha) ? ` data-foto-alinha="${area.foto_alinha}"` : "";
-    out.push(`  <rect id="produto_${num}_area"${dados}${alinha} x="${n2(b.x)}" y="${n2(b.y)}" width="${n2(b.w)}" height="${n2(b.h)}" fill="none" stroke="none"/>`);
-  }
-  const extra = (e, k) => {
-    const b = caixa(e, card), id = `extra_${num}_${k + 1}`;
-    const ancora = dadosTrava(e, e.trava) + (e.frente || e.topo ? ' data-frente="1"' : "");
-    let t = "";
-    if (e.tipo === "texto") t = svgTexto(id, e, b, e.texto);
-    else if (e.tipo === "imagem") {
-      if (e.url) t = `<image id="${id}" x="${n2(b.x)}" y="${n2(b.y)}" width="${n2(b.w)}" height="${n2(b.h)}" preserveAspectRatio="xMidYMid meet" ${href(e.url)}/>`;
-    } else t = svgForma(id, b, e);
-    if (t) out.push("  " + t.replace(/^<(\w+) /, `<$1${ancora} `));
-  };
-  (campos.extras || []).forEach((e, k) => {
-    if (!e.frente) extra(e, k);
-  });
-  if (foto) {
-    const b = porRegra || caixa(foto, card);
-    out.push(`  <image id="produto_${num}_var_01_imagem" x="${n2(b.x)}" y="${n2(b.y)}" width="${n2(b.w)}" height="${n2(b.h)}" preserveAspectRatio="xMidYMid meet"/>`);
-  }
-  (campos.extras || []).forEach((e, k) => {
-    if (e.frente && !e.topo) extra(e, k);
-  });
-  if (campos.gatilho || campos.gatilho_fundo) {
-    const dados = ` data-ancora="esq" data-ancora-v="${ancoraVGatilho(campos)}" data-frente="1"`;
-    if (campos.gatilho_fundo) out.push("  " + svgForma(`produto_${num}_tarja_fundo`, caixa(campos.gatilho_fundo, card), campos.gatilho_fundo).replace(/^<(\w+) /, `<$1${dados} `));
-    if (campos.gatilho) {
-      const g = campos.gatilho, b = caixa(g, card), ls = linhasGatilho(g.texto_exemplo), { y, entre } = baseGatilho(b, g, ls.length);
-      const tsp = ls.map((l, i) => `<tspan x="0" y="${i ? entre : 0}">${esc(l)}</tspan>`).join("");
-      out.push(`  <text id="produto_${num}_gatilho"${dados} ${fontStr(g.fonte, g.tamanho)} ${pinta("fill", g.cor)}${borda(g, true)}${estiloTexto(g)} transform="translate(${n2(b.x + b.w / 2)} ${y})" ${anchor("middle")}>${tsp}</text>`);
-    }
-  }
-  if (nome) {
-    const b = caixaDoNome(campos, card);
-    const v = nome.alinha_v === "centro" || nome.alinha_v === "baixo" ? ` data-alinha-v="${nome.alinha_v}"` : "";
-    const ml = [1, 2, 3].includes(Number(nome.max_linhas)) ? ` data-linhas="${Number(nome.max_linhas)}"` : "";
-    const dadosTxt = ` data-largura="${n2(b.w)}" data-altura="${n2(b.h)}"${v}${ml}`;
-    const nf = campos.nome_fundo;
-    if (!nf) out.push("  " + svgTexto(`produto_${num}_nome`, nome, b, nome.texto_exemplo || "PRODUTO", void 0, false, dadosTxt));
-    else {
-      const m = margensNome(nf);
-      const dados = ` data-regra="${nf.regra || "fixo"}" data-margem="${[m.t, m.r, m.b, m.l].join(" ")}"`;
-      out.push(`  <g id="produto_${num}_nome">`);
-      out.push("    " + svgForma(`fundo_nome_${num}`, caixa(nf, card), nf).replace(/^<(\w+) /, `<$1${dados} `));
-      out.push("    " + svgTexto(`produto_${num}_nome_texto`, nome, b, nome.texto_exemplo || "PRODUTO", void 0, false, dadosTxt));
-      out.push("  </g>");
-    }
-  }
-  if (campos.limite) {
-    const l = campos.limite;
-    out.push("  " + svgTexto(`produto_${num}_qtd_max`, l, caixa(l, card), l.texto_exemplo || "LIMITE 3 UN", void 0, false, ' data-exemplo="1"'));
-  }
-  if (preco_fundo || moeda_fundo || moeda || preco || unidade) {
-    let comSelo = "";
-    const cs = campos.selo_valor && campos.com_selo, seloPeca = {};
-    const ps = (k, svg) => seloPeca[k] ? svg.replace(/^<(\w+) /, `<$1 ${seloPeca[k]} `) : svg;
-    if (cs) {
-      const bs = [preco_fundo, moeda_fundo, moeda, preco, centavos, unidade].filter(Boolean).map((c) => caixa(c, card));
-      if (bs.length) {
-        const x0 = Math.min(...bs.map((b) => b.x)), y0 = Math.min(...bs.map((b) => b.y));
-        const x1 = Math.max(...bs.map((b) => b.x + b.w)), y1 = Math.max(...bs.map((b) => b.y + b.h));
-        const s = cs.escala || 1, X = card.x + cs.x / 100 * card.w, Y = card.y + cs.y / 100 * card.h;
-        const dx = X + (x1 - x0) * s - x1, dy = Y + (y1 - y0) * s - y1, r = (v) => Math.round(v * 100) / 100;
-        if (Math.abs(s - 1) > 1e-3 || Math.abs(dx) > 0.05 || Math.abs(dy) > 0.05 || cs.pecas) comSelo = ` data-com-selo="${r(s)} ${r(dx)} ${r(dy)} ${r(x1)} ${r(y1)}"`;
-        for (const [k, o] of Object.entries(cs.pecas || {})) {
-          const c = campos[k];
-          if (!c) continue;
-          const b = caixa(c, card), at = [];
-          if (o.x != null || o.y != null) {
-            const ox = o.x != null ? card.x + o.x / 100 * card.w : X + (b.x - x0) * s, oy = o.y != null ? card.y + o.y / 100 * card.h : Y + (b.y - y0) * s;
-            const lx = (ox - (X + (b.x - x0) * s)) / s, ly = (oy - (Y + (b.y - y0) * s)) / s;
-            if (Math.abs(lx) > 0.05 || Math.abs(ly) > 0.05) at.push(`data-selo-d="${r(lx)} ${r(ly)}"`);
-          }
-          if (typeof o.cor === "string") at.push(`data-selo-cor="${esc(o.cor)}"`);
-          if (typeof o.borda_cor === "string") at.push(`data-selo-borda="${esc(o.borda_cor)}"`);
-          if (at.length) seloPeca[k] = at.join(" ");
-        }
-      }
-    }
-    out.push(`  <g id="PRECO_${num}"${comSelo}>`);
-    if (preco_fundo) {
-      const b = caixa(preco_fundo, card);
-      let f = svgForma(`fundo_preco_${num}`, b, preco_fundo);
-      if (preco_fundo.regra && preco_fundo.regra !== "fixo") {
-        const c = preco_fundo.cantos && preco_fundo.cantos.length === 4 ? preco_fundo.cantos : [true, true, true, true];
-        const dados = [
-          `data-regra="${preco_fundo.regra}"`,
-          `data-lado="${preco_fundo.regra_lado || "ambos"}"`,
-          `data-respiro="${preco_fundo.respiro ?? 12}"`,
-          `data-encolhe="${preco_fundo.encolhe ? 1 : 0}"`,
-          ...preco_fundo.largura_max ? [`data-max="${n2(preco_fundo.largura_max)}"`] : [],
-          `data-margem="${[preco_fundo.margem_t, preco_fundo.margem_r, preco_fundo.margem_b, preco_fundo.margem_l].map((v) => v ?? 8).join(" ")}"`,
-          `data-raio="${preco_fundo.raio || 0}"`,
-          `data-cantos="${c.map((v) => v ? 1 : 0).join("")}"`,
-          `data-x="${n2(b.x)}" data-y="${n2(b.y)}" data-w="${n2(b.w)}" data-h="${n2(b.h)}"`
-        ].join(" ");
-        f = f.replace(/^<(rect|path|image) /, `<$1 ${dados} `);
-      }
-      out.push("    " + ps("preco_fundo", f));
-    }
-    if (moeda_fundo) out.push("    " + ps("moeda_fundo", svgForma(`fundo_moeda_${num}`, caixa(moeda_fundo, card), moeda_fundo)));
-    if (moeda) out.push("    " + ps("moeda", svgTexto(`moeda_${num}`, moeda, caixa(moeda, card), "R$")));
-    if (preco && centavos) {
-      out.push("    " + ps("preco", svgTexto(`produto_${num}_preco_real`, preco, caixa(preco, card), "0", "end")));
-      out.push("    " + ps("centavos", svgTexto(`produto_${num}_preco_centavos`, centavos, caixa(centavos, card), ",00", "start")));
-    } else if (preco) out.push("    " + ps("preco", svgTexto(`produto_${num}_preco`, preco, caixa(preco, card), "0,00")));
-    if (unidade) out.push("    " + ps("unidade", svgTexto(`produto_${num}_formato`, unidade, caixa(unidade, card), unidade.texto_exemplo || "kg")));
-    out.push(`  </g>`);
-  }
-  if (campos.de_valor) {
-    const v = campos.de_valor, bv = caixa(v, card);
-    const pcs = [campos.de_fundo, campos.de_rotulo, v].filter(Boolean);
-    const u = { x: Math.min(...pcs.map((c) => c.x)), y: Math.min(...pcs.map((c) => c.y)) };
-    const uw = Math.max(...pcs.map((c) => c.x + c.w)) - u.x, uh = Math.max(...pcs.map((c) => c.y + c.h)) - u.y;
-    out.push(`  <g id="produto_${num}_de"${dadosTrava({ ...u, w: uw, h: uh }, campos.de_trava || "preco")} style="display:none">`);
-    if (campos.de_fundo) out.push("    " + svgForma(`de_fundo_${num}`, caixa(campos.de_fundo, card), campos.de_fundo));
-    if (campos.de_rotulo) out.push("    " + svgTexto(`de_rotulo_${num}`, campos.de_rotulo, caixa(campos.de_rotulo, card), campos.de_rotulo.texto_exemplo || "DE R$"));
-    out.push("    " + svgTexto(`produto_${num}_preco_de`, v, bv, "0,00", void 0, v.riscar !== false));
-    out.push(`  </g>`);
-  }
-  if (campos.selo_valor) {
-    out.push(`  <g id="produto_${num}_selo" style="display:none">`);
-    if (campos.selo_fundo) out.push("    " + svgForma(`selo_fundo_${num}`, caixa(campos.selo_fundo, card), campos.selo_fundo));
-    if (campos.selo_rotulo) out.push("    " + svgTexto(`selo_rotulo_${num}`, campos.selo_rotulo, caixa(campos.selo_rotulo, card), campos.selo_rotulo.texto_exemplo || "CLUBE"));
-    if (campos.selo_moeda) out.push("    " + svgTexto(`moeda_selo_${num}`, campos.selo_moeda, caixa(campos.selo_moeda, card), "R$"));
-    out.push("    " + svgTexto(`produto_${num}_valor_selo`, campos.selo_valor, caixa(campos.selo_valor, card), "0,00"));
-    out.push(`  </g>`);
-  }
-  (campos.extras || []).forEach((e, k) => {
-    if (e.topo) extra(e, k);
-  });
-  return out;
-}
-function svgCard(gId, num, modelo, campos, card, horizontal = false) {
-  const nn = String(num).padStart(2, "0");
-  const fc = campos.fundo_card;
-  if (fc) modelo = { ...modelo, fundo_cor: fc.cor, raio: fc.raio ?? modelo.raio, borda: fc.borda ?? modelo.borda, borda_cor: fc.borda_cor ?? modelo.borda_cor };
-  const r = modelo.raio ? ` rx="${modelo.raio}" ry="${modelo.raio}"` : "";
-  return [
-    `<g id="${gId}" data-modelo="${modelo.indice}"${horizontal ? ' data-formato="horizontal"' : ""}>`,
-    `  <rect id="MARGEM_GRID_${nn}" x="${n2(card.x)}" y="${n2(card.y)}" width="${n2(card.w)}" height="${n2(card.h)}" ${pinta("fill", modelo.fundo_cor || "none")}${borda(modelo)}${r}/>`,
-    ...svgCampos(campos, nn, card),
-    `</g>`
-  ].join("\n");
-}
-function usaHorizontal(m, z, w, h) {
-  if (!m.horizontal || z.formato === "normal") return false;
-  return z.formato === "horizontal" || w / h >= PROPORCAO_HORIZONTAL;
-}
-var itensDaLinha = (z, r) => Math.max(1, Math.round(z.por_linha?.[r] || z.colunas));
-function casasNormaisPorModelo(projeto) {
-  const ref = /* @__PURE__ */ new Map(), primeira = /* @__PURE__ */ new Map();
-  const modelos = new Map(projeto.modelos_card.map((m) => [m.id, m]));
-  for (const pr of projeto.pranchetas) for (const z of pr.zonas) {
-    const m = modelos.get(z.modelo_card_id);
-    if (!m) continue;
-    const c = casaDaZona(z, projeto.espaco_padrao);
-    for (let r = 0; r < z.linhas; r++) {
-      const n = itensDaLinha(z, r), casa = { w: (z.w - (n - 1) * c.e) / n, h: c.h };
-      if (!primeira.has(m.id)) primeira.set(m.id, casa);
-      if (!ref.has(m.id) && !usaHorizontal(m, z, casa.w, casa.h)) ref.set(m.id, casa);
-    }
-  }
-  for (const [k, v] of primeira) if (!ref.has(k)) ref.set(k, v);
-  return ref;
-}
-function casaDaZona(zona, espacoPadrao) {
-  const e = zona.espaco ?? espacoPadrao;
-  return { w: (zona.w - (zona.colunas - 1) * e) / zona.colunas, h: (zona.h - (zona.linhas - 1) * e) / zona.linhas, e };
-}
-function svgElemento(el, ox) {
-  const x = n2(el.x + ox), y = n2(el.y), w = n2(el.w), h = n2(el.h);
-  if (el.tipo === "retangulo") return svgForma(el.id, { x, y, w, h }, el);
-  if (el.tipo === "texto") {
-    const t = svgTexto(el.id, el, { x, y, w, h }, el.texto);
-    return el.papel && /^(data|aviso|variavel)$/.test(el.papel) ? t.replace("<text ", `<text data-papel="${el.papel}" `) : t;
-  }
-  if (el.tipo === "imagem" && el.url) {
-    const ar = el.ajuste === "cover" ? "xMidYMid slice" : "xMidYMid meet";
-    return `<image id="${esc(el.id)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${ar}" ${href(el.url)}/>`;
-  }
-  return "";
-}
-function svgFundo(f, x, w, h, i) {
-  if (f.tipo === "imagem" && f.url) {
-    const ar = f.ajuste === "contain" ? "xMidYMid meet" : "xMidYMid slice";
-    return `<image id="fundo_${i + 1}" x="${x}" y="0" width="${w}" height="${h}" preserveAspectRatio="${ar}" ${href(f.url)}/>`;
-  }
-  return `<rect id="fundo_${i + 1}" x="${x}" y="0" width="${w}" height="${h}" ${pinta("fill", f.tipo === "cor" ? f.cor : "#ffffff")}/>`;
-}
-var VAO = 20;
-function gerarSvgTemplate(projeto, opcoes = {}) {
-  IMG = opcoes.imagem || ((r) => r);
-  DEFS = [];
-  const W = projeto.tamanho.w, H = projeto.tamanho.h;
-  const np = projeto.pranchetas.length;
-  const totalW = W * np + VAO * (np - 1);
-  const modelos = new Map(projeto.modelos_card.map((m) => [m.id, m]));
-  const corpo = [];
-  const pranchetas = [];
-  const casaPorModelo = /* @__PURE__ */ new Map();
-  const refPorModelo = casasNormaisPorModelo(projeto);
-  let num = 1, ga = 0;
-  projeto.pranchetas.forEach((pr, pi) => {
-    const ox = pi * (W + VAO);
-    pranchetas.push({ nome: pr.nome, x: ox, y: 0, w: W, h: H });
-    corpo.push(`<g id="PRANCHETA_${pi + 1}">`);
-    corpo.push(svgFundo(pr.fundo, ox, W, H, pi));
-    for (const el of pr.elementos) {
-      const s = svgElemento(el, ox);
-      if (s) corpo.push(s);
-    }
-    for (const z of pr.zonas) {
-      const m = modelos.get(z.modelo_card_id);
-      if (!m) continue;
-      const c = casaDaZona(z, projeto.espaco_padrao);
-      if (!casaPorModelo.has(m.id)) casaPorModelo.set(m.id, c);
-      ga++;
-      const gaId = ga === 1 ? "grid_area" : `grid_area_${String(ga).padStart(2, "0")}`;
-      const dv = divisoriasValidas(z.divisorias);
-      corpo.push(`<rect id="${gaId}" data-modelo="${m.indice}" data-zona="${esc(z.id)}" data-linhas-tpl="${z.linhas}"${dv ? ` data-divisorias="${esc(JSON.stringify(dv))}"` : ""} x="${n2(z.x + ox)}" y="${n2(z.y)}" width="${n2(z.w)}" height="${n2(z.h)}" fill="none" stroke="none"/>`);
-      const casas = [], cards = [];
-      for (let r = 0; r < z.linhas; r++) for (let n = itensDaLinha(z, r), cw = (z.w - (n - 1) * c.e) / n, k = 0; k < n; k++) {
-        const card = { x: z.x + ox + k * (cw + c.e), y: z.y + r * (c.h + c.e), w: cw, h: c.h };
-        const hz = usaHorizontal(m, z, cw, c.h);
-        casas.push(card);
-        cards.push(svgCard(`PRODUTO_${num}`, num, m, hz ? versaoNaCasa(m, "horizontal", card, null) : versaoNaCasa(m, "campos", card, refPorModelo.get(m.id)), card, hz));
-        num++;
-      }
-      if (dv) corpo.push(svgDivisorias(gaId, casas, dv, Math.max(40, c.e * 3)));
-      corpo.push(...cards);
-    }
-    corpo.push(`</g>`);
-  });
-  const svg = [
-    // data-projeto: o editor de encarte mostra "Editar template" e abre o construtor nesse projeto
-    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${totalW} ${H}" width="${totalW}" height="${H}"${projeto.id && /^[\w-]{1,64}$/.test(projeto.id) ? ` data-projeto="${projeto.id}"` : ""}${projeto.tipo === "catalogo" ? ' data-tipo="catalogo"' : ""}>`,
-    defsSvg(),
-    ...corpo,
-    `</svg>`
-  ].join("\n");
-  const especiais = [];
-  for (const m of projeto.modelos_card) {
-    if (!m.especial) continue;
-    const c = casaPorModelo.get(m.id) || { w: 200, h: 280, e: projeto.espaco_padrao };
-    const card = { x: 0, y: 0, w: c.w * 2 + c.e, h: c.h * 2 + c.e };
-    DEFS = [];
-    const corpoEsp = svgCard("PRODUTO_ESPECIAL_1", 1, m, versaoNaCasa(m, "especial", card, null), card);
-    especiais.push({
-      nome: m.nome,
-      svg: [
-        `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${n2(card.w)} ${n2(card.h)}" width="${n2(card.w)}" height="${n2(card.h)}">`,
-        defsSvg(),
-        corpoEsp,
-        `</svg>`
-      ].join("\n")
-    });
-  }
-  for (const m of projeto.modelos_card) {
-    if (!m.horizontal) continue;
-    const c = casaPorModelo.get(m.id) || { w: 200, h: 280, e: projeto.espaco_padrao };
-    const card = c.w / c.h >= PROPORCAO_HORIZONTAL ? { x: 0, y: 0, w: c.w, h: c.h } : { x: 0, y: 0, w: c.w * 2 + c.e, h: c.h };
-    DEFS = [];
-    const corpoH = svgCard("PRODUTO_ESPECIAL_1", 1, m, versaoNaCasa(m, "horizontal", card, null), card, true);
-    especiais.push({
-      nome: `horizontal ${m.nome}`,
-      svg: [
-        `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${n2(card.w)} ${n2(card.h)}" width="${n2(card.w)}" height="${n2(card.h)}">`,
-        defsSvg(),
-        corpoH,
-        `</svg>`
-      ].join("\n")
-    });
-  }
-  return { svg, pranchetas_json: JSON.stringify({ pranchetas }, null, 2), especiais };
-}
-
-// lib/encarte/template-ops.ts
-var clone = (o) => JSON.parse(JSON.stringify(o));
-function imagensUsadas(o) {
-  const achadas = /* @__PURE__ */ new Set();
-  const anda = (v) => {
-    if (typeof v === "string") {
-      if (v.startsWith("arq:")) achadas.add(v.slice(4));
-    } else if (Array.isArray(v)) v.forEach(anda);
-    else if (v && typeof v === "object") Object.values(v).forEach(anda);
-  };
-  anda(o);
-  return [...achadas];
-}
-function duplicarProjeto(origem, novo) {
-  const p = clone(origem);
-  return { ...p, id: novo.id, cliente: novo.cliente, tema: novo.tema, nome: novo.nome, criadoEm: novo.agora, atualizadoEm: novo.agora };
-}
-function proximoModelo(destino) {
-  const ids = new Set(destino.modelos_card.map((m) => m.id));
-  let n = destino.modelos_card.length + 1;
-  while (ids.has(`mc${n}`)) n++;
-  const indice = Math.max(0, ...destino.modelos_card.map((m) => m.indice || 0)) + 1;
-  return { id: `mc${n}`, indice };
-}
-function colarModelo(destino, modelo) {
-  const p = clone(destino);
-  const { id, indice } = proximoModelo(p);
-  const nomes = new Set(p.modelos_card.map((m2) => m2.nome));
-  let nome = modelo.nome;
-  while (nomes.has(nome)) nome = `${nome} (c\xF3pia)`;
-  const m = { ...clone(modelo), id, indice, nome };
-  p.modelos_card.push(m);
-  return { projeto: p, modelo: m, imagens: imagensUsadas(m) };
-}
-
-// lib/encarte/biblioteca-ops.ts
-var TIPOS_ITEM = ["card", "grupo", "elementos", "estrutura"];
-var CAMPOS_DO_GRUPO = {
-  produto: ["area", "foto", "nome_fundo", "nome"],
-  preco: ["preco_fundo", "moeda_fundo", "moeda", "preco", "centavos", "unidade"],
-  de: ["de_fundo", "de_rotulo", "de_valor"],
-  selo: ["selo_fundo", "selo_rotulo", "selo_moeda", "selo_valor"],
-  gatilho: ["gatilho_fundo", "gatilho"]
-};
-var NOME_DO_GRUPO = { produto: "Produto", preco: "Pre\xE7o", de: "Pre\xE7o DE", selo: "Selo do clube", gatilho: "Gatilho" };
-var clone2 = (o) => JSON.parse(JSON.stringify(o));
-var r2 = (v) => +v.toFixed(2);
-var paraPt = (c, casa) => ({ x: c.x / 100 * casa.w, y: c.y / 100 * casa.h, w: c.w / 100 * casa.w, h: c.h / 100 * casa.h });
-function uniao(bs) {
-  const x = Math.min(...bs.map((b) => b.x)), y = Math.min(...bs.map((b) => b.y));
-  return { x, y, w: Math.max(...bs.map((b) => b.x + b.w)) - x, h: Math.max(...bs.map((b) => b.y + b.h)) - y };
-}
-var novoIdPadrao = (tipo) => ({ texto: "txt_", retangulo: "forma_", imagem: "img_" }[tipo] || "el_") + Math.random().toString(36).slice(2, 8);
-function casaDoModelo(p, modeloId) {
-  for (const pr of p.pranchetas) for (const z of pr.zonas) if (z.modelo_card_id === modeloId) {
-    const e = z.espaco ?? p.espaco_padrao;
-    return { w: (z.w - (z.colunas - 1) * e) / z.colunas, h: (z.h - (z.linhas - 1) * e) / z.linhas, e };
-  }
-  return { w: 200, h: 280, e: p.espaco_padrao };
-}
-function casaDaVersao(p, modeloId, versao = "campos") {
-  const c = casaDoModelo(p, modeloId);
-  if (versao === "especial") return { w: c.w * 2 + c.e, h: c.h * 2 + c.e };
-  if (versao === "horizontal") return c.w / c.h >= 1.35 ? { w: c.w, h: c.h } : { w: c.w * 2 + c.e, h: c.h };
-  return { w: c.w, h: c.h };
-}
-function posicionar(caixa2, casaOrig, alvo, pos) {
-  const s = Math.min(1, caixa2.w > 0 ? alvo.w / caixa2.w : 1, caixa2.h > 0 ? alvo.h / caixa2.h : 1);
-  const w = caixa2.w * s, h = caixa2.h * s;
-  const eixo = (o, t, tamOrig, tamAlvo, ts) => {
-    const c = (o + t / 2) / tamOrig;
-    if (c < 0.4) return o;
-    if (c > 0.6) return tamAlvo - (tamOrig - o - t) - ts;
-    return tamAlvo / 2 + (o + t / 2 - tamOrig / 2) - ts / 2;
-  };
-  let x, y;
-  if (pos) ({ x, y } = pos);
-  else if (casaOrig) {
-    x = eixo(caixa2.x, caixa2.w, casaOrig.w, alvo.w, w);
-    y = eixo(caixa2.y, caixa2.h, casaOrig.h, alvo.h, h);
-  } else {
-    x = (alvo.w - w) / 2;
-    y = (alvo.h - h) / 2;
-  }
-  x = Math.max(0, Math.min(alvo.w - w, x));
-  y = Math.max(0, Math.min(alvo.h - h, y));
-  return { x, y, s };
-}
-function escalar(o, s) {
-  if (s === 1) return o;
-  const r = o;
-  for (const k of ["tamanho", "borda", "raio", "respiro"]) if (typeof r[k] === "number") r[k] = r2(r[k] * s);
-  return o;
-}
-var temRef = (c) => !!(c.preco_ref && c.preco_ref.w > 0 && c.preco_ref.h > 0);
-function naCasa(campos, casa) {
-  const c = temRef(campos) ? camposNaCasa(campos, campos.preco_ref, casa) : campos;
-  return { ...c, preco_ref: { w: r2(casa.w), h: r2(casa.h) } };
-}
-function extrairGrupo(campos, grupo, casa) {
-  if (temRef(campos)) campos = naCasa(campos, casa);
-  const ks = CAMPOS_DO_GRUPO[grupo].filter((k) => campos[k]);
-  if (!ks.length) throw new Error(`O grupo ${NOME_DO_GRUPO[grupo]} est\xE1 desligado neste card`);
-  const bs = ks.map((k) => paraPt(campos[k], casa)), caixa2 = uniao(bs);
-  const pecas = {};
-  ks.forEach((k, i) => {
-    pecas[k] = { ...clone2(campos[k]), x: r2(bs[i].x - caixa2.x), y: r2(bs[i].y - caixa2.y), w: r2(bs[i].w), h: r2(bs[i].h) };
-  });
-  return { grupo, casa: { w: r2(casa.w), h: r2(casa.h) }, caixa: { x: r2(caixa2.x), y: r2(caixa2.y), w: r2(caixa2.w), h: r2(caixa2.h) }, pecas };
-}
-function aplicarGrupo(campos, g, casa, pos) {
-  if (temRef(campos)) campos = naCasa(campos, casa);
-  const novo = clone2(campos);
-  for (const k of CAMPOS_DO_GRUPO[g.grupo]) delete novo[k];
-  const { x, y, s } = posicionar(g.caixa, g.casa, casa, pos);
-  for (const [k, p] of Object.entries(g.pecas)) {
-    novo[k] = escalar({ ...clone2(p), x: r2((x + p.x * s) / casa.w * 100), y: r2((y + p.y * s) / casa.h * 100), w: r2(p.w * s / casa.w * 100), h: r2(p.h * s / casa.h * 100) }, s);
-  }
-  return novo;
-}
-function relativos(els, caixa2) {
-  return els.map((e) => ({ ...clone2(e), x: r2(e.x - caixa2.x), y: r2(e.y - caixa2.y), w: r2(e.w), h: r2(e.h) }));
-}
-function extrairElementos(pr, ids, tamanho) {
-  const els = pr.elementos.filter((e) => ids.includes(e.id));
-  if (!els.length) throw new Error("Nenhum elemento com esses ids na prancheta");
-  const caixa2 = uniao(els);
-  return { origem: "prancheta", casa: { ...tamanho }, caixa: caixa2, elementos: relativos(els, caixa2) };
-}
-function extrairExtras(campos, casa, indices) {
-  if (temRef(campos)) campos = naCasa(campos, casa);
-  const ex = (campos.extras || []).filter((_, i) => !indices || indices.includes(i));
-  if (!ex.length) throw new Error("O card n\xE3o tem esses elementos extras");
-  const els = ex.map((e, i) => {
-    const b = paraPt(e, casa), el = { ...clone2(e), id: `x${i + 1}`, x: b.x, y: b.y, w: b.w, h: b.h };
-    if (el.tipo === "imagem" && !el.ajuste) el.ajuste = "contain";
-    return el;
-  });
-  const caixa2 = uniao(els);
-  return { origem: "card", casa: { w: r2(casa.w), h: r2(casa.h) }, caixa: caixa2, elementos: relativos(els, caixa2) };
-}
-function aplicarElementosPrancheta(pr, c, tamanho, pos, novoId = novoIdPadrao) {
-  const p = clone2(pr);
-  const { x, y, s } = posicionar(c.caixa, c.origem === "prancheta" ? c.casa : null, tamanho, pos);
-  const usados = new Set(p.elementos.map((e) => e.id)), ids = [];
-  for (const e of c.elementos) {
-    let id = novoId(e.tipo);
-    while (usados.has(id)) id = novoId(e.tipo);
-    usados.add(id);
-    ids.push(id);
-    p.elementos.push(escalar({ ...clone2(e), id, x: r2(x + e.x * s), y: r2(y + e.y * s), w: r2(e.w * s), h: r2(e.h * s) }, s));
-  }
-  return { prancheta: p, ids };
-}
-function aplicarElementosCard(campos, c, casa, pos) {
-  if (temRef(campos)) campos = naCasa(campos, casa);
-  const novo = clone2(campos);
-  const { x, y, s } = posicionar(c.caixa, c.origem === "card" ? c.casa : null, casa, pos);
-  const extras = c.elementos.map((e) => {
-    const { id, ajuste, ...resto } = clone2(e);
-    return escalar({ ...resto, x: r2((x + e.x * s) / casa.w * 100), y: r2((y + e.y * s) / casa.h * 100), w: r2(e.w * s / casa.w * 100), h: r2(e.h * s / casa.h * 100) }, s);
-  });
-  novo.extras = [...novo.extras || [], ...extras];
-  return novo;
-}
-function extrairCard(p, modeloId) {
-  const m = p.modelos_card.find((x) => x.id === modeloId);
-  if (!m) throw new Error("Modelo n\xE3o encontrado: " + modeloId);
-  const c = casaDoModelo(p, modeloId);
-  return { modelo: clone2(m), casa: { w: r2(c.w), h: r2(c.h) } };
-}
-function extrairEstrutura(p) {
-  const { tamanho, espaco_padrao, modelos_card, pranchetas, blocos } = clone2(p);
-  return { projeto: { tamanho, espaco_padrao, modelos_card, pranchetas, ...blocos ? { blocos } : {} } };
-}
-function projetoDaEstrutura(c, d) {
-  return { versao: 1, ...clone2(c.projeto), id: d.id, nome: d.nome, cliente: d.cliente, tema: d.tema, criadoEm: d.agora, atualizadoEm: d.agora };
-}
-function subtipoDe(tipo, c) {
-  if (tipo === "grupo") return c.grupo;
-  if (tipo === "elementos") return c.origem;
-  return null;
-}
-function validarConteudo(tipo, c) {
-  const o = c;
-  if (!o || typeof o !== "object") return "conteudo vazio";
-  const tam = (t) => !!t && typeof t.w === "number" && typeof t.h === "number";
-  if (tipo === "card") return o.modelo && typeof o.modelo === "object" && o.modelo.campos && tam(o.casa) ? null : "card precisa de {modelo, casa}";
-  if (tipo === "grupo") return o.grupo && o.grupo in CAMPOS_DO_GRUPO && tam(o.casa) && tam(o.caixa) && o.pecas ? null : "grupo precisa de {grupo, casa, caixa, pecas}";
-  if (tipo === "elementos") return Array.isArray(o.elementos) && o.elementos.length && tam(o.casa) && tam(o.caixa) ? null : "elementos precisa de {origem, casa, caixa, elementos[]}";
-  if (tipo === "estrutura") {
-    const p = o.projeto;
-    return p && tam(p.tamanho) && Array.isArray(p.pranchetas) && Array.isArray(p.modelos_card) ? null : "estrutura precisa de {projeto: {tamanho, pranchetas, modelos_card}}";
-  }
-  return "tipo inv\xE1lido";
-}
-function projetoDaMiniatura(item) {
-  const base = { versao: 1, id: "mini", nome: item.nome, cliente: "", tema: "", espaco_padrao: 4, criadoEm: "", atualizadoEm: "" };
-  const umCard = (modelo, w, h) => ({
-    ...base,
-    tamanho: { w, h },
-    modelos_card: [{ ...modelo, id: "m", indice: 1 }],
-    pranchetas: [{
-      id: "p",
-      nome: "",
-      fundo: { tipo: "cor", cor: "#eef0f3" },
-      elementos: [],
-      zonas: [{ id: "z", x: 0, y: 0, w, h, colunas: 1, linhas: 1, modelo_card_id: "m", formato: "normal" }]
-    }]
-  });
-  if (item.tipo === "card") {
-    const c = item.conteudo;
-    return umCard(c.modelo, c.casa.w, c.casa.h);
-  }
-  if (item.tipo === "grupo") {
-    const g = item.conteudo;
-    const campos = aplicarGrupo({}, g, g.casa);
-    return umCard({ id: "m", nome: item.nome, indice: 1, fundo_cor: "#f6f7f9", campos }, g.casa.w, g.casa.h);
-  }
-  if (item.tipo === "elementos") {
-    const e = item.conteudo, m = 8;
-    return {
-      ...base,
-      tamanho: { w: e.caixa.w + 2 * m, h: e.caixa.h + 2 * m },
-      modelos_card: [],
-      pranchetas: [{
-        id: "p",
-        nome: "",
-        fundo: { tipo: "cor", cor: "#eef0f3" },
-        elementos: e.elementos.map((x) => ({ ...x, x: x.x + m, y: x.y + m })),
-        zonas: []
-      }]
-    };
-  }
-  const s = item.conteudo.projeto;
-  return { ...base, ...s, pranchetas: s.pranchetas.slice(0, 1) };
-}
-var BLOCOS_PADRAO = [
-  { papel: "logo", nome: "Logo", por_tema: false },
-  { papel: "selo", nome: "Selo do tema", por_tema: true },
-  { papel: "lateral", nome: "Elemento lateral", por_tema: true },
-  { papel: "fundo", nome: "Fundo", por_tema: true },
-  // selo do clube / de desconto (Clube Smart do Super Mais…): pedido do Matheus, 17/10/2026
-  { papel: "selo_desconto", nome: "Selo de desconto", por_tema: false }
-];
-var REF_BLOCO = "bloco:";
-var ehRefBloco = (v) => typeof v === "string" && v.startsWith(REF_BLOCO);
-function normalizarBlocos(lista) {
-  const out = [], vistos = /* @__PURE__ */ new Set();
-  for (const b of Array.isArray(lista) ? lista : []) {
-    const papel = String(b?.papel || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 30);
-    if (!papel || vistos.has(papel)) continue;
-    vistos.add(papel);
-    const url = b.url;
-    out.push({ papel, nome: String(b.nome || papel).trim().slice(0, 60), ...typeof url === "string" && url.startsWith("arq:") ? { url } : {}, por_tema: !!b.por_tema });
-  }
-  for (const p of BLOCOS_PADRAO) if (!vistos.has(p.papel)) out.push({ ...p });
-  return out;
-}
-function resolverBlocos(o, doProjeto, doCliente) {
-  const mapa = (v) => {
-    if (ehRefBloco(v)) {
-      const papel = v.slice(REF_BLOCO.length), p = doProjeto?.[papel];
-      if (p) return p;
-      const c = doCliente.find((b) => b.papel === papel)?.url;
-      return c ? "marca:" + c.slice(4) : "";
-    }
-    if (Array.isArray(v)) return v.map(mapa);
-    if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, mapa(x)]));
-    return v;
-  };
-  return mapa(o);
-}
-function camposDaVersao(p, modeloId, versao = "campos") {
-  const m = p.modelos_card.find((x) => x.id === modeloId);
-  if (!m) throw new Error("Modelo n\xE3o encontrado: " + modeloId);
-  const c = m[versao];
-  if (!c) throw new Error(`O modelo "${m.nome}" n\xE3o tem a vers\xE3o ${versao}`);
-  return c;
-}
-function conteudoDoProjeto(p, pedido) {
-  if (pedido.tipo === "card") return extrairCard(p, pedido.modelo);
-  if (pedido.tipo === "estrutura") return extrairEstrutura(p);
-  if (pedido.tipo === "grupo") {
-    return extrairGrupo(camposDaVersao(p, pedido.modelo, pedido.versao), pedido.grupo, casaDaVersao(p, pedido.modelo, pedido.versao));
-  }
-  if ("prancheta" in pedido) {
-    const pr = p.pranchetas[pedido.prancheta - 1];
-    if (!pr) throw new Error("Prancheta n\xE3o existe: " + pedido.prancheta);
-    return extrairElementos(pr, pedido.ids, p.tamanho);
-  }
-  return extrairExtras(camposDaVersao(p, pedido.modelo, pedido.versao), casaDaVersao(p, pedido.modelo, pedido.versao), pedido.indices);
-}
-function usarNoProjeto(p, item, d, novoId) {
-  const novo = clone2(p);
-  if (item.tipo === "grupo" || item.tipo === "elementos" && d.modelo) {
-    if (!d.modelo) throw new Error("Diga em qual modelo de card (destino.modelo)");
-    const versao = d.versao || "campos", m = novo.modelos_card.find((x) => x.id === d.modelo);
-    if (!m) throw new Error("Modelo n\xE3o encontrado: " + d.modelo);
-    if (!m[versao]) throw new Error(`O modelo "${m.nome}" n\xE3o tem a vers\xE3o ${versao}`);
-    const casa = casaDaVersao(novo, m.id, versao);
-    m[versao] = item.tipo === "grupo" ? aplicarGrupo(m[versao], item.conteudo, casa, d.pos) : aplicarElementosCard(m[versao], item.conteudo, casa, d.pos);
-    return { projeto: novo };
-  }
-  if (item.tipo === "elementos") {
-    const i = (d.prancheta || 1) - 1;
-    if (!novo.pranchetas[i]) throw new Error("Prancheta n\xE3o existe: " + (i + 1));
-    const r = aplicarElementosPrancheta(novo.pranchetas[i], item.conteudo, novo.tamanho, d.pos, novoId);
-    novo.pranchetas[i] = r.prancheta;
-    return { projeto: novo, ids: r.ids };
-  }
-  throw new Error(`Item do tipo ${item.tipo} n\xE3o se usa assim (card: copiar pro projeto; estrutura: criar projeto novo)`);
-}
-
-// lib/encarte/projetos-template.ts
-var TABELA = "encarte_projetos_template";
-var VERSOES = "encarte_projetos_template_versoes";
-var VERSAO_A_CADA_MIN = 10;
-function dirProjetos() {
-  return path2.join(process.env.ENCARTE_DIR || "/srv/encarte", "projetos-template");
-}
-var normal = (s) => (s || "").normalize("NFC").trim().toLowerCase();
-function linhaParaProjeto(l) {
-  return {
-    ...l.projeto,
-    id: l.id,
-    cliente: l.cliente,
-    tema: l.tema,
-    nome: l.nome,
-    criadoEm: l.criado_em,
-    atualizadoEm: l.atualizado_em,
-    folderId: l.folder_id,
-    publicadoEm: l.publicado_em
-  };
-}
-function corpoDoProjeto(p) {
-  const { folderId, publicadoEm, base, ...resto } = p;
-  return resto;
-}
-async function pastasDeCliente(client, workspaceId) {
-  const { data, error } = await client.from("folders").select("id, name, pasta_drive, archived_at, spaces!inner(name, workspace_id, archived_at)").eq("spaces.workspace_id", workspaceId);
-  if (error) throw error;
-  const drive = new Set(
-    (await fs2.readdir(pastaLocal("clientes"), { withFileTypes: true }).catch(() => [])).filter((d) => d.isDirectory()).map((d) => normal(d.name))
-  );
-  return (data || []).filter((f) => !f.archived_at && !f.spaces?.archived_at).map((f) => {
-    const nome = String(f.pasta_drive || f.name).normalize("NFC");
-    return { folderId: f.id, nome, rotulo: f.name.normalize("NFC"), espaco: f.spaces.name, temDrive: drive.has(normal(nome)) };
-  }).sort((a, b) => a.espaco.localeCompare(b.espaco) || a.nome.localeCompare(b.nome, "pt-BR", { numeric: true }));
-}
-async function pastaPeloNome(client, workspaceId, cliente) {
-  const ps = await pastasDeCliente(client, workspaceId);
-  return ps.find((p) => normal(p.nome) === normal(cliente))?.folderId ?? null;
-}
-async function listarProjetos(client, workspaceId, userId) {
-  await importarDoDisco(client, workspaceId, userId);
-  const { data, error } = await client.from(TABELA).select("id, nome, cliente, tema, folder_id, atualizado_em, publicado_em").eq("workspace_id", workspaceId).order("cliente").order("tema").order("nome");
-  if (error) throw error;
-  return (data || []).map((l) => ({
-    id: l.id,
-    nome: l.nome,
-    cliente: l.cliente,
-    tema: l.tema,
-    folderId: l.folder_id,
-    atualizadoEm: l.atualizado_em,
-    publicadoEm: l.publicado_em
-  }));
-}
-async function lerProjeto(client, workspaceId, id) {
-  const { data, error } = await client.from(TABELA).select("*").eq("id", id).eq("workspace_id", workspaceId).maybeSingle();
-  if (error) throw error;
-  return data ? linhaParaProjeto(data) : null;
-}
-async function criarProjeto(client, d) {
-  const p = d.projeto;
-  if (!p.nome || !p.cliente || !p.tema) throw new Error("Faltou nome, cliente ou tema");
-  const folderId = d.folderId ?? await pastaPeloNome(client, d.workspaceId, p.cliente);
-  const { data, error } = await client.from(TABELA).insert({
-    id: p.id || randomUUID(),
-    workspace_id: d.workspaceId,
-    folder_id: folderId,
-    cliente: p.cliente.normalize("NFC").trim(),
-    tema: p.tema.trim(),
-    nome: p.nome.trim(),
-    projeto: corpoDoProjeto({ ...p, versao: 1 }),
-    criado_por: d.userId,
-    atualizado_por: d.userId
-  }).select("*").single();
-  if (error) throw error;
-  return linhaParaProjeto(data);
-}
-async function salvarProjeto(client, d) {
-  const atual2 = await lerProjeto(client, d.workspaceId, d.id);
-  if (!atual2) throw new Error("Projeto n\xE3o encontrado");
-  if (d.base && new Date(d.base).getTime() !== new Date(atual2.atualizadoEm).getTime()) return { conflito: atual2.atualizadoEm };
-  const p = d.projeto;
-  const cliente = (p.cliente || atual2.cliente).normalize("NFC").trim();
-  let folderId = d.folderId !== void 0 ? d.folderId : atual2.folderId;
-  if (d.folderId === void 0 && normal(cliente) !== normal(atual2.cliente)) folderId = await pastaPeloNome(client, d.workspaceId, cliente);
-  const agora = (/* @__PURE__ */ new Date()).toISOString();
-  const { data, error } = await client.from(TABELA).update({
-    folder_id: folderId,
-    cliente,
-    tema: (p.tema || atual2.tema).trim(),
-    nome: (p.nome || atual2.nome).trim(),
-    projeto: corpoDoProjeto(p),
-    atualizado_por: d.userId,
-    atualizado_em: agora
-  }).eq("id", d.id).eq("workspace_id", d.workspaceId).select("*").single();
-  if (error) throw error;
-  const { data: ult } = await client.from(VERSOES).select("criado_em").eq("projeto_id", d.id).order("criado_em", { ascending: false }).limit(1).maybeSingle();
-  if (d.versao || !ult || Date.now() - new Date(ult.criado_em).getTime() > VERSAO_A_CADA_MIN * 6e4) {
-    await client.from(VERSOES).insert({ projeto_id: d.id, projeto: corpoDoProjeto(p), criado_por: d.userId });
-  }
-  return { projeto: linhaParaProjeto(data) };
-}
-async function deletarProjeto(client, workspaceId, id) {
-  const { error } = await client.from(TABELA).delete().eq("id", id).eq("workspace_id", workspaceId);
-  if (error) throw error;
-}
-async function listarVersoes(client, workspaceId, id) {
-  if (!await lerProjeto(client, workspaceId, id)) throw new Error("Projeto n\xE3o encontrado");
-  const { data, error } = await client.from(VERSOES).select("id, criado_em, criado_por").eq("projeto_id", id).order("criado_em", { ascending: false }).limit(50);
-  if (error) throw error;
-  return (data || []).map((v) => ({ id: v.id, criadoEm: v.criado_em, autor: v.criado_por }));
-}
-async function lerVersao(client, workspaceId, id, versaoId) {
-  if (!await lerProjeto(client, workspaceId, id)) throw new Error("Projeto n\xE3o encontrado");
-  const { data, error } = await client.from(VERSOES).select("projeto, criado_em").eq("id", versaoId).eq("projeto_id", id).maybeSingle();
-  if (error) throw error;
-  return data ? { projeto: data.projeto, criadoEm: data.criado_em } : null;
-}
-async function copiarImagens(deId, paraId, arqs) {
-  if (!arqs.length || deId === paraId) return;
-  await garantirDir(pastaImagens(paraId));
-  for (const a of arqs) {
-    const de = caminhoImagem(deId, a), para = caminhoImagem(paraId, a);
-    if (de && para) await fs2.copyFile(de, para).catch(() => {
-    });
-  }
-}
-async function duplicar(client, d) {
-  const o = await lerProjeto(client, d.workspaceId, d.id);
-  if (!o) throw new Error("Projeto n\xE3o encontrado");
-  const novoId = randomUUID();
-  const p = duplicarProjeto(o, {
-    id: novoId,
-    cliente: d.cliente || o.cliente,
-    tema: d.tema || o.tema,
-    nome: d.nome || (d.cliente && normal(d.cliente) !== normal(o.cliente) ? o.nome : `${o.nome} (c\xF3pia)`),
-    agora: (/* @__PURE__ */ new Date()).toISOString()
-  });
-  await copiarImagens(o.id, novoId, imagensUsadas(p));
-  return criarProjeto(client, { workspaceId: d.workspaceId, userId: d.userId, projeto: p, folderId: d.folderId });
-}
-async function copiarModelo(client, d) {
-  const de = await lerProjeto(client, d.workspaceId, d.deId);
-  const para = d.paraId === d.deId ? de : await lerProjeto(client, d.workspaceId, d.paraId);
-  if (!de || !para) throw new Error("Projeto n\xE3o encontrado");
-  const m = de.modelos_card.find((x) => x.id === d.modeloId);
-  if (!m) throw new Error("Modelo n\xE3o encontrado: " + d.modeloId);
-  const r = colarModelo(para, m);
-  await copiarImagens(de.id, para.id, r.imagens);
-  const s = await salvarProjeto(client, { workspaceId: d.workspaceId, userId: d.userId, id: para.id, projeto: r.projeto });
-  return { projeto: s.projeto, modelo: r.modelo };
-}
-async function importarDoDisco(client, workspaceId, userId) {
-  const arqs = (await fs2.readdir(dirProjetos()).catch(() => [])).filter((a) => a.endsWith(".json"));
-  if (!arqs.length) return 0;
-  const lidos = [];
-  for (const a of arqs) {
-    try {
-      lidos.push(JSON.parse(await fs2.readFile(path2.join(dirProjetos(), a), "utf-8")));
-    } catch {
-    }
-  }
-  const ids = lidos.map((p) => p.id).filter(Boolean);
-  const { data } = await client.from(TABELA).select("id").in("id", ids);
-  const tem = new Set((data || []).map((l) => l.id));
-  let n = 0;
-  for (const p of lidos) {
-    if (!p.id || tem.has(p.id) || !p.nome || !p.cliente || !p.tema) continue;
-    try {
-      await criarProjeto(client, { workspaceId, userId, projeto: p });
-      n++;
-    } catch {
-    }
-  }
-  return n;
-}
-async function garantirDir(dir) {
-  await fs2.mkdir(dir, { recursive: true });
-}
-var EXTS_IMAGEM = [".png", ".jpg", ".jpeg", ".webp", ".svg"];
-var pastaImagens = (id) => path2.join(dirProjetos(), "arquivos", path2.basename(id));
-async function salvarImagem(id, nomeOrig, dados) {
-  const ext = path2.extname(nomeOrig).toLowerCase();
-  if (!EXTS_IMAGEM.includes(ext)) throw new Error("formato n\xE3o aceito");
-  const dir = pastaImagens(id);
-  await garantirDir(dir);
-  const arq = `${randomUUID()}${ext}`;
-  await fs2.writeFile(path2.join(dir, arq), dados);
-  return arq;
-}
-function caminhoImagem(id, arq) {
-  if (!arq || arq !== path2.basename(arq)) return null;
-  return path2.join(pastaImagens(id), arq);
-}
-var limpo = (s) => s.replace(/[\\/:*?"<>|]/g, "").trim();
-function donoCliente(folderId) {
-  if (!/^[0-9a-f-]{8,40}$/i.test(folderId)) throw new Error("Pasta de cliente inv\xE1lida");
-  return `cli-${folderId}`;
-}
-async function publicarTemplate(projetoOrig, blocosCliente = []) {
-  const projeto = resolverBlocos(projetoOrig, projetoOrig.blocos, blocosCliente);
-  const cli = limpo(projeto.cliente), tema = limpo(projeto.tema);
-  const dir = path2.join(pastaLocal("clientes"), cli, "TEMPLATES", tema);
-  await criarPastaAberta(dir);
-  const nome = limpo(projeto.nome).replace(/especial/gi, "Esp");
-  const copiadas = [], daMarca = [];
-  const imagem = (ref) => {
-    const marca = ref.startsWith("marca:");
-    if (!ref.startsWith("arq:") && !marca) return ref;
-    const arq = ref.slice(marca ? 6 : 4), destino = `${nome} img ${arq}`;
-    (marca ? daMarca : copiadas).push(arq);
-    return `${CANON_CLIENTES}/${cli}/TEMPLATES/${tema}/${destino}`.replace(/\//g, "\\");
-  };
-  const resultado = gerarSvgTemplate(corpoDoProjeto(projeto), { imagem });
-  const dirSaida = modoDireto() ? null : path2.join(pastaSaida("clientes"), cli, "TEMPLATES", tema);
-  if (dirSaida) await criarPastaAberta(dirSaida);
-  for (const arq of new Set(copiadas)) {
-    const orig = caminhoImagem(projeto.id, arq);
-    if (!orig) continue;
-    await fs2.copyFile(orig, path2.join(dir, `${nome} img ${arq}`));
-    if (dirSaida) await fs2.copyFile(orig, path2.join(dirSaida, `${nome} img ${arq}`));
-  }
-  for (const arq of new Set(daMarca)) {
-    const orig = projetoOrig.folderId ? caminhoImagem(donoCliente(projetoOrig.folderId), arq) : null;
-    if (!orig) continue;
-    await fs2.copyFile(orig, path2.join(dir, `${nome} img ${arq}`)).catch(() => {
-    });
-    if (dirSaida) await fs2.copyFile(orig, path2.join(dirSaida, `${nome} img ${arq}`)).catch(() => {
-    });
-  }
-  const arquivos = [
-    [`${nome}.svg`, resultado.svg],
-    [`${nome}.pranchetas.json`, resultado.pranchetas_json],
-    [`${nome}.projeto.json`, JSON.stringify(corpoDoProjeto(projeto), null, 2)],
-    ...resultado.especiais.map((e) => [`${nome} especial ${limpo(e.nome)}.svg`, e.svg])
-  ];
-  for (const [arq, txt] of arquivos) {
-    await fs2.writeFile(path2.join(dir, arq), txt, "utf-8");
-    if (dirSaida) await fs2.writeFile(path2.join(dirSaida, arq), txt, "utf-8");
-  }
-  await listarTemplates(true);
-  return { pasta: dir, arquivos: [...arquivos.map(([a]) => a), ...[.../* @__PURE__ */ new Set([...copiadas, ...daMarca])].map((a) => `${nome} img ${a}`)] };
-}
-async function marcarPublicado(client, workspaceId, id) {
-  await client.from(TABELA).update({ publicado_em: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", id).eq("workspace_id", workspaceId);
-}
-
-// lib/encarte/previa-template.ts
 import fs3 from "fs/promises";
 import path3 from "path";
-var MIME = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".svg": "image/svg+xml" };
-async function dataUri(arquivo) {
-  const b = await fs3.readFile(arquivo).catch(() => null);
-  return b ? `data:${MIME[path3.extname(arquivo).toLowerCase()] || "application/octet-stream"};base64,${b.toString("base64")}` : null;
-}
-async function embutirImagens(dono, marca, svg) {
-  const refs = [...new Set([...svg.matchAll(/href="([^"]+)"/g)].map((m) => m[1]).filter((r) => !r.startsWith("data:") && !r.startsWith("#")))];
-  for (const r of refs) {
-    const local = r.startsWith("arq:") ? caminhoImagem(dono, r.slice(4)) : r.startsWith("marca:") ? marca ? caminhoImagem(donoCliente(marca), r.slice(6)) : null : resolver(r.replace(/&amp;/g, "&"))?.local;
-    const uri = local ? await dataUri(local) : null;
-    svg = svg.split(`href="${r}"`).join(uri ? `href="${uri}"` : 'href=""');
-  }
-  return svg;
-}
-var LARGURA = { ExtraCond: "ultra-condensed", Cond: "extra-condensed", SemiCond: "semi-condensed", "": "normal", Wide: "semi-expanded" };
-var PESO = { Thin: 100, ExtraLight: 200, Light: 300, "": 400, Medium: 500, Semibold: 600, Bold: 700, Black: 800, UltraBlack: 900 };
-function instanciasAcumin(svg) {
-  return svg.replace(
-    /font-family="AcuminConcept-(ExtraCond|SemiCond|Cond|Wide)?(Thin|ExtraLight|Light|Medium|Semibold|Bold|Black|UltraBlack)?(Italic)?"/g,
-    (_m, larg = "", peso = "", ital = "") => `font-family="Acumin Variable Concept" font-weight="${PESO[peso]}" font-stretch="${LARGURA[larg]}"${ital ? ' font-style="italic"' : ""}`
-  );
-}
-var fontconfigPronto = false;
-async function prepararFontconfig() {
-  if (fontconfigPronto || process.env.FONTCONFIG_FILE) return;
-  const conf = path3.join(pastaCache(), "fonts.conf");
-  await fs3.mkdir(pastaCache(), { recursive: true });
-  await fs3.writeFile(conf, `<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd"><fontconfig><dir>${pastaFontes()}</dir><dir>/usr/share/fonts</dir><dir>/usr/local/share/fonts</dir><cachedir>${path3.join(pastaCache(), "fontconfig")}</cachedir></fontconfig>`);
-  process.env.FONTCONFIG_FILE = conf;
-  fontconfigPronto = true;
-}
-function svgDaPrevia(projeto, op) {
-  if (op.modelo) {
-    const m = projeto.modelos_card.find((x) => x.id === op.modelo);
-    if (!m) throw new Error("Modelo n\xE3o encontrado: " + op.modelo);
-    const fmt = op.formato || "normal";
-    if (fmt !== "normal") {
-      if (!m[fmt]) throw new Error(`O modelo "${m.nome}" n\xE3o tem a vers\xE3o ${fmt}`);
-      const r = gerarSvgTemplate(projeto);
-      const e = r.especiais.find((x) => x.nome === (fmt === "horizontal" ? `horizontal ${m.nome}` : m.nome));
-      if (!e) throw new Error("O gerador n\xE3o fez o molde " + fmt);
-      return e.svg;
-    }
-    const z = projeto.pranchetas.flatMap((p) => p.zonas).find((zz) => zz.modelo_card_id === m.id);
-    const c = z ? casaDaZona(z, projeto.espaco_padrao) : { w: 200, h: 280 };
-    const mini = {
-      ...projeto,
-      tamanho: { w: c.w, h: c.h },
-      modelos_card: [m],
-      pranchetas: [{
-        id: "previa",
-        nome: "Pr\xE9via",
-        fundo: { tipo: "cor", cor: "none" },
-        elementos: [],
-        zonas: [{ id: "z", x: 0, y: 0, w: c.w, h: c.h, colunas: 1, linhas: 1, modelo_card_id: m.id, formato: "normal" }]
-      }]
-    };
-    return gerarSvgTemplate(mini).svg;
-  }
-  const i = Math.max(1, Math.min(projeto.pranchetas.length, op.prancheta || 1)) - 1;
-  const { w: W, h: H } = projeto.tamanho;
-  const svg = gerarSvgTemplate(projeto).svg;
-  return svg.replace(/<svg ([^>]*?)viewBox="[^"]*" width="[^"]*" height="[^"]*"/, `<svg $1viewBox="${i * (W + 20)} 0 ${W} ${H}" width="${W}" height="${H}"`);
-}
-function mostrarOpcionais(svg) {
-  return svg.replace(/<g id="produto_\d+_(?:de|selo)"[^>]*>/g, (tag) => tag.replace(/\s+style="display:\s*none;?"/, ""));
-}
-async function previaPng(projeto, op = {}) {
-  await prepararFontconfig();
-  const resolvido = resolverBlocos(projeto, projeto.blocos, op.blocos || []);
-  let svg = instanciasAcumin(await embutirImagens(op.dono || projeto.id, op.marca, svgDaPrevia(resolvido, op)));
-  if (op.opcionais !== false) svg = mostrarOpcionais(svg);
-  if (op.opcionais !== false) svg = svg.replace(/<g id="(PRECO_\d+)" data-com-selo="([^"]+)">/g, (m, id, v) => {
-    const [s, dx, dy, ax, ay] = v.split(/\s+/).map(Number);
-    if (![s, dx, dy, ax, ay].every(Number.isFinite)) return m;
-    return `<g id="${id}" data-com-selo="${v}" transform="translate(${dx} ${dy}) translate(${ax} ${ay}) scale(${s}) translate(${-ax} ${-ay})">`;
-  });
-  const sharp2 = (await Promise.resolve().then(() => (init_sharp(), sharp_exports))).default;
-  const largura = Math.max(200, Math.min(2e3, op.largura || 900));
-  return sharp2(Buffer.from(svg), { density: 144 }).resize({ width: largura }).flatten({ background: "#ffffff" }).png().toBuffer();
-}
+import { randomUUID } from "crypto";
 
-// lib/encarte/biblioteca.ts
-var TABELA2 = "encarte_biblioteca";
-var BLOCOS = "encarte_blocos_cliente";
-var donoItem = (id) => `bib-${id}`;
-var paraItem = (l) => ({ id: l.id, tipo: l.tipo, subtipo: l.subtipo, nome: l.nome, folderId: l.folder_id, conteudo: l.conteudo, atualizadoEm: l.atualizado_em });
-async function conferirPasta(client, workspaceId, folderId) {
-  if (!folderId) return;
-  if (!(await pastasDeCliente(client, workspaceId)).some((p) => p.folderId === folderId)) throw new Error("Pasta de cliente n\xE3o encontrada: " + folderId);
-}
-async function listarItens(client, workspaceId, f = {}) {
-  let q = client.from(TABELA2).select(f.completo ? "id, folder_id, tipo, subtipo, nome, conteudo, atualizado_em" : "id, folder_id, tipo, subtipo, nome, atualizado_em").eq("workspace_id", workspaceId).order("tipo").order("nome");
-  if (f.tipo) q = q.eq("tipo", f.tipo);
-  if (f.cliente && f.cliente !== "todos") q = q.or(`folder_id.is.null,folder_id.eq.${f.cliente}`);
-  const { data, error } = await q;
-  if (error) throw error;
-  return (data || []).map((l) => ({ ...paraItem(l), conteudo: f.completo ? l.conteudo : void 0 }));
-}
-async function lerItem(client, workspaceId, id) {
-  const { data, error } = await client.from(TABELA2).select("*").eq("id", id).eq("workspace_id", workspaceId).maybeSingle();
-  if (error) throw error;
-  return data ? paraItem(data) : null;
-}
-async function criarItem(client, d) {
-  if (!d.nome?.trim()) throw new Error("D\xEA um nome pro item");
-  await conferirPasta(client, d.workspaceId, d.folderId);
-  let conteudo = d.conteudo, tipo = d.tipo;
-  if (d.pedido) {
-    const p = d.projeto || (d.projetoId ? await lerProjeto(client, d.workspaceId, d.projetoId) : null);
-    if (!p) throw new Error("Projeto n\xE3o encontrado");
-    conteudo = conteudoDoProjeto(p, d.pedido);
-    tipo = d.pedido.tipo;
-  }
-  if (!tipo || !TIPOS_ITEM.includes(tipo)) throw new Error("tipo inv\xE1lido (card, grupo, elementos, estrutura)");
-  const erro5 = validarConteudo(tipo, conteudo);
-  if (erro5) throw new Error(erro5);
-  const id = randomUUID2();
-  if (d.projetoId) await copiarImagens(d.projetoId, donoItem(id), imagensUsadas(conteudo));
-  const { data, error } = await client.from(TABELA2).insert({
-    id,
-    workspace_id: d.workspaceId,
-    folder_id: d.folderId || null,
-    tipo,
-    subtipo: subtipoDe(tipo, conteudo),
-    nome: d.nome.trim(),
-    conteudo,
-    criado_por: d.userId,
-    atualizado_por: d.userId
-  }).select("*").single();
-  if (error) throw error;
-  return paraItem(data);
-}
-async function alterarItem(client, d) {
-  const up = { atualizado_por: d.userId, atualizado_em: (/* @__PURE__ */ new Date()).toISOString() };
-  if (d.nome !== void 0) {
-    if (!d.nome.trim()) throw new Error("D\xEA um nome pro item");
-    up.nome = d.nome.trim();
-  }
-  if (d.folderId !== void 0) {
-    await conferirPasta(client, d.workspaceId, d.folderId);
-    up.folder_id = d.folderId || null;
-  }
-  const { data, error } = await client.from(TABELA2).update(up).eq("id", d.id).eq("workspace_id", d.workspaceId).select("*").maybeSingle();
-  if (error) throw error;
-  if (!data) throw new Error("Item n\xE3o encontrado");
-  return paraItem(data);
-}
-async function apagarItem(client, workspaceId, id) {
-  const { error } = await client.from(TABELA2).delete().eq("id", id).eq("workspace_id", workspaceId);
-  if (error) throw error;
-}
-async function usarItem(client, d) {
-  const item = await lerItem(client, d.workspaceId, d.itemId);
-  if (!item) throw new Error("Item da biblioteca n\xE3o encontrado");
-  const p = d.projeto || await lerProjeto(client, d.workspaceId, d.projetoId);
-  if (!p) throw new Error("Projeto n\xE3o encontrado");
-  await copiarImagens(donoItem(item.id), d.projetoId, imagensUsadas(item.conteudo));
-  if (item.tipo === "card") {
-    const r = colarModelo(p, { ...item.conteudo.modelo, nome: item.nome });
-    if (d.destino?.zona) {
-      const z = r.projeto.pranchetas.flatMap((pr) => pr.zonas).find((x) => x.id === d.destino.zona);
-      if (!z) throw new Error("Zona n\xE3o encontrada: " + d.destino.zona);
-      z.modelo_card_id = r.modelo.id;
-    }
-    return { projeto: r.projeto, modelo: r.modelo.id };
-  }
-  if (item.tipo === "estrutura") throw new Error("Estrutura come\xE7a projeto novo (criar_template com estrutura)");
-  return usarNoProjeto(p, item, d.destino || {});
-}
-async function criarDaEstrutura(client, d) {
-  const item = await lerItem(client, d.workspaceId, d.estruturaId);
-  if (!item || item.tipo !== "estrutura") throw new Error("Estrutura n\xE3o encontrada");
-  const id = randomUUID2();
-  const p = projetoDaEstrutura(item.conteudo, { id, nome: d.nome, cliente: d.cliente, tema: d.tema, agora: (/* @__PURE__ */ new Date()).toISOString() });
-  await copiarImagens(donoItem(item.id), id, imagensUsadas(p));
-  if (d.blocos) p.blocos = { ...p.blocos || {}, ...d.blocos };
-  return criarProjeto(client, { workspaceId: d.workspaceId, userId: d.userId, projeto: p, folderId: d.folderId });
-}
-async function miniaturaItem(client, workspaceId, item, largura = 360) {
-  const blocos = item.folderId ? await blocosDoCliente(client, workspaceId, item.folderId) : [];
-  const chave = createHash2("sha1").update(JSON.stringify([item.id, item.atualizadoEm, largura, blocos])).digest("hex").slice(0, 16);
-  const arq = path4.join(pastaCache(), "biblioteca", `${item.id}-${chave}.png`);
-  const cache2 = await fs4.readFile(arq).catch(() => null);
-  if (cache2) return cache2;
-  const png = await previaPng(projetoDaMiniatura(item), { largura, dono: donoItem(item.id), marca: item.folderId, blocos });
-  await fs4.mkdir(path4.dirname(arq), { recursive: true });
-  await fs4.writeFile(arq, png).catch(() => {
-  });
-  return png;
-}
-async function blocosDoCliente(client, workspaceId, folderId) {
-  if (!folderId) return normalizarBlocos([]);
-  const { data, error } = await client.from(BLOCOS).select("blocos").eq("folder_id", folderId).eq("workspace_id", workspaceId).maybeSingle();
-  if (error) throw error;
-  return normalizarBlocos(data?.blocos);
-}
-async function gravarBlocosCliente(client, d) {
-  await conferirPasta(client, d.workspaceId, d.folderId);
-  const blocos = normalizarBlocos(d.blocos);
-  const { error } = await client.from(BLOCOS).upsert({
-    folder_id: d.folderId,
-    workspace_id: d.workspaceId,
-    blocos,
-    atualizado_por: d.userId,
-    atualizado_em: (/* @__PURE__ */ new Date()).toISOString()
-  });
-  if (error) throw error;
-  return blocos;
-}
-
-// lib/encarte/projetos-rotas.ts
-import { promises as fs5 } from "node:fs";
-import path5 from "node:path";
-
-// lib/encarte/baixar-externo.ts
-import { lookup as dnsLookup } from "node:dns";
-import http from "node:http";
-import https from "node:https";
-import { BlockList, isIP } from "node:net";
-import zlib from "node:zlib";
-var BLOQUEADOS = new BlockList();
-for (const [rede, pref] of [
-  ["0.0.0.0", 8],
-  ["10.0.0.0", 8],
-  ["100.64.0.0", 10],
-  ["127.0.0.0", 8],
-  ["169.254.0.0", 16],
-  ["172.16.0.0", 12],
-  ["192.0.0.0", 24],
-  ["192.168.0.0", 16],
-  ["198.18.0.0", 15],
-  ["224.0.0.0", 4],
-  ["240.0.0.0", 4]
-]) BLOQUEADOS.addSubnet(rede, pref, "ipv4");
-for (const [rede, pref] of [
-  ["::", 128],
-  ["::1", 128],
-  ["fc00::", 7],
-  ["fe80::", 10],
-  ["ff00::", 8],
-  ["64:ff9b::", 96],
-  ["2001:db8::", 32]
-]) BLOQUEADOS.addSubnet(rede, pref, "ipv6");
-function ipBloqueado(ip) {
-  const mapeado = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
-  if (mapeado) return ipBloqueado(mapeado[1]);
-  const v = isIP(ip);
-  if (v === 4) return BLOQUEADOS.check(ip, "ipv4");
-  if (v === 6) return BLOQUEADOS.check(ip, "ipv6");
-  return true;
-}
-function urlExternaValida(u) {
-  let url;
-  try {
-    url = new URL(u);
-  } catch {
-    return null;
-  }
-  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
-  if (url.port && url.port !== "80" && url.port !== "443") return null;
-  if (url.username || url.password) return null;
-  const host = url.hostname.replace(/^\[|\]$/g, "");
-  if (!host || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal")) return null;
-  if (isIP(host) && ipBloqueado(host)) return null;
-  return url;
-}
-var lookupSeguro = ((host, opts, cb) => {
-  const callback = typeof opts === "function" ? opts : cb;
-  const o = typeof opts === "object" && opts ? opts : {};
-  dnsLookup(host, { all: true }, (err, enderecos) => {
-    if (err) return callback(err, "");
-    const ruim = enderecos.find((a) => ipBloqueado(a.address));
-    if (ruim || !enderecos.length) {
-      return callback(Object.assign(new Error("Endere\xE7o interno bloqueado"), { code: "EBLOQUEADO" }), "");
-    }
-    if (o.all) return callback(null, enderecos);
-    callback(null, enderecos[0].address, enderecos[0].family);
-  });
-});
-function pedir(url, maxBytes, timeoutMs) {
-  const mod = url.protocol === "https:" ? https : http;
-  return new Promise((ok, falha) => {
-    const req = mod.get(
-      url,
-      {
-        lookup: lookupSeguro,
-        timeout: timeoutMs,
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
-          Accept: "image/avif,image/webp,image/png,image/jpeg,image/*,text/html;q=0.8,*/*;q=0.5",
-          "Accept-Encoding": "gzip, deflate, br",
-          "Accept-Language": "pt-BR,pt;q=0.9",
-          // muito site recusa foto sem Referer do próprio domínio (proteção de hotlink)
-          Referer: url.origin + "/"
-        }
-      },
-      (res) => {
-        const status = res.statusCode || 0;
-        const tipo = String(res.headers["content-type"] || "").toLowerCase();
-        if (status >= 300 && status < 400) {
-          res.resume();
-          return ok({ status, tipo, corpo: Buffer.alloc(0), local: String(res.headers.location || "") });
-        }
-        const declarado = Number(res.headers["content-length"] || 0);
-        if (declarado > maxBytes) {
-          res.destroy();
-          return falha(new Error("Arquivo grande demais"));
-        }
-        const partes = [];
-        let total = 0;
-        res.on("data", (c) => {
-          total += c.length;
-          if (total > maxBytes) {
-            res.destroy();
-            falha(new Error("Arquivo grande demais"));
-            return;
-          }
-          partes.push(c);
-        });
-        res.on("end", () => {
-          const cod = String(res.headers["content-encoding"] || "").toLowerCase();
-          const bruto = Buffer.concat(partes);
-          try {
-            const o = { maxOutputLength: maxBytes };
-            const corpo = cod === "gzip" || cod === "x-gzip" ? zlib.gunzipSync(bruto, o) : cod === "br" ? zlib.brotliDecompressSync(bruto, o) : cod === "deflate" ? zlib.inflateSync(bruto, o) : bruto;
-            ok({ status, tipo, corpo });
-          } catch {
-            falha(new Error("N\xE3o consegui ler a resposta do site"));
-          }
-        });
-        res.on("error", falha);
-      }
-    );
-    req.on("timeout", () => req.destroy(new Error("O site demorou demais pra responder")));
-    req.on(
-      "error",
-      (e) => falha(e.code === "EBLOQUEADO" ? new Error("Esse endere\xE7o n\xE3o \xE9 permitido") : e)
-    );
-  });
-}
-async function baixarExterno(u, { maxBytes = 25 * 1024 * 1024, timeoutMs = 2e4 } = {}) {
-  let url = urlExternaValida(u);
-  for (let salto = 0; salto <= 4; salto++) {
-    if (!url) throw new Error("Link inv\xE1lido ou n\xE3o permitido");
-    const r = await pedir(url, maxBytes, timeoutMs);
-    if (r.local !== void 0) {
-      url = urlExternaValida(new URL(r.local, url).toString());
-      continue;
-    }
-    if (r.status < 200 || r.status >= 300) throw new Error(`O site devolveu erro (${r.status})`);
-    return { url: url.toString(), tipo: r.tipo, corpo: r.corpo };
-  }
-  throw new Error("Redirecionamentos demais");
-}
-var decodificar = (s) => s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
-function atributo(tag, nome) {
-  const m = tag.match(new RegExp(`\\b${nome}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, "i"));
-  return m ? decodificar(m[2] ?? m[3] ?? m[4] ?? "") : null;
-}
-function imagemDaPagina(html, base) {
-  const metas = html.match(/<meta\b[^>]*>/gi) ?? [];
-  const meta = (chaves) => {
-    for (const k of chaves) {
-      for (const t of metas) {
-        const p = (atributo(t, "property") || atributo(t, "name") || "").toLowerCase();
-        const c = atributo(t, "content");
-        if (p === k && c) return c.trim();
-      }
-    }
-    return null;
-  };
-  let img = meta(["og:image:secure_url", "og:image", "og:image:url", "twitter:image", "twitter:image:src"]);
-  if (!img) {
-    const link = (html.match(/<link\b[^>]*>/gi) ?? []).find((t) => (atributo(t, "rel") || "").toLowerCase() === "image_src");
-    img = link ? atributo(link, "href") : null;
-  }
-  const titulo = meta(["og:title", "twitter:title"]) || decodificar((html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] ?? "").trim());
-  let abs = null;
-  if (img) {
-    try {
-      abs = new URL(img, base).toString();
-    } catch {
-      abs = null;
-    }
-  }
-  return { img: abs, titulo: titulo.slice(0, 200) };
-}
+// lib/encarte/midia.ts
+import { promises as fs2 } from "node:fs";
+import path2 from "node:path";
 
 // ../../../node_modules/@supabase/supabase-js/dist/index.mjs
 var dist_exports = {};
@@ -21644,8 +20082,8 @@ var IcebergError = class extends Error {
     return this.status === 419;
   }
 };
-function buildUrl(baseUrl, path10, query) {
-  const url = new URL(path10, baseUrl);
+function buildUrl(baseUrl, path11, query) {
+  const url = new URL(path11, baseUrl);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       if (value !== void 0) {
@@ -21675,12 +20113,12 @@ function createFetchClient(options) {
   return {
     async request({
       method,
-      path: path10,
+      path: path11,
       query,
       body,
       headers: headers2
     }) {
-      const url = buildUrl(options.baseUrl, path10, query);
+      const url = buildUrl(options.baseUrl, path11, query);
       const authHeaders = await buildAuthHeaders(options.auth);
       const res = await fetchFn(url, {
         method,
@@ -22528,7 +20966,7 @@ var StorageFileApi = class extends BaseApiClient {
   * @param path The relative file path. Should be of the format `folder/subfolder/filename.png`. The bucket must already exist before attempting to upload.
   * @param fileBody The body of the file to be stored in the bucket.
   */
-  async uploadOrUpdate(method, path10, fileBody, fileOptions) {
+  async uploadOrUpdate(method, path11, fileBody, fileOptions) {
     var _this = this;
     return _this.handleOperation(async () => {
       let body;
@@ -22552,7 +20990,7 @@ var StorageFileApi = class extends BaseApiClient {
         if ((typeof ReadableStream !== "undefined" && body instanceof ReadableStream || body && typeof body === "object" && "pipe" in body && typeof body.pipe === "function") && !options.duplex) options.duplex = "half";
       }
       if (fileOptions === null || fileOptions === void 0 ? void 0 : fileOptions.headers) for (const [key, value] of Object.entries(fileOptions.headers)) headers2 = setHeader(headers2, key, value);
-      const cleanPath = _this._removeEmptyFolders(path10);
+      const cleanPath = _this._removeEmptyFolders(path11);
       const _path = _this._getFinalPath(cleanPath);
       const data = await (method == "PUT" ? put : post)(_this.fetch, `${_this.url}/object/${_path}`, body, _objectSpread22({ headers: headers2 }, (options === null || options === void 0 ? void 0 : options.duplex) ? { duplex: options.duplex } : {}));
       return {
@@ -22614,8 +21052,8 @@ var StorageFileApi = class extends BaseApiClient {
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   * - For React Native, using either `Blob`, `File` or `FormData` does not work as intended. Upload file using `ArrayBuffer` from base64 file data instead, see example below.
   */
-  async upload(path10, fileBody, fileOptions) {
-    return this.uploadOrUpdate("POST", path10, fileBody, fileOptions);
+  async upload(path11, fileBody, fileOptions) {
+    return this.uploadOrUpdate("POST", path11, fileBody, fileOptions);
   }
   /**
   * Upload a file with a token generated from `createSignedUploadUrl`.
@@ -22655,9 +21093,9 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: none
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async uploadToSignedUrl(path10, token, fileBody, fileOptions) {
+  async uploadToSignedUrl(path11, token, fileBody, fileOptions) {
     var _this3 = this;
-    const cleanPath = _this3._removeEmptyFolders(path10);
+    const cleanPath = _this3._removeEmptyFolders(path11);
     const _path = _this3._getFinalPath(cleanPath);
     const url = new URL(_this3.url + `/object/upload/sign/${_path}`);
     url.searchParams.set("token", token);
@@ -22726,10 +21164,10 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `insert`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async createSignedUploadUrl(path10, options) {
+  async createSignedUploadUrl(path11, options) {
     var _this4 = this;
     return _this4.handleOperation(async () => {
-      let _path = _this4._getFinalPath(path10);
+      let _path = _this4._getFinalPath(path11);
       const headers2 = _objectSpread22({}, _this4.headers);
       if (options === null || options === void 0 ? void 0 : options.upsert) headers2["x-upsert"] = "true";
       const data = await post(_this4.fetch, `${_this4.url}/object/upload/sign/${_path}`, {}, { headers: headers2 });
@@ -22738,7 +21176,7 @@ var StorageFileApi = class extends BaseApiClient {
       if (!token) throw new StorageError("No token returned by API");
       return {
         signedUrl: url.toString(),
-        path: path10,
+        path: path11,
         token
       };
     });
@@ -22798,8 +21236,8 @@ var StorageFileApi = class extends BaseApiClient {
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   * - For React Native, using either `Blob`, `File` or `FormData` does not work as intended. Update file using `ArrayBuffer` from base64 file data instead, see example below.
   */
-  async update(path10, fileBody, fileOptions) {
-    return this.uploadOrUpdate("PUT", path10, fileBody, fileOptions);
+  async update(path11, fileBody, fileOptions) {
+    return this.uploadOrUpdate("PUT", path11, fileBody, fileOptions);
   }
   /**
   * Moves an existing file to a new path in the same bucket.
@@ -22950,10 +21388,10 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `select`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async createSignedUrl(path10, expiresIn, options) {
+  async createSignedUrl(path11, expiresIn, options) {
     var _this8 = this;
     return _this8.handleOperation(async () => {
-      let _path = _this8._getFinalPath(path10);
+      let _path = _this8._getFinalPath(path11);
       const hasTransform = typeof (options === null || options === void 0 ? void 0 : options.transform) === "object" && options.transform !== null && Object.keys(options.transform).length > 0;
       let data = await post(_this8.fetch, `${_this8.url}/object/sign/${_path}`, _objectSpread22({ expiresIn }, hasTransform ? { transform: options.transform } : {}), { headers: _this8.headers });
       const query = new URLSearchParams();
@@ -23089,13 +21527,13 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `select`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  download(path10, options, parameters) {
+  download(path11, options, parameters) {
     const renderPath = typeof (options === null || options === void 0 ? void 0 : options.transform) === "object" && options.transform !== null && Object.keys(options.transform).length > 0 ? "render/image/authenticated" : "object";
     const query = new URLSearchParams();
     if (options === null || options === void 0 ? void 0 : options.transform) this.applyTransformOptsToQuery(query, options.transform);
     if ((options === null || options === void 0 ? void 0 : options.cacheNonce) != null) query.set("cacheNonce", String(options.cacheNonce));
     const queryString = query.toString();
-    const _path = this._getFinalPath(path10);
+    const _path = this._getFinalPath(path11);
     const downloadFn = () => get(this.fetch, `${this.url}/${renderPath}/${_path}${queryString ? `?${queryString}` : ""}`, {
       headers: this.headers,
       noResolveJson: true
@@ -23126,9 +21564,9 @@ var StorageFileApi = class extends BaseApiClient {
   * }
   * ```
   */
-  async info(path10) {
+  async info(path11) {
     var _this10 = this;
-    const _path = _this10._getFinalPath(path10);
+    const _path = _this10._getFinalPath(path11);
     return _this10.handleOperation(async () => {
       return recursiveToCamel(await get(_this10.fetch, `${_this10.url}/object/info/${_path}`, { headers: _this10.headers }));
     });
@@ -23149,9 +21587,9 @@ var StorageFileApi = class extends BaseApiClient {
   *   .exists('folder/avatar1.png')
   * ```
   */
-  async exists(path10) {
+  async exists(path11) {
     var _this11 = this;
-    const _path = _this11._getFinalPath(path10);
+    const _path = _this11._getFinalPath(path11);
     try {
       await head(_this11.fetch, `${_this11.url}/object/${_path}`, { headers: _this11.headers });
       return {
@@ -23230,8 +21668,8 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: none
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  getPublicUrl(path10, options) {
-    const _path = this._getFinalPath(path10);
+  getPublicUrl(path11, options) {
+    const _path = this._getFinalPath(path11);
     const query = new URLSearchParams();
     if (options === null || options === void 0 ? void 0 : options.download) query.set("download", options.download === true ? "" : options.download);
     if (options === null || options === void 0 ? void 0 : options.transform) this.applyTransformOptsToQuery(query, options.transform);
@@ -23370,10 +21808,10 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `select`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async list(path10, options, parameters) {
+  async list(path11, options, parameters) {
     var _this13 = this;
     return _this13.handleOperation(async () => {
-      const body = _objectSpread22(_objectSpread22(_objectSpread22({}, DEFAULT_SEARCH_OPTIONS), options), {}, { prefix: path10 || "" });
+      const body = _objectSpread22(_objectSpread22(_objectSpread22({}, DEFAULT_SEARCH_OPTIONS), options), {}, { prefix: path11 || "" });
       return await post(_this13.fetch, `${_this13.url}/object/list/${_this13.bucketId}`, body, { headers: _this13.headers }, parameters);
     });
   }
@@ -23438,11 +21876,11 @@ var StorageFileApi = class extends BaseApiClient {
     if (typeof Buffer !== "undefined") return Buffer.from(data).toString("base64");
     return btoa(data);
   }
-  _getFinalPath(path10) {
-    return `${this.bucketId}/${path10.replace(/^\/+/, "")}`;
+  _getFinalPath(path11) {
+    return `${this.bucketId}/${path11.replace(/^\/+/, "")}`;
   }
-  _removeEmptyFolders(path10) {
-    return path10.replace(/^\/|\/$/g, "").replace(/\/+/g, "/");
+  _removeEmptyFolders(path11) {
+    return path11.replace(/^\/|\/$/g, "").replace(/\/+/g, "/");
   }
   /** Modifies the `query`, appending values the from `transform` */
   applyTransformOptsToQuery(query, transform) {
@@ -25292,7 +23730,7 @@ var SupabaseClient = class {
     const { data } = await _this.auth.getSession();
     return (_data$session$access_ = (_data$session = data.session) === null || _data$session === void 0 ? void 0 : _data$session.access_token) !== null && _data$session$access_ !== void 0 ? _data$session$access_ : _this.supabaseKey;
   }
-  _initSupabaseAuthClient({ autoRefreshToken, persistSession, detectSessionInUrl, storage, userStorage, storageKey, flowType, lock, debug, throwOnError, experimental, lockAcquireTimeout, skipAutoInitialize }, headers2, fetch$1) {
+  _initSupabaseAuthClient({ autoRefreshToken, persistSession, detectSessionInUrl, storage: storage2, userStorage, storageKey, flowType, lock, debug, throwOnError, experimental, lockAcquireTimeout, skipAutoInitialize }, headers2, fetch$1) {
     const authHeaders = {
       Authorization: `Bearer ${this.supabaseKey}`,
       apikey: `${this.supabaseKey}`
@@ -25304,7 +23742,7 @@ var SupabaseClient = class {
       autoRefreshToken,
       persistSession,
       detectSessionInUrl,
-      storage,
+      storage: storage2,
       userStorage,
       flowType,
       lock,
@@ -25353,6 +23791,11 @@ if (shouldShowDeprecationWarning()) console.warn("\u26A0\uFE0F  Node.js 18 and b
 
 // lib/supabase/schema.ts
 var DB_SCHEMA = "gerencia";
+var BUCKETS = {
+  anexos: "gerencia-anexos",
+  avatars: "gerencia-avatars",
+  docsMidia: "gerencia-docs-midia"
+};
 
 // local/encarte-pc/supabase.ts
 init_contexto();
@@ -25385,6 +23828,1671 @@ async function createClient2() {
   return cliente;
 }
 var createAdminClient = createClient2;
+
+// lib/encarte/midia.ts
+var BUCKET = BUCKETS.anexos;
+var chaveMiniatura = (id) => `encarte/miniaturas/${id}.jpg`;
+var chaveImagem = (dono, arq) => `encarte/imagens/${dono}/${arq}`;
+var TIPOS = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml"
+};
+var tipoPorExt = (arq) => TIPOS[path2.extname(arq).toLowerCase()] || "application/octet-stream";
+async function storage() {
+  return (await createClient2()).storage.from(BUCKET);
+}
+async function subirMidia(chave, dados, tipo) {
+  try {
+    const s = await storage();
+    await s.remove([chave]);
+    const { error } = await s.upload(chave, dados, { contentType: tipo, upsert: false });
+    if (error) throw error;
+    marcarExistente(chave);
+    return true;
+  } catch (e) {
+    console.warn("[encarte] storage: n\xE3o subiu", chave, e instanceof Error ? e.message : e);
+    return false;
+  }
+}
+async function baixarMidia(chave) {
+  try {
+    const { data, error } = await (await storage()).download(chave);
+    if (error || !data) return null;
+    return Buffer.from(await data.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+async function garantirLocal(local, chave) {
+  try {
+    await fs2.access(local);
+    return local;
+  } catch {
+    const dados = await baixarMidia(chave);
+    if (!dados) return null;
+    await fs2.mkdir(path2.dirname(local), { recursive: true });
+    const tmp = `${local}.${process.pid}.tmp`;
+    await fs2.writeFile(tmp, dados);
+    await fs2.rename(tmp, local);
+    return local;
+  }
+}
+var VALE_MS2 = 6e4;
+var listados = /* @__PURE__ */ new Map();
+function marcarExistente(chave) {
+  const i = chave.lastIndexOf("/");
+  listados.get(chave.slice(0, i))?.nomes.add(chave.slice(i + 1));
+}
+async function existeNoStorage(chave) {
+  const i = chave.lastIndexOf("/");
+  const pasta = chave.slice(0, i), nome = chave.slice(i + 1);
+  let c = listados.get(pasta);
+  if (!c || c.ate < Date.now()) {
+    const nomes = /* @__PURE__ */ new Set();
+    try {
+      const s = await storage();
+      for (let pagina = 0; pagina < 20; pagina++) {
+        const { data, error } = await s.list(pasta, { limit: 1e3, offset: pagina * 1e3 });
+        if (error || !data) break;
+        data.forEach((o) => nomes.add(o.name));
+        if (data.length < 1e3) break;
+      }
+    } catch {
+    }
+    c = { nomes, ate: Date.now() + VALE_MS2 };
+    listados.set(pasta, c);
+  }
+  return c.nomes.has(nome);
+}
+function migrarSeFaltar(local, chave, tipo) {
+  void (async () => {
+    if (await existeNoStorage(chave)) return;
+    const dados = await fs2.readFile(local).catch(() => null);
+    if (dados) await subirMidia(chave, dados, tipo);
+  })().catch(() => {
+  });
+}
+
+// lib/encarte/divisorias.ts
+function divisoriasDaZona(cells, o = {}) {
+  const v = o.v !== false, h = o.h !== false, recuo = Math.max(0, Number(o.recuo) || 0);
+  const vaoMax = Number(o.vaoMax) > 0 ? Number(o.vaoMax) : 40;
+  const cs = (cells || []).filter((c) => c && c.w > 0 && c.h > 0);
+  const r22 = (n) => Math.round(n * 100) / 100;
+  const ver = [], hor = [];
+  for (const a of cs) for (const b of cs) {
+    if (a === b) continue;
+    const gx = b.x - (a.x + a.w);
+    if (v && gx >= -1 && gx <= vaoMax) {
+      const t = Math.max(a.y, b.y), f = Math.min(a.y + a.h, b.y + b.h);
+      if (f - t > 0.5 * Math.min(a.h, b.h)) ver.push({ c: a.x + a.w + gx / 2, a: t, b: f });
+    }
+    const gy = b.y - (a.y + a.h);
+    if (h && gy >= -1 && gy <= vaoMax) {
+      const e = Math.max(a.x, b.x), d = Math.min(a.x + a.w, b.x + b.w);
+      if (d - e > 0.25 * Math.min(a.w, b.w)) hor.push({ c: a.y + a.h + gy / 2, a: Math.min(a.x, b.x), b: Math.max(a.x + a.w, b.x + b.w) });
+    }
+  }
+  const juntar = (segs, folga) => {
+    const out = [];
+    for (const s of segs.slice().sort((p, q) => p.c - q.c || p.a - q.a)) {
+      const u = out.find((x) => Math.abs(x.c - s.c) < 1 && s.a <= x.b + folga && s.b >= x.a - folga);
+      if (u) {
+        u.a = Math.min(u.a, s.a);
+        u.b = Math.max(u.b, s.b);
+      } else out.push({ ...s });
+    }
+    return out;
+  };
+  const res = [];
+  const empurra = (div, s) => {
+    const a = s.a + recuo, b = s.b - recuo;
+    if (b - a < 4) return;
+    res.push(div === "v" ? { div, x1: r22(s.c), y1: r22(a), x2: r22(s.c), y2: r22(b) } : { div, x1: r22(a), y1: r22(s.c), x2: r22(b), y2: r22(s.c) });
+  };
+  for (const s of juntar(ver, 0.5)) empurra("v", s);
+  for (const s of juntar(hor, vaoMax)) empurra("h", s);
+  return res;
+}
+
+// lib/encarte/gerador-template.ts
+function dadosTrava(b, trava) {
+  const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+  const lado = trava === "esq" || trava === "dir" || trava === "centro" ? trava : cx < 40 ? "esq" : cx > 60 ? "dir" : "centro";
+  const alt = cy < 40 ? "cima" : cy > 60 ? "baixo" : "meio";
+  const t = trava === "preco" || trava === "nome" || trava === "imagem" ? ` data-trava="${trava}"` : "";
+  return ` data-ancora="${lado}" data-ancora-v="${alt}"${t}`;
+}
+function divisoriasValidas(d) {
+  if (!d || d.v === false && d.h === false) return null;
+  const cor = /^#[0-9a-f]{6}$/i.test(String(d.cor || "")) ? String(d.cor).toLowerCase() : "#000000";
+  const px = Number.isFinite(+d.px) && +d.px > 0 ? Math.min(200, Math.max(0.5, +d.px)) : 2;
+  const estilo = ["solida", "pontilhada", "tracejada"].includes(d.estilo) ? d.estilo : "solida";
+  const recuo = Number.isFinite(+(d.recuo ?? 0)) ? Math.max(0, +(d.recuo ?? 0)) : 0;
+  return { v: d.v !== false, h: d.h !== false, cor, px, estilo, ...recuo ? { recuo } : {} };
+}
+function tracoDivisoria(estilo, px) {
+  if (estilo === "pontilhada") return ` stroke-dasharray="0 ${n2(px * 2)}" stroke-linecap="round"`;
+  if (estilo === "tracejada") return ` stroke-dasharray="${n2(px * 3)} ${n2(px * 2)}" stroke-linecap="butt"`;
+  return ' stroke-linecap="butt"';
+}
+function svgDivisorias(gaId, casas, d, vaoMax) {
+  const ls = divisoriasDaZona(casas, { v: d.v, h: d.h, recuo: d.recuo, vaoMax });
+  const traco = tracoDivisoria(d.estilo, d.px);
+  return [
+    `<g class="divisorias-tpl" data-zona="${gaId}">`,
+    ...ls.map((l) => `  <line x1="${l.x1}" y1="${l.y1}" x2="${l.x2}" y2="${l.y2}" fill="none" stroke="${d.cor}" stroke-width="${d.px}"${traco}/>`),
+    `</g>`
+  ].join("\n");
+}
+var PROPORCAO_HORIZONTAL = 1.35;
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+var n2 = (v) => +v.toFixed(2);
+var fontStr = (fonte, tamanho) => `font-family="${esc(fonte)}" font-size="${tamanho}"`;
+var anchor = (a) => `text-anchor="${a === "middle" ? "middle" : a === "end" ? "end" : "start"}"`;
+var baseline = (y, h) => n2(y + h * 0.78);
+var baselineTexto = (b, c) => c.alinha_v === "centro" ? n2(b.y + b.h / 2 + (c.tamanho || 0) * 0.36) : c.alinha_v === "baixo" ? n2(b.y + b.h) : baseline(b.y, b.h);
+var GATILHO_EXEMPLO = "NA COMPRA DE // 10 UN OU MAIS!";
+var linhasGatilho = (t) => String(t || GATILHO_EXEMPLO).split(/\s*(?:\n|\/\/)\s*/).map((s) => s.trim()).filter(Boolean).slice(0, 2);
+function ancoraVGatilho(c) {
+  if (c.gatilho_ancora && c.gatilho_ancora !== "auto") return c.gatilho_ancora;
+  const bs = [c.gatilho_fundo, c.gatilho].filter(Boolean);
+  if (!bs.length) return "cima";
+  const y0 = Math.min(...bs.map((b) => b.y)), y1 = Math.max(...bs.map((b) => b.y + b.h)), cy = (y0 + y1) / 2;
+  return cy < 40 ? "cima" : cy > 60 ? "baixo" : "meio";
+}
+function baseGatilho(b, c, n) {
+  const entre = n2(c.tamanho * 1.1), bloco = entre * (n - 1);
+  const y = c.alinha_v === "topo" ? b.y + c.tamanho * 0.8 : c.alinha_v === "baixo" ? b.y + b.h - bloco - c.tamanho * 0.1 : b.y + b.h / 2 - bloco / 2 + c.tamanho * 0.36;
+  return { y: n2(y), entre };
+}
+var IMG = (r) => r;
+var href = (ref) => {
+  const v = IMG(ref);
+  return /^[A-Za-z]:\\/.test(v) ? `xlink:href="${esc(v)}"` : `href="${esc(v)}"`;
+};
+var caixa = (c, card) => ({
+  x: card.x + c.x / 100 * card.w,
+  y: card.y + c.y / 100 * card.h,
+  w: c.w / 100 * card.w,
+  h: c.h / 100 * card.h
+});
+var xTexto = (b, a) => n2(a === "middle" ? b.x + b.w / 2 : a === "end" ? b.x + b.w : b.x);
+var DEFS = [];
+var hexA = (c) => c.length === 9 ? parseInt(c.slice(7), 16) / 255 : 1;
+function svgDegrade(id, g) {
+  const s = (g.escala ?? 100) / 100;
+  const paradas = [...g.paradas].sort((a2, b) => a2.pos - b.pos).map((p) => `<stop offset="${n2(p.pos)}%" stop-color="${esc(p.cor.slice(0, 7))}" stop-opacity="${+((p.a ?? 1) * hexA(p.cor)).toFixed(3)}"/>`).join("");
+  if (g.tipo === "radial") return `<radialGradient id="${id}" cx="0.5" cy="0.5" r="${n2(0.5 * s)}">${paradas}</radialGradient>`;
+  const a = (g.angulo ?? 0) * Math.PI / 180, dx = Math.cos(a) * s / 2, dy = -Math.sin(a) * s / 2;
+  return `<linearGradient id="${id}" x1="${n2(0.5 - dx)}" y1="${n2(0.5 - dy)}" x2="${n2(0.5 + dx)}" y2="${n2(0.5 + dy)}">${paradas}</linearGradient>`;
+}
+var defsSvg = () => DEFS.length ? `<defs>${DEFS.join("")}</defs>` : "";
+function pinta(attr, cor) {
+  if (cor && typeof cor === "object") {
+    const id = `degrade_${DEFS.length + 1}`;
+    DEFS.push(svgDegrade(id, cor));
+    return `${attr}="url(#${id})"`;
+  }
+  const m = /^#([0-9a-f]{6})([0-9a-f]{2})$/i.exec(cor || "");
+  if (!m) return `${attr}="${esc(cor || "none")}"`;
+  return `${attr}="#${m[1]}" ${attr}-opacity="${+(parseInt(m[2], 16) / 255).toFixed(3)}"`;
+}
+function borda(o, texto = false) {
+  if (!o.borda || !o.borda_cor) return "";
+  return ` ${pinta("stroke", o.borda_cor)} stroke-width="${o.borda}"${texto ? ' paint-order="stroke" stroke-linejoin="round"' : ""}`;
+}
+function svgForma(id, b, f) {
+  const geo = `x="${n2(b.x)}" y="${n2(b.y)}" width="${n2(b.w)}" height="${n2(b.h)}"`;
+  if (f.imagem_url) return `<image id="${esc(id)}" ${geo} preserveAspectRatio="none" ${href(f.imagem_url)}/>`;
+  const fill = `${pinta("fill", f.cor || "none")}${borda(f)}`;
+  const r = Math.min(f.raio || 0, b.w / 2, b.h / 2);
+  const c = f.cantos && f.cantos.length === 4 ? f.cantos : [true, true, true, true];
+  if (!r || c.every(Boolean)) return `<rect id="${esc(id)}" ${geo} ${fill}${r ? ` rx="${n2(r)}" ry="${n2(r)}"` : ""}/>`;
+  const [tl, tr, br, bl] = c.map((on) => on ? r : 0);
+  const { x, y, w, h } = b;
+  const arco = (k, ex, ey) => k ? ` A${n2(k)} ${n2(k)} 0 0 1 ${n2(ex)} ${n2(ey)}` : ` L${n2(ex)} ${n2(ey)}`;
+  const d = `M${n2(x + tl)} ${n2(y)} H${n2(x + w - tr)}${arco(tr, x + w, y + tr)} V${n2(y + h - br)}${arco(br, x + w - br, y + h)} H${n2(x + bl)}${arco(bl, x, y + h - bl)} V${n2(y + tl)}${arco(tl, x + tl, y)} Z`;
+  return `<path id="${esc(id)}" d="${d}" ${fill}/>`;
+}
+function estiloTexto(c, tachar = false) {
+  const deco = [c.sublinhado && "underline", (c.tachado || tachar) && "line-through"].filter(Boolean).join(" ");
+  const css = [c.caixa_alta && "text-transform:uppercase", c.versalete && "font-variant:small-caps"].filter(Boolean).join(";");
+  return (c.italico ? ' font-style="italic"' : "") + (deco ? ` text-decoration="${deco}"` : "") + (css ? ` style="${css}"` : "") + (c.espacamento ? ` letter-spacing="${n2(c.espacamento / 1e3 * c.tamanho)}"` : "");
+}
+function svgTexto(id, c, b, conteudo, ancoraFixa, tachar = false, dados = "") {
+  const al = ancoraFixa || c.alinhamento;
+  return `<text id="${esc(id)}"${dados} ${fontStr(c.fonte, c.tamanho)} ${pinta("fill", c.cor)}${borda(c, true)}${estiloTexto(c, tachar)} transform="translate(${xTexto(b, al)} ${/_nome(_texto)?$/.test(id) ? baseline(b.y, b.h) : baselineTexto(b, c)})" ${anchor(al)}>${esc(conteudo)}</text>`;
+}
+var margensNome = (f) => ({ t: f?.margem_t ?? 6, r: f?.margem_r ?? 6, b: f?.margem_b ?? 6, l: f?.margem_l ?? 6 });
+function caixaDoNome(campos, card) {
+  if (!campos.nome) return null;
+  if (!campos.nome_fundo) return caixa(campos.nome, card);
+  const f = caixa(campos.nome_fundo, card), m = margensNome(campos.nome_fundo);
+  return { x: f.x + m.l, y: f.y + m.t, w: Math.max(4, f.w - m.l - m.r), h: Math.max(4, f.h - m.t - m.b) };
+}
+function areaPorRegra(campos, card) {
+  const a = campos.area;
+  if (!a || a.modo !== "regras") return null;
+  const gap = a.espaco ?? 6;
+  let top = card.y + (a.margem_t ?? 6), bot = card.y + card.h - (a.margem_b ?? 6);
+  const l = card.x + (a.margem_l ?? 6), r = card.x + card.w - (a.margem_r ?? 6);
+  if (a.resp_nome !== false && campos.nome) {
+    const n = campos.nome_fundo ? caixa(campos.nome_fundo, card) : caixa(campos.nome, card);
+    top = Math.max(top, n.y + n.h + gap);
+  }
+  const pecas = [campos.preco_fundo, campos.moeda_fundo, campos.moeda, campos.preco, campos.centavos, campos.unidade].filter(Boolean).map((c) => caixa(c, card));
+  if (pecas.length) {
+    const y0 = Math.min(...pecas.map((b) => b.y)), y1 = Math.max(...pecas.map((b) => b.y + b.h));
+    if ((y0 + y1) / 2 > card.y + card.h / 2) {
+      if (a.resp_preco_baixo !== false) bot = Math.min(bot, y0 - gap);
+    } else if (a.resp_preco_cima) top = Math.max(top, y1 + gap);
+  }
+  return { x: l, y: top, w: Math.max(10, r - l), h: Math.max(10, bot - top) };
+}
+var PECAS_PRECO = ["preco_fundo", "moeda_fundo", "moeda", "preco", "centavos", "unidade"];
+var PECAS_JUNTO = ["de_fundo", "de_rotulo", "de_valor", "selo_fundo", "selo_rotulo", "selo_moeda", "selo_valor"];
+var MEDIDAS_PRECO = ["tamanho", "borda", "raio", "respiro", "largura_max", "margem_t", "margem_r", "margem_b", "margem_l"];
+function precoProporcional(campos, ref, casa) {
+  if (!(ref.w > 0 && ref.h > 0 && casa.w > 0 && casa.h > 0)) return campos;
+  if (Math.abs(ref.w - casa.w) < 0.01 && Math.abs(ref.h - casa.h) < 0.01) return campos;
+  const c = campos;
+  const pecas = PECAS_PRECO.filter((k) => c[k]).map((k) => c[k]);
+  if (!pecas.length) return campos;
+  const x0 = Math.min(...pecas.map((b) => b.x)) / 100 * ref.w, x1 = Math.max(...pecas.map((b) => b.x + b.w)) / 100 * ref.w;
+  const y0 = Math.min(...pecas.map((b) => b.y)) / 100 * ref.h, y1 = Math.max(...pecas.map((b) => b.y + b.h)) / 100 * ref.h;
+  const cx = (x0 + x1) / 2 / ref.w, cy = (y0 + y1) / 2 / ref.h;
+  const s = Math.min(
+    casa.w / ref.w,
+    casa.h / ref.h,
+    cx > 0.6 || cx < 0.4 ? Math.max(0.05, (casa.w - (cx > 0.6 ? ref.w - x1 : x0)) / (x1 - x0)) : Infinity,
+    Math.max(0.05, (casa.h - (cy > 0.5 ? ref.h - y1 : y0)) / (y1 - y0))
+  );
+  const X0 = cx > 0.6 ? casa.w - (ref.w - x1) - (x1 - x0) * s : cx < 0.4 ? x0 : cx * casa.w - (x1 - x0) * s / 2;
+  const Y0 = cy > 0.5 ? casa.h - (ref.h - y1) - (y1 - y0) * s : y0;
+  const ptX = (x) => X0 + (x / 100 * ref.w - x0) * s, ptY = (y) => Y0 + (y / 100 * ref.h - y0) * s;
+  const r = (v) => +v.toFixed(3);
+  const out = { ...campos };
+  const ks = [...PECAS_PRECO, ...PECAS_JUNTO.filter((k) => !k.startsWith("de_") || !campos.de_trava || campos.de_trava === "preco")];
+  for (const k of ks) {
+    const o = c[k];
+    if (!o) continue;
+    const n = {
+      ...o,
+      x: r(ptX(o.x) / casa.w * 100),
+      y: r(ptY(o.y) / casa.h * 100),
+      w: r(o.w / 100 * ref.w * s / casa.w * 100),
+      h: r(o.h / 100 * ref.h * s / casa.h * 100)
+    };
+    for (const m of MEDIDAS_PRECO) if (typeof o[m] === "number") n[m] = Math.round(o[m] * s * 100) / 100;
+    out[k] = n;
+  }
+  if (campos.com_selo) {
+    const pc = campos.com_selo.pecas;
+    out.com_selo = {
+      ...campos.com_selo,
+      x: r(ptX(campos.com_selo.x) / casa.w * 100),
+      y: r(ptY(campos.com_selo.y) / casa.h * 100),
+      ...pc ? { pecas: Object.fromEntries(Object.entries(pc).map(([k, o]) => [k, { ...o, ...o.x != null ? { x: r(ptX(o.x) / casa.w * 100) } : {}, ...o.y != null ? { y: r(ptY(o.y) / casa.h * 100) } : {} }])) } : {}
+    };
+  }
+  if (campos.extras) out.extras = campos.extras.map((e) => e.trava !== "preco" ? e : {
+    ...e,
+    x: r(ptX(e.x) / casa.w * 100),
+    y: r(ptY(e.y) / casa.h * 100),
+    w: r(e.w / 100 * ref.w * s / casa.w * 100),
+    h: r(e.h / 100 * ref.h * s / casa.h * 100),
+    ...Object.fromEntries(MEDIDAS_PRECO.filter((m) => typeof e[m] === "number").map((m) => [m, Math.round(e[m] * s * 100) / 100]))
+  });
+  return out;
+}
+function camposNaCasa(campos, ref, casa) {
+  if (!(ref.w > 0 && ref.h > 0 && casa.w > 0 && casa.h > 0)) return campos;
+  if (Math.abs(ref.w - casa.w) < 0.01 && Math.abs(ref.h - casa.h) < 0.01) return campos;
+  const r = (v) => +v.toFixed(3);
+  const pt = (b) => ({ x: b.x / 100 * ref.w, y: b.y / 100 * ref.h, w: b.w / 100 * ref.w, h: b.h / 100 * ref.h });
+  const pct = (b) => ({ x: r(b.x / casa.w * 100), y: r(b.y / casa.h * 100), w: r(b.w / casa.w * 100), h: r(b.h / casa.h * 100) });
+  const out = precoProporcional(campos, ref, casa);
+  const c = campos;
+  const estica = (B) => {
+    const w = Math.max(10, casa.w - B.x - (ref.w - B.x - B.w)), h = Math.max(10, casa.h - B.y - (ref.h - B.y - B.h));
+    return { x: B.x, y: B.y, w, h };
+  };
+  for (const k of ["area", "foto"]) {
+    const o = c[k];
+    if (o) out[k] = { ...o, ...pct(estica(pt(o))) };
+  }
+  const nomeNa = (B) => {
+    const w = Math.max(10, casa.w - B.x - (ref.w - B.x - B.w));
+    const y = (B.y + B.h / 2) / ref.h <= 0.5 ? B.y : casa.h - (ref.h - B.y);
+    return { x: B.x, y, w, h: B.h };
+  };
+  let dNome = null;
+  for (const k of ["nome_fundo", "nome"]) {
+    const o = c[k];
+    if (!o) continue;
+    const B = pt(o), N = nomeNa(B);
+    out[k] = { ...o, ...pct(N) };
+    if (!dNome || k === "nome") dNome = { dx: N.x + N.w / 2 - (B.x + B.w / 2), dy: N.y + N.h - (B.y + B.h) };
+  }
+  const A0 = c.area ? pt(c.area) : null, A1 = A0 ? estica(A0) : null;
+  const sB = Math.min(casa.w / ref.w, casa.h / ref.h);
+  const bloco = (U, trava) => {
+    let ax = 0.5, ay = 0.5, PX, PY;
+    if (trava === "nome" && dNome) {
+      ay = 1;
+      PX = U.x + U.w / 2 + dNome.dx;
+      PY = U.y + U.h + dNome.dy;
+    } else if (trava === "imagem" && A0 && A1) {
+      PX = A1.x + (U.x + U.w / 2 - A0.x) / (A0.w || 1) * A1.w;
+      PY = A1.y + (U.y + U.h / 2 - A0.y) / (A0.h || 1) * A1.h;
+    } else {
+      const cx = (U.x + U.w / 2) / ref.w, cy = (U.y + U.h / 2) / ref.h;
+      const lado = trava === "esq" || trava === "dir" || trava === "centro" ? trava : cx < 0.4 ? "esq" : cx > 0.6 ? "dir" : "centro";
+      ax = lado === "esq" ? 0 : lado === "dir" ? 1 : 0.5;
+      ay = cy < 0.4 ? 0 : cy > 0.6 ? 1 : 0.5;
+      const px = U.x + ax * U.w, py = U.y + ay * U.h;
+      PX = ax === 0 ? px : ax === 1 ? casa.w - (ref.w - px) : px / ref.w * casa.w;
+      PY = ay === 0 ? py : ay === 1 ? casa.h - (ref.h - py) : py / ref.h * casa.h;
+    }
+    const ox = U.x + ax * U.w, oy = U.y + ay * U.h;
+    return (o) => {
+      const B = pt(o), n = { ...o, ...pct({ x: PX + (B.x - ox) * sB, y: PY + (B.y - oy) * sB, w: B.w * sB, h: B.h * sB }) };
+      for (const m of MEDIDAS_PRECO) if (typeof o[m] === "number") n[m] = Math.round(o[m] * sB * 100) / 100;
+      return n;
+    };
+  };
+  const uniaoPt = (bs) => {
+    const x0 = Math.min(...bs.map((b) => b.x)), y0 = Math.min(...bs.map((b) => b.y));
+    return { x: x0, y: y0, w: Math.max(...bs.map((b) => b.x + b.w)) - x0, h: Math.max(...bs.map((b) => b.y + b.h)) - y0 };
+  };
+  if (campos.de_trava && campos.de_trava !== "preco") {
+    const ks = ["de_fundo", "de_rotulo", "de_valor"].filter((k) => c[k]);
+    if (ks.length) {
+      const f = bloco(uniaoPt(ks.map((k) => pt(c[k]))), campos.de_trava);
+      for (const k of ks) out[k] = f(c[k]);
+    }
+  }
+  if (campos.extras) out.extras = out.extras.map((e, i) => {
+    const o = campos.extras[i];
+    if (o.trava === "preco") return e;
+    return bloco(pt(o), o.trava)(o);
+  });
+  const gks = ["gatilho_fundo", "gatilho"].filter((k) => campos[k]);
+  if (gks.length) {
+    const U = uniaoPt(gks.map((k) => pt(campos[k]))), v = ancoraVGatilho(campos);
+    const dy = v === "cima" ? 0 : v === "baixo" ? casa.h - ref.h : (U.y + U.h / 2) * (casa.h / ref.h - 1);
+    for (const k of gks) {
+      const B = pt(campos[k]);
+      out[k] = { ...campos[k], ...pct({ x: B.x, y: B.y + dy, w: Math.max(4, casa.w - B.x - (ref.w - B.x - B.w)), h: B.h }) };
+    }
+  }
+  return out;
+}
+var r1 = (v) => Math.round(v * 10) / 10;
+var chaveFormato = (v, w, h) => `${v}:${r1(w)}x${r1(h)}`;
+function versaoNaCasa(m, v, casa, refLegado) {
+  const f = m.formatos && m.formatos[chaveFormato(v, casa.w, casa.h)];
+  if (f) return precoNaCasa(f, casa, casa);
+  return precoNaCasa(m[v], refLegado, casa);
+}
+function precoNaCasa(campos, ref, casa) {
+  const r = campos.preco_ref && campos.preco_ref.w > 0 && campos.preco_ref.h > 0 ? campos.preco_ref : ref;
+  return r ? camposNaCasa(campos, r, casa) : campos;
+}
+function svgCampos(campos, num, card) {
+  const out = [];
+  const { foto, area, nome, preco_fundo, moeda_fundo, moeda, preco, centavos, unidade } = campos;
+  const porRegra = areaPorRegra(campos, card);
+  if (area) {
+    const b = porRegra || caixa(area, card);
+    const dados = porRegra ? ` data-regra="1" data-margem="${[area.margem_t, area.margem_r, area.margem_b, area.margem_l].map((v) => v ?? 6).join(" ")}" data-nome="${area.resp_nome !== false ? 1 : 0}" data-preco-baixo="${area.resp_preco_baixo !== false ? 1 : 0}" data-preco-cima="${area.resp_preco_cima ? 1 : 0}" data-espaco="${area.espaco ?? 6}"` : ' data-fixa="1"';
+    const alinha = area.foto_alinha && /^(cima|centro|baixo) (esq|centro|dir)$/.test(area.foto_alinha) ? ` data-foto-alinha="${area.foto_alinha}"` : "";
+    out.push(`  <rect id="produto_${num}_area"${dados}${alinha} x="${n2(b.x)}" y="${n2(b.y)}" width="${n2(b.w)}" height="${n2(b.h)}" fill="none" stroke="none"/>`);
+  }
+  const extra = (e, k) => {
+    const b = caixa(e, card), id = `extra_${num}_${k + 1}`;
+    const ancora = dadosTrava(e, e.trava) + (e.frente || e.topo ? ' data-frente="1"' : "");
+    let t = "";
+    if (e.tipo === "texto") t = svgTexto(id, e, b, e.texto);
+    else if (e.tipo === "imagem") {
+      if (e.url) t = `<image id="${id}" x="${n2(b.x)}" y="${n2(b.y)}" width="${n2(b.w)}" height="${n2(b.h)}" preserveAspectRatio="xMidYMid meet" ${href(e.url)}/>`;
+    } else t = svgForma(id, b, e);
+    if (t) out.push("  " + t.replace(/^<(\w+) /, `<$1${ancora} `));
+  };
+  (campos.extras || []).forEach((e, k) => {
+    if (!e.frente) extra(e, k);
+  });
+  if (foto) {
+    const b = porRegra || caixa(foto, card);
+    out.push(`  <image id="produto_${num}_var_01_imagem" x="${n2(b.x)}" y="${n2(b.y)}" width="${n2(b.w)}" height="${n2(b.h)}" preserveAspectRatio="xMidYMid meet"/>`);
+  }
+  (campos.extras || []).forEach((e, k) => {
+    if (e.frente && !e.topo) extra(e, k);
+  });
+  if (campos.gatilho || campos.gatilho_fundo) {
+    const dados = ` data-ancora="esq" data-ancora-v="${ancoraVGatilho(campos)}" data-frente="1"`;
+    if (campos.gatilho_fundo) out.push("  " + svgForma(`produto_${num}_tarja_fundo`, caixa(campos.gatilho_fundo, card), campos.gatilho_fundo).replace(/^<(\w+) /, `<$1${dados} `));
+    if (campos.gatilho) {
+      const g = campos.gatilho, b = caixa(g, card), ls = linhasGatilho(g.texto_exemplo), { y, entre } = baseGatilho(b, g, ls.length);
+      const tsp = ls.map((l, i) => `<tspan x="0" y="${i ? entre : 0}">${esc(l)}</tspan>`).join("");
+      out.push(`  <text id="produto_${num}_gatilho"${dados} ${fontStr(g.fonte, g.tamanho)} ${pinta("fill", g.cor)}${borda(g, true)}${estiloTexto(g)} transform="translate(${n2(b.x + b.w / 2)} ${y})" ${anchor("middle")}>${tsp}</text>`);
+    }
+  }
+  if (nome) {
+    const b = caixaDoNome(campos, card);
+    const v = nome.alinha_v === "centro" || nome.alinha_v === "baixo" ? ` data-alinha-v="${nome.alinha_v}"` : "";
+    const ml = [1, 2, 3].includes(Number(nome.max_linhas)) ? ` data-linhas="${Number(nome.max_linhas)}"` : "";
+    const dadosTxt = ` data-largura="${n2(b.w)}" data-altura="${n2(b.h)}"${v}${ml}`;
+    const nf = campos.nome_fundo;
+    if (!nf) out.push("  " + svgTexto(`produto_${num}_nome`, nome, b, nome.texto_exemplo || "PRODUTO", void 0, false, dadosTxt));
+    else {
+      const m = margensNome(nf);
+      const dados = ` data-regra="${nf.regra || "fixo"}" data-margem="${[m.t, m.r, m.b, m.l].join(" ")}"`;
+      out.push(`  <g id="produto_${num}_nome">`);
+      out.push("    " + svgForma(`fundo_nome_${num}`, caixa(nf, card), nf).replace(/^<(\w+) /, `<$1${dados} `));
+      out.push("    " + svgTexto(`produto_${num}_nome_texto`, nome, b, nome.texto_exemplo || "PRODUTO", void 0, false, dadosTxt));
+      out.push("  </g>");
+    }
+  }
+  if (campos.limite) {
+    const l = campos.limite;
+    out.push("  " + svgTexto(`produto_${num}_qtd_max`, l, caixa(l, card), l.texto_exemplo || "LIMITE 3 UN", void 0, false, ' data-exemplo="1"'));
+  }
+  if (preco_fundo || moeda_fundo || moeda || preco || unidade) {
+    let comSelo = "";
+    const cs = campos.selo_valor && campos.com_selo, seloPeca = {};
+    const ps = (k, svg) => seloPeca[k] ? svg.replace(/^<(\w+) /, `<$1 ${seloPeca[k]} `) : svg;
+    if (cs) {
+      const bs = [preco_fundo, moeda_fundo, moeda, preco, centavos, unidade].filter(Boolean).map((c) => caixa(c, card));
+      if (bs.length) {
+        const x0 = Math.min(...bs.map((b) => b.x)), y0 = Math.min(...bs.map((b) => b.y));
+        const x1 = Math.max(...bs.map((b) => b.x + b.w)), y1 = Math.max(...bs.map((b) => b.y + b.h));
+        const s = cs.escala || 1, X = card.x + cs.x / 100 * card.w, Y = card.y + cs.y / 100 * card.h;
+        const dx = X + (x1 - x0) * s - x1, dy = Y + (y1 - y0) * s - y1, r = (v) => Math.round(v * 100) / 100;
+        if (Math.abs(s - 1) > 1e-3 || Math.abs(dx) > 0.05 || Math.abs(dy) > 0.05 || cs.pecas) comSelo = ` data-com-selo="${r(s)} ${r(dx)} ${r(dy)} ${r(x1)} ${r(y1)}"`;
+        for (const [k, o] of Object.entries(cs.pecas || {})) {
+          const c = campos[k];
+          if (!c) continue;
+          const b = caixa(c, card), at = [];
+          if (o.x != null || o.y != null) {
+            const ox = o.x != null ? card.x + o.x / 100 * card.w : X + (b.x - x0) * s, oy = o.y != null ? card.y + o.y / 100 * card.h : Y + (b.y - y0) * s;
+            const lx = (ox - (X + (b.x - x0) * s)) / s, ly = (oy - (Y + (b.y - y0) * s)) / s;
+            if (Math.abs(lx) > 0.05 || Math.abs(ly) > 0.05) at.push(`data-selo-d="${r(lx)} ${r(ly)}"`);
+          }
+          if (typeof o.cor === "string") at.push(`data-selo-cor="${esc(o.cor)}"`);
+          if (typeof o.borda_cor === "string") at.push(`data-selo-borda="${esc(o.borda_cor)}"`);
+          if (at.length) seloPeca[k] = at.join(" ");
+        }
+      }
+    }
+    out.push(`  <g id="PRECO_${num}"${comSelo}>`);
+    if (preco_fundo) {
+      const b = caixa(preco_fundo, card);
+      let f = svgForma(`fundo_preco_${num}`, b, preco_fundo);
+      if (preco_fundo.regra && preco_fundo.regra !== "fixo") {
+        const c = preco_fundo.cantos && preco_fundo.cantos.length === 4 ? preco_fundo.cantos : [true, true, true, true];
+        const dados = [
+          `data-regra="${preco_fundo.regra}"`,
+          `data-lado="${preco_fundo.regra_lado || "ambos"}"`,
+          `data-respiro="${preco_fundo.respiro ?? 12}"`,
+          `data-encolhe="${preco_fundo.encolhe ? 1 : 0}"`,
+          ...preco_fundo.largura_max ? [`data-max="${n2(preco_fundo.largura_max)}"`] : [],
+          `data-margem="${[preco_fundo.margem_t, preco_fundo.margem_r, preco_fundo.margem_b, preco_fundo.margem_l].map((v) => v ?? 8).join(" ")}"`,
+          `data-raio="${preco_fundo.raio || 0}"`,
+          `data-cantos="${c.map((v) => v ? 1 : 0).join("")}"`,
+          `data-x="${n2(b.x)}" data-y="${n2(b.y)}" data-w="${n2(b.w)}" data-h="${n2(b.h)}"`
+        ].join(" ");
+        f = f.replace(/^<(rect|path|image) /, `<$1 ${dados} `);
+      }
+      out.push("    " + ps("preco_fundo", f));
+    }
+    if (moeda_fundo) out.push("    " + ps("moeda_fundo", svgForma(`fundo_moeda_${num}`, caixa(moeda_fundo, card), moeda_fundo)));
+    if (moeda) out.push("    " + ps("moeda", svgTexto(`moeda_${num}`, moeda, caixa(moeda, card), "R$")));
+    if (preco && centavos) {
+      out.push("    " + ps("preco", svgTexto(`produto_${num}_preco_real`, preco, caixa(preco, card), "0", "end")));
+      out.push("    " + ps("centavos", svgTexto(`produto_${num}_preco_centavos`, centavos, caixa(centavos, card), ",00", "start")));
+    } else if (preco) out.push("    " + ps("preco", svgTexto(`produto_${num}_preco`, preco, caixa(preco, card), "0,00")));
+    if (unidade) out.push("    " + ps("unidade", svgTexto(`produto_${num}_formato`, unidade, caixa(unidade, card), unidade.texto_exemplo || "kg")));
+    out.push(`  </g>`);
+  }
+  if (campos.de_valor) {
+    const v = campos.de_valor, bv = caixa(v, card);
+    const pcs = [campos.de_fundo, campos.de_rotulo, v].filter(Boolean);
+    const u = { x: Math.min(...pcs.map((c) => c.x)), y: Math.min(...pcs.map((c) => c.y)) };
+    const uw = Math.max(...pcs.map((c) => c.x + c.w)) - u.x, uh = Math.max(...pcs.map((c) => c.y + c.h)) - u.y;
+    out.push(`  <g id="produto_${num}_de"${dadosTrava({ ...u, w: uw, h: uh }, campos.de_trava || "preco")} style="display:none">`);
+    if (campos.de_fundo) out.push("    " + svgForma(`de_fundo_${num}`, caixa(campos.de_fundo, card), campos.de_fundo));
+    if (campos.de_rotulo) out.push("    " + svgTexto(`de_rotulo_${num}`, campos.de_rotulo, caixa(campos.de_rotulo, card), campos.de_rotulo.texto_exemplo || "DE R$"));
+    out.push("    " + svgTexto(`produto_${num}_preco_de`, v, bv, "0,00", void 0, v.riscar !== false));
+    out.push(`  </g>`);
+  }
+  if (campos.selo_valor) {
+    out.push(`  <g id="produto_${num}_selo" style="display:none">`);
+    if (campos.selo_fundo) out.push("    " + svgForma(`selo_fundo_${num}`, caixa(campos.selo_fundo, card), campos.selo_fundo));
+    if (campos.selo_rotulo) out.push("    " + svgTexto(`selo_rotulo_${num}`, campos.selo_rotulo, caixa(campos.selo_rotulo, card), campos.selo_rotulo.texto_exemplo || "CLUBE"));
+    if (campos.selo_moeda) out.push("    " + svgTexto(`moeda_selo_${num}`, campos.selo_moeda, caixa(campos.selo_moeda, card), "R$"));
+    out.push("    " + svgTexto(`produto_${num}_valor_selo`, campos.selo_valor, caixa(campos.selo_valor, card), "0,00"));
+    out.push(`  </g>`);
+  }
+  (campos.extras || []).forEach((e, k) => {
+    if (e.topo) extra(e, k);
+  });
+  return out;
+}
+function svgCard(gId, num, modelo, campos, card, horizontal = false) {
+  const nn = String(num).padStart(2, "0");
+  const fc = campos.fundo_card;
+  if (fc) modelo = { ...modelo, fundo_cor: fc.cor, raio: fc.raio ?? modelo.raio, borda: fc.borda ?? modelo.borda, borda_cor: fc.borda_cor ?? modelo.borda_cor };
+  const r = modelo.raio ? ` rx="${modelo.raio}" ry="${modelo.raio}"` : "";
+  return [
+    `<g id="${gId}" data-modelo="${modelo.indice}"${horizontal ? ' data-formato="horizontal"' : ""}>`,
+    `  <rect id="MARGEM_GRID_${nn}" x="${n2(card.x)}" y="${n2(card.y)}" width="${n2(card.w)}" height="${n2(card.h)}" ${pinta("fill", modelo.fundo_cor || "none")}${borda(modelo)}${r}/>`,
+    ...svgCampos(campos, nn, card),
+    `</g>`
+  ].join("\n");
+}
+function usaHorizontal(m, z, w, h) {
+  if (!m.horizontal || z.formato === "normal") return false;
+  return z.formato === "horizontal" || w / h >= PROPORCAO_HORIZONTAL;
+}
+var itensDaLinha = (z, r) => Math.max(1, Math.round(z.por_linha?.[r] || z.colunas));
+function casasNormaisPorModelo(projeto) {
+  const ref = /* @__PURE__ */ new Map(), primeira = /* @__PURE__ */ new Map();
+  const modelos = new Map(projeto.modelos_card.map((m) => [m.id, m]));
+  for (const pr of projeto.pranchetas) for (const z of pr.zonas) {
+    const m = modelos.get(z.modelo_card_id);
+    if (!m) continue;
+    const c = casaDaZona(z, projeto.espaco_padrao);
+    for (let r = 0; r < z.linhas; r++) {
+      const n = itensDaLinha(z, r), casa = { w: (z.w - (n - 1) * c.e) / n, h: c.h };
+      if (!primeira.has(m.id)) primeira.set(m.id, casa);
+      if (!ref.has(m.id) && !usaHorizontal(m, z, casa.w, casa.h)) ref.set(m.id, casa);
+    }
+  }
+  for (const [k, v] of primeira) if (!ref.has(k)) ref.set(k, v);
+  return ref;
+}
+function casaDaZona(zona, espacoPadrao) {
+  const e = zona.espaco ?? espacoPadrao;
+  return { w: (zona.w - (zona.colunas - 1) * e) / zona.colunas, h: (zona.h - (zona.linhas - 1) * e) / zona.linhas, e };
+}
+function svgElemento(el, ox) {
+  const x = n2(el.x + ox), y = n2(el.y), w = n2(el.w), h = n2(el.h);
+  if (el.tipo === "retangulo") return svgForma(el.id, { x, y, w, h }, el);
+  if (el.tipo === "texto") {
+    const t = svgTexto(el.id, el, { x, y, w, h }, el.texto);
+    return el.papel && /^(data|aviso|variavel)$/.test(el.papel) ? t.replace("<text ", `<text data-papel="${el.papel}" `) : t;
+  }
+  if (el.tipo === "imagem" && el.url) {
+    const ar = el.ajuste === "cover" ? "xMidYMid slice" : "xMidYMid meet";
+    return `<image id="${esc(el.id)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${ar}" ${href(el.url)}/>`;
+  }
+  return "";
+}
+function svgFundo(f, x, w, h, i) {
+  if (f.tipo === "imagem" && f.url) {
+    const ar = f.ajuste === "contain" ? "xMidYMid meet" : "xMidYMid slice";
+    return `<image id="fundo_${i + 1}" x="${x}" y="0" width="${w}" height="${h}" preserveAspectRatio="${ar}" ${href(f.url)}/>`;
+  }
+  return `<rect id="fundo_${i + 1}" x="${x}" y="0" width="${w}" height="${h}" ${pinta("fill", f.tipo === "cor" ? f.cor : "#ffffff")}/>`;
+}
+var VAO = 20;
+function gerarSvgTemplate(projeto, opcoes = {}) {
+  IMG = opcoes.imagem || ((r) => r);
+  DEFS = [];
+  const W = projeto.tamanho.w, H = projeto.tamanho.h;
+  const np = projeto.pranchetas.length;
+  const totalW = W * np + VAO * (np - 1);
+  const modelos = new Map(projeto.modelos_card.map((m) => [m.id, m]));
+  const corpo = [];
+  const pranchetas = [];
+  const casaPorModelo = /* @__PURE__ */ new Map();
+  const refPorModelo = casasNormaisPorModelo(projeto);
+  let num = 1, ga = 0;
+  projeto.pranchetas.forEach((pr, pi) => {
+    const ox = pi * (W + VAO);
+    pranchetas.push({ nome: pr.nome, x: ox, y: 0, w: W, h: H });
+    corpo.push(`<g id="PRANCHETA_${pi + 1}">`);
+    corpo.push(svgFundo(pr.fundo, ox, W, H, pi));
+    for (const el of pr.elementos) {
+      const s = svgElemento(el, ox);
+      if (s) corpo.push(s);
+    }
+    for (const z of pr.zonas) {
+      const m = modelos.get(z.modelo_card_id);
+      if (!m) continue;
+      const c = casaDaZona(z, projeto.espaco_padrao);
+      if (!casaPorModelo.has(m.id)) casaPorModelo.set(m.id, c);
+      ga++;
+      const gaId = ga === 1 ? "grid_area" : `grid_area_${String(ga).padStart(2, "0")}`;
+      const dv = divisoriasValidas(z.divisorias);
+      corpo.push(`<rect id="${gaId}" data-modelo="${m.indice}" data-zona="${esc(z.id)}" data-linhas-tpl="${z.linhas}"${dv ? ` data-divisorias="${esc(JSON.stringify(dv))}"` : ""} x="${n2(z.x + ox)}" y="${n2(z.y)}" width="${n2(z.w)}" height="${n2(z.h)}" fill="none" stroke="none"/>`);
+      const casas = [], cards = [];
+      for (let r = 0; r < z.linhas; r++) for (let n = itensDaLinha(z, r), cw = (z.w - (n - 1) * c.e) / n, k = 0; k < n; k++) {
+        const card = { x: z.x + ox + k * (cw + c.e), y: z.y + r * (c.h + c.e), w: cw, h: c.h };
+        const hz = usaHorizontal(m, z, cw, c.h);
+        casas.push(card);
+        cards.push(svgCard(`PRODUTO_${num}`, num, m, hz ? versaoNaCasa(m, "horizontal", card, null) : versaoNaCasa(m, "campos", card, refPorModelo.get(m.id)), card, hz));
+        num++;
+      }
+      if (dv) corpo.push(svgDivisorias(gaId, casas, dv, Math.max(40, c.e * 3)));
+      corpo.push(...cards);
+    }
+    corpo.push(`</g>`);
+  });
+  const svg = [
+    // data-projeto: o editor de encarte mostra "Editar template" e abre o construtor nesse projeto
+    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${totalW} ${H}" width="${totalW}" height="${H}"${projeto.id && /^[\w-]{1,64}$/.test(projeto.id) ? ` data-projeto="${projeto.id}"` : ""}${projeto.tipo === "catalogo" ? ' data-tipo="catalogo"' : ""}>`,
+    defsSvg(),
+    ...corpo,
+    `</svg>`
+  ].join("\n");
+  const especiais = [];
+  for (const m of projeto.modelos_card) {
+    if (!m.especial) continue;
+    const c = casaPorModelo.get(m.id) || { w: 200, h: 280, e: projeto.espaco_padrao };
+    const card = { x: 0, y: 0, w: c.w * 2 + c.e, h: c.h * 2 + c.e };
+    DEFS = [];
+    const corpoEsp = svgCard("PRODUTO_ESPECIAL_1", 1, m, versaoNaCasa(m, "especial", card, null), card);
+    especiais.push({
+      nome: m.nome,
+      svg: [
+        `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${n2(card.w)} ${n2(card.h)}" width="${n2(card.w)}" height="${n2(card.h)}">`,
+        defsSvg(),
+        corpoEsp,
+        `</svg>`
+      ].join("\n")
+    });
+  }
+  for (const m of projeto.modelos_card) {
+    if (!m.horizontal) continue;
+    const c = casaPorModelo.get(m.id) || { w: 200, h: 280, e: projeto.espaco_padrao };
+    const card = c.w / c.h >= PROPORCAO_HORIZONTAL ? { x: 0, y: 0, w: c.w, h: c.h } : { x: 0, y: 0, w: c.w * 2 + c.e, h: c.h };
+    DEFS = [];
+    const corpoH = svgCard("PRODUTO_ESPECIAL_1", 1, m, versaoNaCasa(m, "horizontal", card, null), card, true);
+    especiais.push({
+      nome: `horizontal ${m.nome}`,
+      svg: [
+        `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${n2(card.w)} ${n2(card.h)}" width="${n2(card.w)}" height="${n2(card.h)}">`,
+        defsSvg(),
+        corpoH,
+        `</svg>`
+      ].join("\n")
+    });
+  }
+  return { svg, pranchetas_json: JSON.stringify({ pranchetas }, null, 2), especiais };
+}
+
+// lib/encarte/template-ops.ts
+var clone = (o) => JSON.parse(JSON.stringify(o));
+function imagensUsadas(o) {
+  const achadas = /* @__PURE__ */ new Set();
+  const anda = (v) => {
+    if (typeof v === "string") {
+      if (v.startsWith("arq:")) achadas.add(v.slice(4));
+    } else if (Array.isArray(v)) v.forEach(anda);
+    else if (v && typeof v === "object") Object.values(v).forEach(anda);
+  };
+  anda(o);
+  return [...achadas];
+}
+function duplicarProjeto(origem, novo) {
+  const p = clone(origem);
+  return { ...p, id: novo.id, cliente: novo.cliente, tema: novo.tema, nome: novo.nome, criadoEm: novo.agora, atualizadoEm: novo.agora };
+}
+function proximoModelo(destino) {
+  const ids = new Set(destino.modelos_card.map((m) => m.id));
+  let n = destino.modelos_card.length + 1;
+  while (ids.has(`mc${n}`)) n++;
+  const indice = Math.max(0, ...destino.modelos_card.map((m) => m.indice || 0)) + 1;
+  return { id: `mc${n}`, indice };
+}
+function colarModelo(destino, modelo) {
+  const p = clone(destino);
+  const { id, indice } = proximoModelo(p);
+  const nomes = new Set(p.modelos_card.map((m2) => m2.nome));
+  let nome = modelo.nome;
+  while (nomes.has(nome)) nome = `${nome} (c\xF3pia)`;
+  const m = { ...clone(modelo), id, indice, nome };
+  p.modelos_card.push(m);
+  return { projeto: p, modelo: m, imagens: imagensUsadas(m) };
+}
+
+// lib/encarte/biblioteca-ops.ts
+var TIPOS_ITEM = ["card", "grupo", "elementos", "estrutura"];
+var CAMPOS_DO_GRUPO = {
+  produto: ["area", "foto", "nome_fundo", "nome"],
+  preco: ["preco_fundo", "moeda_fundo", "moeda", "preco", "centavos", "unidade"],
+  de: ["de_fundo", "de_rotulo", "de_valor"],
+  selo: ["selo_fundo", "selo_rotulo", "selo_moeda", "selo_valor"],
+  gatilho: ["gatilho_fundo", "gatilho"]
+};
+var NOME_DO_GRUPO = { produto: "Produto", preco: "Pre\xE7o", de: "Pre\xE7o DE", selo: "Selo do clube", gatilho: "Gatilho" };
+var clone2 = (o) => JSON.parse(JSON.stringify(o));
+var r2 = (v) => +v.toFixed(2);
+var paraPt = (c, casa) => ({ x: c.x / 100 * casa.w, y: c.y / 100 * casa.h, w: c.w / 100 * casa.w, h: c.h / 100 * casa.h });
+function uniao(bs) {
+  const x = Math.min(...bs.map((b) => b.x)), y = Math.min(...bs.map((b) => b.y));
+  return { x, y, w: Math.max(...bs.map((b) => b.x + b.w)) - x, h: Math.max(...bs.map((b) => b.y + b.h)) - y };
+}
+var novoIdPadrao = (tipo) => ({ texto: "txt_", retangulo: "forma_", imagem: "img_" }[tipo] || "el_") + Math.random().toString(36).slice(2, 8);
+function casaDoModelo(p, modeloId) {
+  for (const pr of p.pranchetas) for (const z of pr.zonas) if (z.modelo_card_id === modeloId) {
+    const e = z.espaco ?? p.espaco_padrao;
+    return { w: (z.w - (z.colunas - 1) * e) / z.colunas, h: (z.h - (z.linhas - 1) * e) / z.linhas, e };
+  }
+  return { w: 200, h: 280, e: p.espaco_padrao };
+}
+function casaDaVersao(p, modeloId, versao = "campos") {
+  const c = casaDoModelo(p, modeloId);
+  if (versao === "especial") return { w: c.w * 2 + c.e, h: c.h * 2 + c.e };
+  if (versao === "horizontal") return c.w / c.h >= 1.35 ? { w: c.w, h: c.h } : { w: c.w * 2 + c.e, h: c.h };
+  return { w: c.w, h: c.h };
+}
+function posicionar(caixa2, casaOrig, alvo, pos) {
+  const s = Math.min(1, caixa2.w > 0 ? alvo.w / caixa2.w : 1, caixa2.h > 0 ? alvo.h / caixa2.h : 1);
+  const w = caixa2.w * s, h = caixa2.h * s;
+  const eixo = (o, t, tamOrig, tamAlvo, ts) => {
+    const c = (o + t / 2) / tamOrig;
+    if (c < 0.4) return o;
+    if (c > 0.6) return tamAlvo - (tamOrig - o - t) - ts;
+    return tamAlvo / 2 + (o + t / 2 - tamOrig / 2) - ts / 2;
+  };
+  let x, y;
+  if (pos) ({ x, y } = pos);
+  else if (casaOrig) {
+    x = eixo(caixa2.x, caixa2.w, casaOrig.w, alvo.w, w);
+    y = eixo(caixa2.y, caixa2.h, casaOrig.h, alvo.h, h);
+  } else {
+    x = (alvo.w - w) / 2;
+    y = (alvo.h - h) / 2;
+  }
+  x = Math.max(0, Math.min(alvo.w - w, x));
+  y = Math.max(0, Math.min(alvo.h - h, y));
+  return { x, y, s };
+}
+function escalar(o, s) {
+  if (s === 1) return o;
+  const r = o;
+  for (const k of ["tamanho", "borda", "raio", "respiro"]) if (typeof r[k] === "number") r[k] = r2(r[k] * s);
+  return o;
+}
+var temRef = (c) => !!(c.preco_ref && c.preco_ref.w > 0 && c.preco_ref.h > 0);
+function naCasa(campos, casa) {
+  const c = temRef(campos) ? camposNaCasa(campos, campos.preco_ref, casa) : campos;
+  return { ...c, preco_ref: { w: r2(casa.w), h: r2(casa.h) } };
+}
+function extrairGrupo(campos, grupo, casa) {
+  if (temRef(campos)) campos = naCasa(campos, casa);
+  const ks = CAMPOS_DO_GRUPO[grupo].filter((k) => campos[k]);
+  if (!ks.length) throw new Error(`O grupo ${NOME_DO_GRUPO[grupo]} est\xE1 desligado neste card`);
+  const bs = ks.map((k) => paraPt(campos[k], casa)), caixa2 = uniao(bs);
+  const pecas = {};
+  ks.forEach((k, i) => {
+    pecas[k] = { ...clone2(campos[k]), x: r2(bs[i].x - caixa2.x), y: r2(bs[i].y - caixa2.y), w: r2(bs[i].w), h: r2(bs[i].h) };
+  });
+  return { grupo, casa: { w: r2(casa.w), h: r2(casa.h) }, caixa: { x: r2(caixa2.x), y: r2(caixa2.y), w: r2(caixa2.w), h: r2(caixa2.h) }, pecas };
+}
+function aplicarGrupo(campos, g, casa, pos) {
+  if (temRef(campos)) campos = naCasa(campos, casa);
+  const novo = clone2(campos);
+  for (const k of CAMPOS_DO_GRUPO[g.grupo]) delete novo[k];
+  const { x, y, s } = posicionar(g.caixa, g.casa, casa, pos);
+  for (const [k, p] of Object.entries(g.pecas)) {
+    novo[k] = escalar({ ...clone2(p), x: r2((x + p.x * s) / casa.w * 100), y: r2((y + p.y * s) / casa.h * 100), w: r2(p.w * s / casa.w * 100), h: r2(p.h * s / casa.h * 100) }, s);
+  }
+  return novo;
+}
+function relativos(els, caixa2) {
+  return els.map((e) => ({ ...clone2(e), x: r2(e.x - caixa2.x), y: r2(e.y - caixa2.y), w: r2(e.w), h: r2(e.h) }));
+}
+function extrairElementos(pr, ids, tamanho) {
+  const els = pr.elementos.filter((e) => ids.includes(e.id));
+  if (!els.length) throw new Error("Nenhum elemento com esses ids na prancheta");
+  const caixa2 = uniao(els);
+  return { origem: "prancheta", casa: { ...tamanho }, caixa: caixa2, elementos: relativos(els, caixa2) };
+}
+function extrairExtras(campos, casa, indices) {
+  if (temRef(campos)) campos = naCasa(campos, casa);
+  const ex = (campos.extras || []).filter((_, i) => !indices || indices.includes(i));
+  if (!ex.length) throw new Error("O card n\xE3o tem esses elementos extras");
+  const els = ex.map((e, i) => {
+    const b = paraPt(e, casa), el = { ...clone2(e), id: `x${i + 1}`, x: b.x, y: b.y, w: b.w, h: b.h };
+    if (el.tipo === "imagem" && !el.ajuste) el.ajuste = "contain";
+    return el;
+  });
+  const caixa2 = uniao(els);
+  return { origem: "card", casa: { w: r2(casa.w), h: r2(casa.h) }, caixa: caixa2, elementos: relativos(els, caixa2) };
+}
+function aplicarElementosPrancheta(pr, c, tamanho, pos, novoId = novoIdPadrao) {
+  const p = clone2(pr);
+  const { x, y, s } = posicionar(c.caixa, c.origem === "prancheta" ? c.casa : null, tamanho, pos);
+  const usados = new Set(p.elementos.map((e) => e.id)), ids = [];
+  for (const e of c.elementos) {
+    let id = novoId(e.tipo);
+    while (usados.has(id)) id = novoId(e.tipo);
+    usados.add(id);
+    ids.push(id);
+    p.elementos.push(escalar({ ...clone2(e), id, x: r2(x + e.x * s), y: r2(y + e.y * s), w: r2(e.w * s), h: r2(e.h * s) }, s));
+  }
+  return { prancheta: p, ids };
+}
+function aplicarElementosCard(campos, c, casa, pos) {
+  if (temRef(campos)) campos = naCasa(campos, casa);
+  const novo = clone2(campos);
+  const { x, y, s } = posicionar(c.caixa, c.origem === "card" ? c.casa : null, casa, pos);
+  const extras = c.elementos.map((e) => {
+    const { id, ajuste, ...resto } = clone2(e);
+    return escalar({ ...resto, x: r2((x + e.x * s) / casa.w * 100), y: r2((y + e.y * s) / casa.h * 100), w: r2(e.w * s / casa.w * 100), h: r2(e.h * s / casa.h * 100) }, s);
+  });
+  novo.extras = [...novo.extras || [], ...extras];
+  return novo;
+}
+function extrairCard(p, modeloId) {
+  const m = p.modelos_card.find((x) => x.id === modeloId);
+  if (!m) throw new Error("Modelo n\xE3o encontrado: " + modeloId);
+  const c = casaDoModelo(p, modeloId);
+  return { modelo: clone2(m), casa: { w: r2(c.w), h: r2(c.h) } };
+}
+function extrairEstrutura(p) {
+  const { tamanho, espaco_padrao, modelos_card, pranchetas, blocos } = clone2(p);
+  return { projeto: { tamanho, espaco_padrao, modelos_card, pranchetas, ...blocos ? { blocos } : {} } };
+}
+function projetoDaEstrutura(c, d) {
+  return { versao: 1, ...clone2(c.projeto), id: d.id, nome: d.nome, cliente: d.cliente, tema: d.tema, criadoEm: d.agora, atualizadoEm: d.agora };
+}
+function subtipoDe(tipo, c) {
+  if (tipo === "grupo") return c.grupo;
+  if (tipo === "elementos") return c.origem;
+  return null;
+}
+function validarConteudo(tipo, c) {
+  const o = c;
+  if (!o || typeof o !== "object") return "conteudo vazio";
+  const tam = (t) => !!t && typeof t.w === "number" && typeof t.h === "number";
+  if (tipo === "card") return o.modelo && typeof o.modelo === "object" && o.modelo.campos && tam(o.casa) ? null : "card precisa de {modelo, casa}";
+  if (tipo === "grupo") return o.grupo && o.grupo in CAMPOS_DO_GRUPO && tam(o.casa) && tam(o.caixa) && o.pecas ? null : "grupo precisa de {grupo, casa, caixa, pecas}";
+  if (tipo === "elementos") return Array.isArray(o.elementos) && o.elementos.length && tam(o.casa) && tam(o.caixa) ? null : "elementos precisa de {origem, casa, caixa, elementos[]}";
+  if (tipo === "estrutura") {
+    const p = o.projeto;
+    return p && tam(p.tamanho) && Array.isArray(p.pranchetas) && Array.isArray(p.modelos_card) ? null : "estrutura precisa de {projeto: {tamanho, pranchetas, modelos_card}}";
+  }
+  return "tipo inv\xE1lido";
+}
+function projetoDaMiniatura(item) {
+  const base = { versao: 1, id: "mini", nome: item.nome, cliente: "", tema: "", espaco_padrao: 4, criadoEm: "", atualizadoEm: "" };
+  const umCard = (modelo, w, h) => ({
+    ...base,
+    tamanho: { w, h },
+    modelos_card: [{ ...modelo, id: "m", indice: 1 }],
+    pranchetas: [{
+      id: "p",
+      nome: "",
+      fundo: { tipo: "cor", cor: "#eef0f3" },
+      elementos: [],
+      zonas: [{ id: "z", x: 0, y: 0, w, h, colunas: 1, linhas: 1, modelo_card_id: "m", formato: "normal" }]
+    }]
+  });
+  if (item.tipo === "card") {
+    const c = item.conteudo;
+    return umCard(c.modelo, c.casa.w, c.casa.h);
+  }
+  if (item.tipo === "grupo") {
+    const g = item.conteudo;
+    const campos = aplicarGrupo({}, g, g.casa);
+    return umCard({ id: "m", nome: item.nome, indice: 1, fundo_cor: "#f6f7f9", campos }, g.casa.w, g.casa.h);
+  }
+  if (item.tipo === "elementos") {
+    const e = item.conteudo, m = 8;
+    return {
+      ...base,
+      tamanho: { w: e.caixa.w + 2 * m, h: e.caixa.h + 2 * m },
+      modelos_card: [],
+      pranchetas: [{
+        id: "p",
+        nome: "",
+        fundo: { tipo: "cor", cor: "#eef0f3" },
+        elementos: e.elementos.map((x) => ({ ...x, x: x.x + m, y: x.y + m })),
+        zonas: []
+      }]
+    };
+  }
+  const s = item.conteudo.projeto;
+  return { ...base, ...s, pranchetas: s.pranchetas.slice(0, 1) };
+}
+var BLOCOS_PADRAO = [
+  { papel: "logo", nome: "Logo", por_tema: false },
+  { papel: "selo", nome: "Selo do tema", por_tema: true },
+  { papel: "lateral", nome: "Elemento lateral", por_tema: true },
+  { papel: "fundo", nome: "Fundo", por_tema: true },
+  // selo do clube / de desconto (Clube Smart do Super Mais…): pedido do Matheus, 17/10/2026
+  { papel: "selo_desconto", nome: "Selo de desconto", por_tema: false }
+];
+var REF_BLOCO = "bloco:";
+var ehRefBloco = (v) => typeof v === "string" && v.startsWith(REF_BLOCO);
+function normalizarBlocos(lista) {
+  const out = [], vistos = /* @__PURE__ */ new Set();
+  for (const b of Array.isArray(lista) ? lista : []) {
+    const papel = String(b?.papel || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 30);
+    if (!papel || vistos.has(papel)) continue;
+    vistos.add(papel);
+    const url = b.url;
+    out.push({ papel, nome: String(b.nome || papel).trim().slice(0, 60), ...typeof url === "string" && url.startsWith("arq:") ? { url } : {}, por_tema: !!b.por_tema });
+  }
+  for (const p of BLOCOS_PADRAO) if (!vistos.has(p.papel)) out.push({ ...p });
+  return out;
+}
+function resolverBlocos(o, doProjeto, doCliente) {
+  const mapa = (v) => {
+    if (ehRefBloco(v)) {
+      const papel = v.slice(REF_BLOCO.length), p = doProjeto?.[papel];
+      if (p) return p;
+      const c = doCliente.find((b) => b.papel === papel)?.url;
+      return c ? "marca:" + c.slice(4) : "";
+    }
+    if (Array.isArray(v)) return v.map(mapa);
+    if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, mapa(x)]));
+    return v;
+  };
+  return mapa(o);
+}
+function camposDaVersao(p, modeloId, versao = "campos") {
+  const m = p.modelos_card.find((x) => x.id === modeloId);
+  if (!m) throw new Error("Modelo n\xE3o encontrado: " + modeloId);
+  const c = m[versao];
+  if (!c) throw new Error(`O modelo "${m.nome}" n\xE3o tem a vers\xE3o ${versao}`);
+  return c;
+}
+function conteudoDoProjeto(p, pedido) {
+  if (pedido.tipo === "card") return extrairCard(p, pedido.modelo);
+  if (pedido.tipo === "estrutura") return extrairEstrutura(p);
+  if (pedido.tipo === "grupo") {
+    return extrairGrupo(camposDaVersao(p, pedido.modelo, pedido.versao), pedido.grupo, casaDaVersao(p, pedido.modelo, pedido.versao));
+  }
+  if ("prancheta" in pedido) {
+    const pr = p.pranchetas[pedido.prancheta - 1];
+    if (!pr) throw new Error("Prancheta n\xE3o existe: " + pedido.prancheta);
+    return extrairElementos(pr, pedido.ids, p.tamanho);
+  }
+  return extrairExtras(camposDaVersao(p, pedido.modelo, pedido.versao), casaDaVersao(p, pedido.modelo, pedido.versao), pedido.indices);
+}
+function usarNoProjeto(p, item, d, novoId) {
+  const novo = clone2(p);
+  if (item.tipo === "grupo" || item.tipo === "elementos" && d.modelo) {
+    if (!d.modelo) throw new Error("Diga em qual modelo de card (destino.modelo)");
+    const versao = d.versao || "campos", m = novo.modelos_card.find((x) => x.id === d.modelo);
+    if (!m) throw new Error("Modelo n\xE3o encontrado: " + d.modelo);
+    if (!m[versao]) throw new Error(`O modelo "${m.nome}" n\xE3o tem a vers\xE3o ${versao}`);
+    const casa = casaDaVersao(novo, m.id, versao);
+    m[versao] = item.tipo === "grupo" ? aplicarGrupo(m[versao], item.conteudo, casa, d.pos) : aplicarElementosCard(m[versao], item.conteudo, casa, d.pos);
+    return { projeto: novo };
+  }
+  if (item.tipo === "elementos") {
+    const i = (d.prancheta || 1) - 1;
+    if (!novo.pranchetas[i]) throw new Error("Prancheta n\xE3o existe: " + (i + 1));
+    const r = aplicarElementosPrancheta(novo.pranchetas[i], item.conteudo, novo.tamanho, d.pos, novoId);
+    novo.pranchetas[i] = r.prancheta;
+    return { projeto: novo, ids: r.ids };
+  }
+  throw new Error(`Item do tipo ${item.tipo} n\xE3o se usa assim (card: copiar pro projeto; estrutura: criar projeto novo)`);
+}
+
+// lib/encarte/projetos-template.ts
+var TABELA = "encarte_projetos_template";
+var VERSOES = "encarte_projetos_template_versoes";
+var VERSAO_A_CADA_MIN = 10;
+function dirProjetos() {
+  return path3.join(process.env.ENCARTE_DIR || "/srv/encarte", "projetos-template");
+}
+var normal = (s) => (s || "").normalize("NFC").trim().toLowerCase();
+function linhaParaProjeto(l) {
+  return {
+    ...l.projeto,
+    id: l.id,
+    cliente: l.cliente,
+    tema: l.tema,
+    nome: l.nome,
+    criadoEm: l.criado_em,
+    atualizadoEm: l.atualizado_em,
+    folderId: l.folder_id,
+    publicadoEm: l.publicado_em
+  };
+}
+function corpoDoProjeto(p) {
+  const { folderId, publicadoEm, base, ...resto } = p;
+  return resto;
+}
+async function pastasDeCliente(client, workspaceId) {
+  const { data, error } = await client.from("folders").select("id, name, pasta_drive, archived_at, spaces!inner(name, workspace_id, archived_at)").eq("spaces.workspace_id", workspaceId);
+  if (error) throw error;
+  const drive = new Set(
+    (await fs3.readdir(pastaLocal("clientes"), { withFileTypes: true }).catch(() => [])).filter((d) => d.isDirectory()).map((d) => normal(d.name))
+  );
+  return (data || []).filter((f) => !f.archived_at && !f.spaces?.archived_at).map((f) => {
+    const nome = String(f.pasta_drive || f.name).normalize("NFC");
+    return { folderId: f.id, nome, rotulo: f.name.normalize("NFC"), espaco: f.spaces.name, temDrive: drive.has(normal(nome)) };
+  }).sort((a, b) => a.espaco.localeCompare(b.espaco) || a.nome.localeCompare(b.nome, "pt-BR", { numeric: true }));
+}
+async function pastaPeloNome(client, workspaceId, cliente) {
+  const ps = await pastasDeCliente(client, workspaceId);
+  return ps.find((p) => normal(p.nome) === normal(cliente))?.folderId ?? null;
+}
+async function listarProjetos(client, workspaceId, userId) {
+  await importarDoDisco(client, workspaceId, userId);
+  const { data, error } = await client.from(TABELA).select("id, nome, cliente, tema, folder_id, atualizado_em, publicado_em").eq("workspace_id", workspaceId).order("cliente").order("tema").order("nome");
+  if (error) throw error;
+  return (data || []).map((l) => ({
+    id: l.id,
+    nome: l.nome,
+    cliente: l.cliente,
+    tema: l.tema,
+    folderId: l.folder_id,
+    atualizadoEm: l.atualizado_em,
+    publicadoEm: l.publicado_em
+  }));
+}
+async function lerProjeto(client, workspaceId, id) {
+  const { data, error } = await client.from(TABELA).select("*").eq("id", id).eq("workspace_id", workspaceId).maybeSingle();
+  if (error) throw error;
+  return data ? linhaParaProjeto(data) : null;
+}
+async function criarProjeto(client, d) {
+  const p = d.projeto;
+  if (!p.nome || !p.cliente || !p.tema) throw new Error("Faltou nome, cliente ou tema");
+  const folderId = d.folderId ?? await pastaPeloNome(client, d.workspaceId, p.cliente);
+  const { data, error } = await client.from(TABELA).insert({
+    id: p.id || randomUUID(),
+    workspace_id: d.workspaceId,
+    folder_id: folderId,
+    cliente: p.cliente.normalize("NFC").trim(),
+    tema: p.tema.trim(),
+    nome: p.nome.trim(),
+    projeto: corpoDoProjeto({ ...p, versao: 1 }),
+    criado_por: d.userId,
+    atualizado_por: d.userId
+  }).select("*").single();
+  if (error) throw error;
+  return linhaParaProjeto(data);
+}
+async function salvarProjeto(client, d) {
+  const atual2 = await lerProjeto(client, d.workspaceId, d.id);
+  if (!atual2) throw new Error("Projeto n\xE3o encontrado");
+  if (d.base && new Date(d.base).getTime() !== new Date(atual2.atualizadoEm).getTime()) return { conflito: atual2.atualizadoEm };
+  const p = d.projeto;
+  const cliente = (p.cliente || atual2.cliente).normalize("NFC").trim();
+  let folderId = d.folderId !== void 0 ? d.folderId : atual2.folderId;
+  if (d.folderId === void 0 && normal(cliente) !== normal(atual2.cliente)) folderId = await pastaPeloNome(client, d.workspaceId, cliente);
+  const agora = (/* @__PURE__ */ new Date()).toISOString();
+  const { data, error } = await client.from(TABELA).update({
+    folder_id: folderId,
+    cliente,
+    tema: (p.tema || atual2.tema).trim(),
+    nome: (p.nome || atual2.nome).trim(),
+    projeto: corpoDoProjeto(p),
+    atualizado_por: d.userId,
+    atualizado_em: agora
+  }).eq("id", d.id).eq("workspace_id", d.workspaceId).select("*").single();
+  if (error) throw error;
+  const { data: ult } = await client.from(VERSOES).select("criado_em").eq("projeto_id", d.id).order("criado_em", { ascending: false }).limit(1).maybeSingle();
+  if (d.versao || !ult || Date.now() - new Date(ult.criado_em).getTime() > VERSAO_A_CADA_MIN * 6e4) {
+    await client.from(VERSOES).insert({ projeto_id: d.id, projeto: corpoDoProjeto(p), criado_por: d.userId });
+  }
+  return { projeto: linhaParaProjeto(data) };
+}
+async function deletarProjeto(client, workspaceId, id) {
+  const { error } = await client.from(TABELA).delete().eq("id", id).eq("workspace_id", workspaceId);
+  if (error) throw error;
+}
+async function listarVersoes(client, workspaceId, id) {
+  if (!await lerProjeto(client, workspaceId, id)) throw new Error("Projeto n\xE3o encontrado");
+  const { data, error } = await client.from(VERSOES).select("id, criado_em, criado_por").eq("projeto_id", id).order("criado_em", { ascending: false }).limit(50);
+  if (error) throw error;
+  return (data || []).map((v) => ({ id: v.id, criadoEm: v.criado_em, autor: v.criado_por }));
+}
+async function lerVersao(client, workspaceId, id, versaoId) {
+  if (!await lerProjeto(client, workspaceId, id)) throw new Error("Projeto n\xE3o encontrado");
+  const { data, error } = await client.from(VERSOES).select("projeto, criado_em").eq("id", versaoId).eq("projeto_id", id).maybeSingle();
+  if (error) throw error;
+  return data ? { projeto: data.projeto, criadoEm: data.criado_em } : null;
+}
+async function copiarImagens(deId, paraId, arqs) {
+  if (!arqs.length || deId === paraId) return;
+  await garantirDir(pastaImagens(paraId));
+  for (const a of arqs) {
+    const de = await imagemLocal(deId, a), para = caminhoImagem(paraId, a);
+    if (!de || !para) continue;
+    await fs3.copyFile(de, para).catch(() => {
+    });
+    const dados = await fs3.readFile(de).catch(() => null);
+    if (dados) await subirMidia(chaveImagem(path3.basename(paraId), a), dados, tipoPorExt(a));
+  }
+}
+async function duplicar(client, d) {
+  const o = await lerProjeto(client, d.workspaceId, d.id);
+  if (!o) throw new Error("Projeto n\xE3o encontrado");
+  const novoId = randomUUID();
+  const p = duplicarProjeto(o, {
+    id: novoId,
+    cliente: d.cliente || o.cliente,
+    tema: d.tema || o.tema,
+    nome: d.nome || (d.cliente && normal(d.cliente) !== normal(o.cliente) ? o.nome : `${o.nome} (c\xF3pia)`),
+    agora: (/* @__PURE__ */ new Date()).toISOString()
+  });
+  await copiarImagens(o.id, novoId, imagensUsadas(p));
+  return criarProjeto(client, { workspaceId: d.workspaceId, userId: d.userId, projeto: p, folderId: d.folderId });
+}
+async function copiarModelo(client, d) {
+  const de = await lerProjeto(client, d.workspaceId, d.deId);
+  const para = d.paraId === d.deId ? de : await lerProjeto(client, d.workspaceId, d.paraId);
+  if (!de || !para) throw new Error("Projeto n\xE3o encontrado");
+  const m = de.modelos_card.find((x) => x.id === d.modeloId);
+  if (!m) throw new Error("Modelo n\xE3o encontrado: " + d.modeloId);
+  const r = colarModelo(para, m);
+  await copiarImagens(de.id, para.id, r.imagens);
+  const s = await salvarProjeto(client, { workspaceId: d.workspaceId, userId: d.userId, id: para.id, projeto: r.projeto });
+  return { projeto: s.projeto, modelo: r.modelo };
+}
+async function importarDoDisco(client, workspaceId, userId) {
+  const arqs = (await fs3.readdir(dirProjetos()).catch(() => [])).filter((a) => a.endsWith(".json"));
+  if (!arqs.length) return 0;
+  const lidos = [];
+  for (const a of arqs) {
+    try {
+      lidos.push(JSON.parse(await fs3.readFile(path3.join(dirProjetos(), a), "utf-8")));
+    } catch {
+    }
+  }
+  const ids = lidos.map((p) => p.id).filter(Boolean);
+  const { data } = await client.from(TABELA).select("id").in("id", ids);
+  const tem = new Set((data || []).map((l) => l.id));
+  let n = 0;
+  for (const p of lidos) {
+    if (!p.id || tem.has(p.id) || !p.nome || !p.cliente || !p.tema) continue;
+    try {
+      await criarProjeto(client, { workspaceId, userId, projeto: p });
+      n++;
+    } catch {
+    }
+  }
+  return n;
+}
+async function garantirDir(dir) {
+  await fs3.mkdir(dir, { recursive: true });
+}
+var EXTS_IMAGEM = [".png", ".jpg", ".jpeg", ".webp", ".svg"];
+var pastaImagens = (id) => path3.join(dirProjetos(), "arquivos", path3.basename(id));
+async function salvarImagem(id, nomeOrig, dados) {
+  const ext = path3.extname(nomeOrig).toLowerCase();
+  if (!EXTS_IMAGEM.includes(ext)) throw new Error("formato n\xE3o aceito");
+  const dir = pastaImagens(id);
+  await garantirDir(dir);
+  const arq = `${randomUUID()}${ext}`;
+  await fs3.writeFile(path3.join(dir, arq), dados);
+  await subirMidia(chaveImagem(path3.basename(id), arq), dados, tipoPorExt(arq));
+  return arq;
+}
+async function imagemLocal(id, arq) {
+  const local = caminhoImagem(id, arq);
+  if (!local) return null;
+  const chave = chaveImagem(path3.basename(id), arq);
+  const achado = await garantirLocal(local, chave);
+  if (achado) migrarSeFaltar(achado, chave, tipoPorExt(arq));
+  return achado;
+}
+function caminhoImagem(id, arq) {
+  if (!arq || arq !== path3.basename(arq)) return null;
+  return path3.join(pastaImagens(id), arq);
+}
+var limpo = (s) => s.replace(/[\\/:*?"<>|]/g, "").trim();
+function donoCliente(folderId) {
+  if (!/^[0-9a-f-]{8,40}$/i.test(folderId)) throw new Error("Pasta de cliente inv\xE1lida");
+  return `cli-${folderId}`;
+}
+async function publicarTemplate(projetoOrig, blocosCliente = []) {
+  const projeto = resolverBlocos(projetoOrig, projetoOrig.blocos, blocosCliente);
+  const cli = limpo(projeto.cliente), tema = limpo(projeto.tema);
+  const dir = path3.join(pastaLocal("clientes"), cli, "TEMPLATES", tema);
+  await criarPastaAberta(dir);
+  const nome = limpo(projeto.nome).replace(/especial/gi, "Esp");
+  const copiadas = [], daMarca = [];
+  const imagem = (ref) => {
+    const marca = ref.startsWith("marca:");
+    if (!ref.startsWith("arq:") && !marca) return ref;
+    const arq = ref.slice(marca ? 6 : 4), destino = `${nome} img ${arq}`;
+    (marca ? daMarca : copiadas).push(arq);
+    return `${CANON_CLIENTES}/${cli}/TEMPLATES/${tema}/${destino}`.replace(/\//g, "\\");
+  };
+  const resultado = gerarSvgTemplate(corpoDoProjeto(projeto), { imagem });
+  const dirSaida = modoDireto() ? null : path3.join(pastaSaida("clientes"), cli, "TEMPLATES", tema);
+  if (dirSaida) await criarPastaAberta(dirSaida);
+  for (const arq of new Set(copiadas)) {
+    const orig = await imagemLocal(projeto.id, arq);
+    if (!orig) continue;
+    await fs3.copyFile(orig, path3.join(dir, `${nome} img ${arq}`));
+    if (dirSaida) await fs3.copyFile(orig, path3.join(dirSaida, `${nome} img ${arq}`));
+  }
+  for (const arq of new Set(daMarca)) {
+    const orig = projetoOrig.folderId ? await imagemLocal(donoCliente(projetoOrig.folderId), arq) : null;
+    if (!orig) continue;
+    await fs3.copyFile(orig, path3.join(dir, `${nome} img ${arq}`)).catch(() => {
+    });
+    if (dirSaida) await fs3.copyFile(orig, path3.join(dirSaida, `${nome} img ${arq}`)).catch(() => {
+    });
+  }
+  const arquivos = [
+    [`${nome}.svg`, resultado.svg],
+    [`${nome}.pranchetas.json`, resultado.pranchetas_json],
+    [`${nome}.projeto.json`, JSON.stringify(corpoDoProjeto(projeto), null, 2)],
+    ...resultado.especiais.map((e) => [`${nome} especial ${limpo(e.nome)}.svg`, e.svg])
+  ];
+  for (const [arq, txt] of arquivos) {
+    await fs3.writeFile(path3.join(dir, arq), txt, "utf-8");
+    if (dirSaida) await fs3.writeFile(path3.join(dirSaida, arq), txt, "utf-8");
+  }
+  await listarTemplates(true);
+  return { pasta: dir, arquivos: [...arquivos.map(([a]) => a), ...[.../* @__PURE__ */ new Set([...copiadas, ...daMarca])].map((a) => `${nome} img ${a}`)] };
+}
+async function marcarPublicado(client, workspaceId, id) {
+  await client.from(TABELA).update({ publicado_em: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", id).eq("workspace_id", workspaceId);
+}
+
+// lib/encarte/previa-template.ts
+import fs4 from "fs/promises";
+import path4 from "path";
+var MIME = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".svg": "image/svg+xml" };
+async function dataUri(arquivo) {
+  const b = await fs4.readFile(arquivo).catch(() => null);
+  return b ? `data:${MIME[path4.extname(arquivo).toLowerCase()] || "application/octet-stream"};base64,${b.toString("base64")}` : null;
+}
+async function embutirImagens(dono, marca, svg) {
+  const refs = [...new Set([...svg.matchAll(/href="([^"]+)"/g)].map((m) => m[1]).filter((r) => !r.startsWith("data:") && !r.startsWith("#")))];
+  for (const r of refs) {
+    const local = r.startsWith("arq:") ? await imagemLocal(dono, r.slice(4)) : r.startsWith("marca:") ? marca ? await imagemLocal(donoCliente(marca), r.slice(6)) : null : resolver(r.replace(/&amp;/g, "&"))?.local;
+    const uri = local ? await dataUri(local) : null;
+    svg = svg.split(`href="${r}"`).join(uri ? `href="${uri}"` : 'href=""');
+  }
+  return svg;
+}
+var LARGURA = { ExtraCond: "ultra-condensed", Cond: "extra-condensed", SemiCond: "semi-condensed", "": "normal", Wide: "semi-expanded" };
+var PESO = { Thin: 100, ExtraLight: 200, Light: 300, "": 400, Medium: 500, Semibold: 600, Bold: 700, Black: 800, UltraBlack: 900 };
+function instanciasAcumin(svg) {
+  return svg.replace(
+    /font-family="AcuminConcept-(ExtraCond|SemiCond|Cond|Wide)?(Thin|ExtraLight|Light|Medium|Semibold|Bold|Black|UltraBlack)?(Italic)?"/g,
+    (_m, larg = "", peso = "", ital = "") => `font-family="Acumin Variable Concept" font-weight="${PESO[peso]}" font-stretch="${LARGURA[larg]}"${ital ? ' font-style="italic"' : ""}`
+  );
+}
+var fontconfigPronto = false;
+async function prepararFontconfig() {
+  if (fontconfigPronto || process.env.FONTCONFIG_FILE) return;
+  const conf = path4.join(pastaCache(), "fonts.conf");
+  await fs4.mkdir(pastaCache(), { recursive: true });
+  await fs4.writeFile(conf, `<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd"><fontconfig><dir>${pastaFontes()}</dir><dir>/usr/share/fonts</dir><dir>/usr/local/share/fonts</dir><cachedir>${path4.join(pastaCache(), "fontconfig")}</cachedir></fontconfig>`);
+  process.env.FONTCONFIG_FILE = conf;
+  fontconfigPronto = true;
+}
+function svgDaPrevia(projeto, op) {
+  if (op.modelo) {
+    const m = projeto.modelos_card.find((x) => x.id === op.modelo);
+    if (!m) throw new Error("Modelo n\xE3o encontrado: " + op.modelo);
+    const fmt = op.formato || "normal";
+    if (fmt !== "normal") {
+      if (!m[fmt]) throw new Error(`O modelo "${m.nome}" n\xE3o tem a vers\xE3o ${fmt}`);
+      const r = gerarSvgTemplate(projeto);
+      const e = r.especiais.find((x) => x.nome === (fmt === "horizontal" ? `horizontal ${m.nome}` : m.nome));
+      if (!e) throw new Error("O gerador n\xE3o fez o molde " + fmt);
+      return e.svg;
+    }
+    const z = projeto.pranchetas.flatMap((p) => p.zonas).find((zz) => zz.modelo_card_id === m.id);
+    const c = z ? casaDaZona(z, projeto.espaco_padrao) : { w: 200, h: 280 };
+    const mini = {
+      ...projeto,
+      tamanho: { w: c.w, h: c.h },
+      modelos_card: [m],
+      pranchetas: [{
+        id: "previa",
+        nome: "Pr\xE9via",
+        fundo: { tipo: "cor", cor: "none" },
+        elementos: [],
+        zonas: [{ id: "z", x: 0, y: 0, w: c.w, h: c.h, colunas: 1, linhas: 1, modelo_card_id: m.id, formato: "normal" }]
+      }]
+    };
+    return gerarSvgTemplate(mini).svg;
+  }
+  const i = Math.max(1, Math.min(projeto.pranchetas.length, op.prancheta || 1)) - 1;
+  const { w: W, h: H } = projeto.tamanho;
+  const svg = gerarSvgTemplate(projeto).svg;
+  return svg.replace(/<svg ([^>]*?)viewBox="[^"]*" width="[^"]*" height="[^"]*"/, `<svg $1viewBox="${i * (W + 20)} 0 ${W} ${H}" width="${W}" height="${H}"`);
+}
+function mostrarOpcionais(svg) {
+  return svg.replace(/<g id="produto_\d+_(?:de|selo)"[^>]*>/g, (tag) => tag.replace(/\s+style="display:\s*none;?"/, ""));
+}
+async function previaPng(projeto, op = {}) {
+  await prepararFontconfig();
+  const resolvido = resolverBlocos(projeto, projeto.blocos, op.blocos || []);
+  let svg = instanciasAcumin(await embutirImagens(op.dono || projeto.id, op.marca, svgDaPrevia(resolvido, op)));
+  if (op.opcionais !== false) svg = mostrarOpcionais(svg);
+  if (op.opcionais !== false) svg = svg.replace(/<g id="(PRECO_\d+)" data-com-selo="([^"]+)">/g, (m, id, v) => {
+    const [s, dx, dy, ax, ay] = v.split(/\s+/).map(Number);
+    if (![s, dx, dy, ax, ay].every(Number.isFinite)) return m;
+    return `<g id="${id}" data-com-selo="${v}" transform="translate(${dx} ${dy}) translate(${ax} ${ay}) scale(${s}) translate(${-ax} ${-ay})">`;
+  });
+  const sharp2 = (await Promise.resolve().then(() => (init_sharp(), sharp_exports))).default;
+  const largura = Math.max(200, Math.min(2e3, op.largura || 900));
+  return sharp2(Buffer.from(svg), { density: 144 }).resize({ width: largura }).flatten({ background: "#ffffff" }).png().toBuffer();
+}
+
+// lib/encarte/biblioteca.ts
+var TABELA2 = "encarte_biblioteca";
+var BLOCOS = "encarte_blocos_cliente";
+var donoItem = (id) => `bib-${id}`;
+var paraItem = (l) => ({ id: l.id, tipo: l.tipo, subtipo: l.subtipo, nome: l.nome, folderId: l.folder_id, conteudo: l.conteudo, atualizadoEm: l.atualizado_em });
+async function conferirPasta(client, workspaceId, folderId) {
+  if (!folderId) return;
+  if (!(await pastasDeCliente(client, workspaceId)).some((p) => p.folderId === folderId)) throw new Error("Pasta de cliente n\xE3o encontrada: " + folderId);
+}
+async function listarItens(client, workspaceId, f = {}) {
+  let q = client.from(TABELA2).select(f.completo ? "id, folder_id, tipo, subtipo, nome, conteudo, atualizado_em" : "id, folder_id, tipo, subtipo, nome, atualizado_em").eq("workspace_id", workspaceId).order("tipo").order("nome");
+  if (f.tipo) q = q.eq("tipo", f.tipo);
+  if (f.cliente && f.cliente !== "todos") q = q.or(`folder_id.is.null,folder_id.eq.${f.cliente}`);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data || []).map((l) => ({ ...paraItem(l), conteudo: f.completo ? l.conteudo : void 0 }));
+}
+async function lerItem(client, workspaceId, id) {
+  const { data, error } = await client.from(TABELA2).select("*").eq("id", id).eq("workspace_id", workspaceId).maybeSingle();
+  if (error) throw error;
+  return data ? paraItem(data) : null;
+}
+async function criarItem(client, d) {
+  if (!d.nome?.trim()) throw new Error("D\xEA um nome pro item");
+  await conferirPasta(client, d.workspaceId, d.folderId);
+  let conteudo = d.conteudo, tipo = d.tipo;
+  if (d.pedido) {
+    const p = d.projeto || (d.projetoId ? await lerProjeto(client, d.workspaceId, d.projetoId) : null);
+    if (!p) throw new Error("Projeto n\xE3o encontrado");
+    conteudo = conteudoDoProjeto(p, d.pedido);
+    tipo = d.pedido.tipo;
+  }
+  if (!tipo || !TIPOS_ITEM.includes(tipo)) throw new Error("tipo inv\xE1lido (card, grupo, elementos, estrutura)");
+  const erro5 = validarConteudo(tipo, conteudo);
+  if (erro5) throw new Error(erro5);
+  const id = randomUUID2();
+  if (d.projetoId) await copiarImagens(d.projetoId, donoItem(id), imagensUsadas(conteudo));
+  const { data, error } = await client.from(TABELA2).insert({
+    id,
+    workspace_id: d.workspaceId,
+    folder_id: d.folderId || null,
+    tipo,
+    subtipo: subtipoDe(tipo, conteudo),
+    nome: d.nome.trim(),
+    conteudo,
+    criado_por: d.userId,
+    atualizado_por: d.userId
+  }).select("*").single();
+  if (error) throw error;
+  return paraItem(data);
+}
+async function alterarItem(client, d) {
+  const up = { atualizado_por: d.userId, atualizado_em: (/* @__PURE__ */ new Date()).toISOString() };
+  if (d.nome !== void 0) {
+    if (!d.nome.trim()) throw new Error("D\xEA um nome pro item");
+    up.nome = d.nome.trim();
+  }
+  if (d.folderId !== void 0) {
+    await conferirPasta(client, d.workspaceId, d.folderId);
+    up.folder_id = d.folderId || null;
+  }
+  const { data, error } = await client.from(TABELA2).update(up).eq("id", d.id).eq("workspace_id", d.workspaceId).select("*").maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Item n\xE3o encontrado");
+  return paraItem(data);
+}
+async function apagarItem(client, workspaceId, id) {
+  const { error } = await client.from(TABELA2).delete().eq("id", id).eq("workspace_id", workspaceId);
+  if (error) throw error;
+}
+async function usarItem(client, d) {
+  const item = await lerItem(client, d.workspaceId, d.itemId);
+  if (!item) throw new Error("Item da biblioteca n\xE3o encontrado");
+  const p = d.projeto || await lerProjeto(client, d.workspaceId, d.projetoId);
+  if (!p) throw new Error("Projeto n\xE3o encontrado");
+  await copiarImagens(donoItem(item.id), d.projetoId, imagensUsadas(item.conteudo));
+  if (item.tipo === "card") {
+    const r = colarModelo(p, { ...item.conteudo.modelo, nome: item.nome });
+    if (d.destino?.zona) {
+      const z = r.projeto.pranchetas.flatMap((pr) => pr.zonas).find((x) => x.id === d.destino.zona);
+      if (!z) throw new Error("Zona n\xE3o encontrada: " + d.destino.zona);
+      z.modelo_card_id = r.modelo.id;
+    }
+    return { projeto: r.projeto, modelo: r.modelo.id };
+  }
+  if (item.tipo === "estrutura") throw new Error("Estrutura come\xE7a projeto novo (criar_template com estrutura)");
+  return usarNoProjeto(p, item, d.destino || {});
+}
+async function criarDaEstrutura(client, d) {
+  const item = await lerItem(client, d.workspaceId, d.estruturaId);
+  if (!item || item.tipo !== "estrutura") throw new Error("Estrutura n\xE3o encontrada");
+  const id = randomUUID2();
+  const p = projetoDaEstrutura(item.conteudo, { id, nome: d.nome, cliente: d.cliente, tema: d.tema, agora: (/* @__PURE__ */ new Date()).toISOString() });
+  await copiarImagens(donoItem(item.id), id, imagensUsadas(p));
+  if (d.blocos) p.blocos = { ...p.blocos || {}, ...d.blocos };
+  return criarProjeto(client, { workspaceId: d.workspaceId, userId: d.userId, projeto: p, folderId: d.folderId });
+}
+async function miniaturaItem(client, workspaceId, item, largura = 360) {
+  const blocos = item.folderId ? await blocosDoCliente(client, workspaceId, item.folderId) : [];
+  const chave = createHash2("sha1").update(JSON.stringify([item.id, item.atualizadoEm, largura, blocos])).digest("hex").slice(0, 16);
+  const arq = path5.join(pastaCache(), "biblioteca", `${item.id}-${chave}.png`);
+  const cache2 = await fs5.readFile(arq).catch(() => null);
+  if (cache2) return cache2;
+  const png = await previaPng(projetoDaMiniatura(item), { largura, dono: donoItem(item.id), marca: item.folderId, blocos });
+  await fs5.mkdir(path5.dirname(arq), { recursive: true });
+  await fs5.writeFile(arq, png).catch(() => {
+  });
+  return png;
+}
+async function blocosDoCliente(client, workspaceId, folderId) {
+  if (!folderId) return normalizarBlocos([]);
+  const { data, error } = await client.from(BLOCOS).select("blocos").eq("folder_id", folderId).eq("workspace_id", workspaceId).maybeSingle();
+  if (error) throw error;
+  return normalizarBlocos(data?.blocos);
+}
+async function gravarBlocosCliente(client, d) {
+  await conferirPasta(client, d.workspaceId, d.folderId);
+  const blocos = normalizarBlocos(d.blocos);
+  const { error } = await client.from(BLOCOS).upsert({
+    folder_id: d.folderId,
+    workspace_id: d.workspaceId,
+    blocos,
+    atualizado_por: d.userId,
+    atualizado_em: (/* @__PURE__ */ new Date()).toISOString()
+  });
+  if (error) throw error;
+  return blocos;
+}
+
+// lib/encarte/projetos-rotas.ts
+import { promises as fs6 } from "node:fs";
+import path6 from "node:path";
+
+// lib/encarte/baixar-externo.ts
+import { lookup as dnsLookup } from "node:dns";
+import http from "node:http";
+import https from "node:https";
+import { BlockList, isIP } from "node:net";
+import zlib from "node:zlib";
+var BLOQUEADOS = new BlockList();
+for (const [rede, pref] of [
+  ["0.0.0.0", 8],
+  ["10.0.0.0", 8],
+  ["100.64.0.0", 10],
+  ["127.0.0.0", 8],
+  ["169.254.0.0", 16],
+  ["172.16.0.0", 12],
+  ["192.0.0.0", 24],
+  ["192.168.0.0", 16],
+  ["198.18.0.0", 15],
+  ["224.0.0.0", 4],
+  ["240.0.0.0", 4]
+]) BLOQUEADOS.addSubnet(rede, pref, "ipv4");
+for (const [rede, pref] of [
+  ["::", 128],
+  ["::1", 128],
+  ["fc00::", 7],
+  ["fe80::", 10],
+  ["ff00::", 8],
+  ["64:ff9b::", 96],
+  ["2001:db8::", 32]
+]) BLOQUEADOS.addSubnet(rede, pref, "ipv6");
+function ipBloqueado(ip) {
+  const mapeado = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
+  if (mapeado) return ipBloqueado(mapeado[1]);
+  const v = isIP(ip);
+  if (v === 4) return BLOQUEADOS.check(ip, "ipv4");
+  if (v === 6) return BLOQUEADOS.check(ip, "ipv6");
+  return true;
+}
+function urlExternaValida(u) {
+  let url;
+  try {
+    url = new URL(u);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+  if (url.port && url.port !== "80" && url.port !== "443") return null;
+  if (url.username || url.password) return null;
+  const host = url.hostname.replace(/^\[|\]$/g, "");
+  if (!host || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal")) return null;
+  if (isIP(host) && ipBloqueado(host)) return null;
+  return url;
+}
+var lookupSeguro = ((host, opts, cb) => {
+  const callback = typeof opts === "function" ? opts : cb;
+  const o = typeof opts === "object" && opts ? opts : {};
+  dnsLookup(host, { all: true }, (err, enderecos) => {
+    if (err) return callback(err, "");
+    const ruim = enderecos.find((a) => ipBloqueado(a.address));
+    if (ruim || !enderecos.length) {
+      return callback(Object.assign(new Error("Endere\xE7o interno bloqueado"), { code: "EBLOQUEADO" }), "");
+    }
+    if (o.all) return callback(null, enderecos);
+    callback(null, enderecos[0].address, enderecos[0].family);
+  });
+});
+function pedir(url, maxBytes, timeoutMs) {
+  const mod = url.protocol === "https:" ? https : http;
+  return new Promise((ok, falha) => {
+    const req = mod.get(
+      url,
+      {
+        lookup: lookupSeguro,
+        timeout: timeoutMs,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
+          Accept: "image/avif,image/webp,image/png,image/jpeg,image/*,text/html;q=0.8,*/*;q=0.5",
+          "Accept-Encoding": "gzip, deflate, br",
+          "Accept-Language": "pt-BR,pt;q=0.9",
+          // muito site recusa foto sem Referer do próprio domínio (proteção de hotlink)
+          Referer: url.origin + "/"
+        }
+      },
+      (res) => {
+        const status = res.statusCode || 0;
+        const tipo = String(res.headers["content-type"] || "").toLowerCase();
+        if (status >= 300 && status < 400) {
+          res.resume();
+          return ok({ status, tipo, corpo: Buffer.alloc(0), local: String(res.headers.location || "") });
+        }
+        const declarado = Number(res.headers["content-length"] || 0);
+        if (declarado > maxBytes) {
+          res.destroy();
+          return falha(new Error("Arquivo grande demais"));
+        }
+        const partes = [];
+        let total = 0;
+        res.on("data", (c) => {
+          total += c.length;
+          if (total > maxBytes) {
+            res.destroy();
+            falha(new Error("Arquivo grande demais"));
+            return;
+          }
+          partes.push(c);
+        });
+        res.on("end", () => {
+          const cod = String(res.headers["content-encoding"] || "").toLowerCase();
+          const bruto = Buffer.concat(partes);
+          try {
+            const o = { maxOutputLength: maxBytes };
+            const corpo = cod === "gzip" || cod === "x-gzip" ? zlib.gunzipSync(bruto, o) : cod === "br" ? zlib.brotliDecompressSync(bruto, o) : cod === "deflate" ? zlib.inflateSync(bruto, o) : bruto;
+            ok({ status, tipo, corpo });
+          } catch {
+            falha(new Error("N\xE3o consegui ler a resposta do site"));
+          }
+        });
+        res.on("error", falha);
+      }
+    );
+    req.on("timeout", () => req.destroy(new Error("O site demorou demais pra responder")));
+    req.on(
+      "error",
+      (e) => falha(e.code === "EBLOQUEADO" ? new Error("Esse endere\xE7o n\xE3o \xE9 permitido") : e)
+    );
+  });
+}
+async function baixarExterno(u, { maxBytes = 25 * 1024 * 1024, timeoutMs = 2e4 } = {}) {
+  let url = urlExternaValida(u);
+  for (let salto = 0; salto <= 4; salto++) {
+    if (!url) throw new Error("Link inv\xE1lido ou n\xE3o permitido");
+    const r = await pedir(url, maxBytes, timeoutMs);
+    if (r.local !== void 0) {
+      url = urlExternaValida(new URL(r.local, url).toString());
+      continue;
+    }
+    if (r.status < 200 || r.status >= 300) throw new Error(`O site devolveu erro (${r.status})`);
+    return { url: url.toString(), tipo: r.tipo, corpo: r.corpo };
+  }
+  throw new Error("Redirecionamentos demais");
+}
+var decodificar = (s) => s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+function atributo(tag, nome) {
+  const m = tag.match(new RegExp(`\\b${nome}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, "i"));
+  return m ? decodificar(m[2] ?? m[3] ?? m[4] ?? "") : null;
+}
+function imagemDaPagina(html, base) {
+  const metas = html.match(/<meta\b[^>]*>/gi) ?? [];
+  const meta = (chaves) => {
+    for (const k of chaves) {
+      for (const t of metas) {
+        const p = (atributo(t, "property") || atributo(t, "name") || "").toLowerCase();
+        const c = atributo(t, "content");
+        if (p === k && c) return c.trim();
+      }
+    }
+    return null;
+  };
+  let img = meta(["og:image:secure_url", "og:image", "og:image:url", "twitter:image", "twitter:image:src"]);
+  if (!img) {
+    const link = (html.match(/<link\b[^>]*>/gi) ?? []).find((t) => (atributo(t, "rel") || "").toLowerCase() === "image_src");
+    img = link ? atributo(link, "href") : null;
+  }
+  const titulo = meta(["og:title", "twitter:title"]) || decodificar((html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] ?? "").trim());
+  let abs = null;
+  if (img) {
+    try {
+      abs = new URL(img, base).toString();
+    } catch {
+      abs = null;
+    }
+  }
+  return { img: abs, titulo: titulo.slice(0, 200) };
+}
 
 // lib/db/queries.ts
 var import_react = __toESM(require_react());
@@ -25457,8 +25565,8 @@ var TIPOS_IMG = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpe
 async function servirImagem(caminho) {
   if (!caminho) return NextResponse.json({ erro: "Forbidden" }, { status: 403 });
   try {
-    const dados = await fs5.readFile(caminho);
-    return new NextResponse(dados, { headers: { "content-type": TIPOS_IMG[path5.extname(caminho).toLowerCase()] || "application/octet-stream", "cache-control": "private, max-age=86400" } });
+    const dados = await fs6.readFile(caminho);
+    return new NextResponse(dados, { headers: { "content-type": TIPOS_IMG[path6.extname(caminho).toLowerCase()] || "application/octet-stream", "cache-control": "private, max-age=86400" } });
   } catch {
     return NextResponse.json({ erro: "Not found" }, { status: 404 });
   }
@@ -25616,7 +25724,7 @@ async function GET4(req, ctx) {
   const negado = await exigirUsuario();
   if (negado) return negado;
   const { folderId } = await ctx.params;
-  return servirImagem(caminhoImagem(donoCliente(folderId), new URL(req.url).searchParams.get("arq") || ""));
+  return servirImagem(await imagemLocal(donoCliente(folderId), new URL(req.url).searchParams.get("arq") || ""));
 }
 
 // app/api/encarte/blocos-cliente/[folderId]/route.ts
@@ -25659,7 +25767,7 @@ __export(route_exports6, {
 
 // lib/encarte/edicoes.ts
 import { access, mkdir } from "node:fs/promises";
-import path6 from "node:path";
+import path7 from "node:path";
 var COLUNAS = "id, workspace_id, serie_id, task_id, template_id, titulo, ficha, linhas, pasta_trabalho, criado_por, criado_em, atualizado_em, arquivado_em";
 var COLUNAS_RESUMO = "id, serie_id, task_id, template_id, titulo, criado_em, atualizado_em";
 var CHAVES_META = /* @__PURE__ */ new Set([
@@ -25737,11 +25845,11 @@ function nomeDaSerie(titulo) {
   return nome || titulo.trim() || "Encarte";
 }
 function pastaMiniaturas() {
-  return path6.join(process.env.ENCARTE_DIR || "/srv/encarte", "miniaturas");
+  return path7.join(process.env.ENCARTE_DIR || "/srv/encarte", "miniaturas");
 }
 function caminhoMiniatura(id) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-  return path6.join(pastaMiniaturas(), `${id}.jpg`);
+  return path7.join(pastaMiniaturas(), `${id}.jpg`);
 }
 async function garantirPastaMiniaturas() {
   await mkdir(pastaMiniaturas(), { recursive: true });
@@ -25751,9 +25859,10 @@ async function temMiniatura(id) {
   if (!arq) return false;
   try {
     await access(arq);
+    migrarSeFaltar(arq, chaveMiniatura(id), "image/jpeg");
     return true;
   } catch {
-    return false;
+    return existeNoStorage(chaveMiniatura(id));
   }
 }
 async function buscarEdicao(client, id) {
@@ -26150,12 +26259,13 @@ async function autorizar(context) {
   const supabase = await createClient2();
   const edicao = await buscarEdicao(supabase, id).catch(() => null);
   if (!edicao) return { resposta: NextResponse.json({ error: "Edi\xE7\xE3o n\xE3o encontrada" }, { status: 404 }) };
-  return { arq };
+  return { arq, id };
 }
 async function GET8(_req, context) {
   const r = await autorizar(context);
   if (!r.arq) return r.resposta;
   try {
+    if (!await garantirLocal(r.arq, chaveMiniatura(r.id))) throw new Error("sem miniatura");
     const buf = await readFile(r.arq);
     return new NextResponse(new Uint8Array(buf), {
       headers: {
@@ -26190,6 +26300,7 @@ async function PUT2(req, context) {
     const tmp = `${r.arq}.${process.pid}.tmp`;
     await writeFile(tmp, bytes);
     await rename(tmp, r.arq);
+    await subirMidia(chaveMiniatura(r.id), bytes, "image/jpeg");
     return NextResponse.json({ ok: true });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Erro ao gravar";
@@ -26470,7 +26581,7 @@ __export(route_exports13, {
   dynamic: () => dynamic6,
   runtime: () => runtime6
 });
-import path7 from "node:path";
+import path8 from "node:path";
 var runtime6 = "nodejs";
 var dynamic6 = "force-dynamic";
 async function PUT4(req) {
@@ -26482,7 +26593,7 @@ async function PUT4(req) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   let nome = limparNome(q.get("nome") ?? "") || "foto.png";
-  if (!EXTS_IMG.includes(path7.extname(nome).toLowerCase())) nome += ".png";
+  if (!EXTS_IMG.includes(path8.extname(nome).toLowerCase())) nome += ".png";
   const dados = await lerCorpo(req);
   if (!dados) return NextResponse.json({ error: "Arquivo grande demais" }, { status: 413 });
   if (!dados.length) return NextResponse.json({ error: "Arquivo vazio" }, { status: 400 });
@@ -26498,7 +26609,7 @@ __export(route_exports14, {
   dynamic: () => dynamic7,
   runtime: () => runtime7
 });
-import { promises as fs6 } from "node:fs";
+import { promises as fs7 } from "node:fs";
 var runtime7 = "nodejs";
 var dynamic7 = "force-dynamic";
 async function GET12(_req, context) {
@@ -26512,7 +26623,7 @@ async function GET12(_req, context) {
   if (!arq) return NextResponse.json({ error: "Not found" }, { status: 404 });
   let dados;
   try {
-    dados = await fs6.readFile(arq);
+    dados = await fs7.readFile(arq);
   } catch {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -26573,7 +26684,7 @@ __export(route_exports17, {
   dynamic: () => dynamic10,
   runtime: () => runtime10
 });
-import { promises as fs7 } from "node:fs";
+import { promises as fs8 } from "node:fs";
 var runtime10 = "nodejs";
 var dynamic10 = "force-dynamic";
 async function GET14(req) {
@@ -26590,7 +26701,7 @@ async function GET14(req) {
       if (req.headers.get("if-none-match") === etag) {
         return new Response(null, { status: 304, headers: { ETag: etag } });
       }
-      return new Response(new Uint8Array(await fs7.readFile(arquivo)), {
+      return new Response(new Uint8Array(await fs8.readFile(arquivo)), {
         headers: {
           "Content-Type": "image/webp",
           "Cache-Control": "private, no-cache",
@@ -26600,7 +26711,7 @@ async function GET14(req) {
     } catch {
     }
   }
-  return new Response(new Uint8Array(await fs7.readFile(arq)), {
+  return new Response(new Uint8Array(await fs8.readFile(arq)), {
     headers: {
       "Content-Type": tipoDoArquivo(arq),
       "Cache-Control": "private, no-cache"
@@ -26639,8 +26750,8 @@ __export(route_exports19, {
 // lib/encarte/internet.ts
 init_sharp();
 import { randomUUID as randomUUID3 } from "node:crypto";
-import { promises as fs8 } from "node:fs";
-import path8 from "node:path";
+import { promises as fs9 } from "node:fs";
+import path9 from "node:path";
 var LOJAS = [
   { host: "www.savegnago.com.br", nome: "Savegnago" },
   { host: "www.zonasul.com.br", nome: "Zona Sul" },
@@ -26737,32 +26848,32 @@ var VALIDADE_MS = 2 * 24 * 36e5;
 var PRESO_MS = 2 * 6e4;
 var WORKER_ONLINE_MS = 3e4;
 var MAX_ORIGINAL = 25 * 1024 * 1024;
-var pastaRecortes = () => path8.join(encarteDir(), "recortes");
-var pastaPedido = (id) => path8.join(pastaRecortes(), id);
-var arqRecorte = (id) => path8.join(pastaPedido(id), "recorte.png");
+var pastaRecortes = () => path9.join(encarteDir(), "recortes");
+var pastaPedido = (id) => path9.join(pastaRecortes(), id);
+var arqRecorte = (id) => path9.join(pastaPedido(id), "recorte.png");
 var idValido = (id) => ID_OK.test(id);
 async function gravarJson(arq, dados) {
   const tmp = arq + ".tmp";
-  await fs8.writeFile(tmp, JSON.stringify(dados));
-  await fs8.rename(tmp, arq);
+  await fs9.writeFile(tmp, JSON.stringify(dados));
+  await fs9.rename(tmp, arq);
 }
 async function lerPedido(id) {
   if (!idValido(id)) return null;
   try {
-    return JSON.parse(await fs8.readFile(path8.join(pastaPedido(id), "pedido.json"), "utf8"));
+    return JSON.parse(await fs9.readFile(path9.join(pastaPedido(id), "pedido.json"), "utf8"));
   } catch {
     return null;
   }
 }
-var salvarPedido = (p) => gravarJson(path8.join(pastaPedido(p.id), "pedido.json"), p);
+var salvarPedido = (p) => gravarJson(path9.join(pastaPedido(p.id), "pedido.json"), p);
 async function limparVelhos() {
   const agora = Date.now();
-  const ids = await fs8.readdir(pastaRecortes()).catch(() => []);
+  const ids = await fs9.readdir(pastaRecortes()).catch(() => []);
   for (const id of ids) {
     if (!idValido(id)) continue;
     const p = await lerPedido(id);
     if (!p || agora - Date.parse(p.criado) > VALIDADE_MS) {
-      await fs8.rm(pastaPedido(id), { recursive: true, force: true });
+      await fs9.rm(pastaPedido(id), { recursive: true, force: true });
     }
   }
 }
@@ -26815,12 +26926,12 @@ async function criarPedido(img, nome) {
   return gravarPedido(buf, ext, img, nome);
 }
 async function gravarPedido(buf, ext, img, nome) {
-  await fs8.mkdir(pastaRecortes(), { recursive: true });
+  await fs9.mkdir(pastaRecortes(), { recursive: true });
   await limparVelhos().catch(() => {
   });
   const id = randomUUID3();
-  await fs8.mkdir(pastaPedido(id), { recursive: true });
-  await fs8.writeFile(path8.join(pastaPedido(id), "original" + ext), buf);
+  await fs9.mkdir(pastaPedido(id), { recursive: true });
+  await fs9.writeFile(path9.join(pastaPedido(id), "original" + ext), buf);
   const p = {
     id,
     status: "pendente",
@@ -26834,11 +26945,11 @@ async function gravarPedido(buf, ext, img, nome) {
 }
 async function caminhoOriginal(id) {
   const p = await lerPedido(id);
-  return p ? path8.join(pastaPedido(id), p.original) : null;
+  return p ? path9.join(pastaPedido(id), p.original) : null;
 }
-var arqWorker = () => path8.join(pastaRecortes(), "worker.json");
+var arqWorker = () => path9.join(pastaRecortes(), "worker.json");
 async function registrarWorker(info) {
-  await fs8.mkdir(pastaRecortes(), { recursive: true });
+  await fs9.mkdir(pastaRecortes(), { recursive: true });
   await gravarJson(arqWorker(), {
     nome: String(info.nome || "").slice(0, 60),
     modelo: String(info.modelo || "").slice(0, 60),
@@ -26847,14 +26958,14 @@ async function registrarWorker(info) {
 }
 async function statusWorker() {
   try {
-    const w = JSON.parse(await fs8.readFile(arqWorker(), "utf8"));
+    const w = JSON.parse(await fs9.readFile(arqWorker(), "utf8"));
     return { online: Date.now() - Date.parse(w.visto) < WORKER_ONLINE_MS, nome: w.nome, visto: w.visto };
   } catch {
     return { online: false };
   }
 }
 async function pegarProximo() {
-  const ids = await fs8.readdir(pastaRecortes()).catch(() => []);
+  const ids = await fs9.readdir(pastaRecortes()).catch(() => []);
   const agora = Date.now();
   const fila = [];
   for (const id of ids) {
@@ -26874,7 +26985,7 @@ async function pegarProximo() {
 async function concluirPedido(id, png) {
   const p = await lerPedido(id);
   if (!p) throw new Error("Pedido n\xE3o existe");
-  await fs8.writeFile(arqRecorte(id), png);
+  await fs9.writeFile(arqRecorte(id), png);
   p.status = "pronto";
   p.pronto = (/* @__PURE__ */ new Date()).toISOString();
   delete p.erro;
@@ -26906,7 +27017,7 @@ __export(route_exports20, {
   dynamic: () => dynamic13,
   runtime: () => runtime13
 });
-import { promises as fs9 } from "node:fs";
+import { promises as fs10 } from "node:fs";
 var runtime13 = "nodejs";
 var dynamic13 = "force-dynamic";
 async function GET17(req, context) {
@@ -26918,14 +27029,14 @@ async function GET17(req, context) {
   const params = new URL(req.url).searchParams;
   if (params.get("original")) {
     const arq = await caminhoOriginal(id);
-    const buf = arq ? await fs9.readFile(arq).catch(() => null) : null;
+    const buf = arq ? await fs10.readFile(arq).catch(() => null) : null;
     if (!buf) return NextResponse.json({ error: "Sem original" }, { status: 404 });
     const tipo = p.original.endsWith(".png") ? "image/png" : p.original.endsWith(".webp") ? "image/webp" : "image/jpeg";
     return new Response(new Uint8Array(buf), { headers: { "Content-Type": tipo, "Cache-Control": "private, max-age=3600" } });
   }
   if (params.get("png")) {
     if (p.status !== "pronto") return NextResponse.json({ error: "Ainda n\xE3o ficou pronto" }, { status: 409 });
-    const buf = await fs9.readFile(arqRecorte(id));
+    const buf = await fs10.readFile(arqRecorte(id));
     return new Response(new Uint8Array(buf), {
       headers: { "Content-Type": "image/png", "Cache-Control": "private, max-age=3600" }
     });
@@ -27056,7 +27167,7 @@ async function GET19(req, ctx) {
   const negado = await exigirUsuario();
   if (negado) return negado;
   const { id } = await ctx.params;
-  return servirImagem(caminhoImagem(id, new URL(req.url).searchParams.get("arq") || ""));
+  return servirImagem(await imagemLocal(id, new URL(req.url).searchParams.get("arq") || ""));
 }
 
 // app/api/encarte/projetos-template/[id]/previa/route.ts
@@ -27457,7 +27568,7 @@ __export(route_exports38, {
   dynamic: () => dynamic31,
   runtime: () => runtime31
 });
-import { promises as fs10 } from "node:fs";
+import { promises as fs11 } from "node:fs";
 
 // local/encarte-pc/api-handler.ts
 async function withApiAuth(_req, fn) {
@@ -27477,7 +27588,7 @@ async function GET30(req, context) {
     const { id } = await context.params;
     const arq = await caminhoOriginal(id);
     if (!arq) return NextResponse.json({ error: "Pedido n\xE3o existe" }, { status: 404 });
-    const buf = await fs10.readFile(arq);
+    const buf = await fs11.readFile(arq);
     return new Response(new Uint8Array(buf), { headers: { "Content-Type": "application/octet-stream" } });
   });
 }
@@ -27569,7 +27680,7 @@ var ROTAS_API = [
 
 // local/encarte-pc/servidor.ts
 var PORTA = Number(process.env.ENCARTE_PORTA || 47831);
-var PUBLICO = path9.join(path9.dirname(fileURLToPath(import.meta.url)), "public");
+var PUBLICO = path10.join(path10.dirname(fileURLToPath(import.meta.url)), "public");
 var APP = process.env.ENCARTE_APP || "http://tauri.localhost/";
 var TABELA3 = ROTAS_API.map(({ caminho, modulo }) => {
   const nomes = [];
@@ -27581,7 +27692,7 @@ var TABELA3 = ROTAS_API.map(({ caminho, modulo }) => {
   }).join("/");
   return { regex: new RegExp(`^${corpo}$`), nomes, modulo };
 }).sort((a, b) => a.nomes.length - b.nomes.length);
-var TIPOS = {
+var TIPOS2 = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".mjs": "text/javascript; charset=utf-8",
@@ -27611,12 +27722,12 @@ async function responder(res, r, extra = []) {
 async function estatico(res, caminho) {
   let rel = decodeURIComponent(caminho).replace(/^\/+/, "");
   if (!rel || rel.endsWith("/")) rel += "index.html";
-  const arq = path9.resolve(PUBLICO, rel);
-  if (!arq.startsWith(PUBLICO + path9.sep)) return false;
+  const arq = path10.resolve(PUBLICO, rel);
+  if (!arq.startsWith(PUBLICO + path10.sep)) return false;
   try {
-    const dados = await fs11.readFile(arq);
+    const dados = await fs12.readFile(arq);
     res.writeHead(200, {
-      "Content-Type": TIPOS[path9.extname(arq).toLowerCase()] ?? "application/octet-stream",
+      "Content-Type": TIPOS2[path10.extname(arq).toLowerCase()] ?? "application/octet-stream",
       "Cache-Control": "no-cache"
     });
     res.end(dados);

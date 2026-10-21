@@ -264,7 +264,8 @@ fn main() {
             notificar_aviso,
             abrir_na_web,
             encarte::ler_config_encarte,
-            encarte::salvar_config_encarte
+            encarte::salvar_config_encarte,
+            encarte::achar_pastas_encarte
         ])
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()

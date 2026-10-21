@@ -45,11 +45,68 @@ fn arquivo_config(app: &AppHandle) -> Option<PathBuf> {
     app.path().app_config_dir().ok().map(|d| d.join("encarte.json"))
 }
 
+/// Onde o Google Drive para computador pode montar o Drive, em cada letra de disco:
+/// "Meu Drive" (ou "My Drive") e cada drive compartilhado.
+fn raizes_do_drive() -> Vec<PathBuf> {
+    let mut raizes = Vec::new();
+    for letra in ('D'..='Z').chain(std::iter::once('C')) {
+        let disco = PathBuf::from(format!("{letra}:\\"));
+        if !disco.exists() {
+            continue;
+        }
+        for meu in ["Meu Drive", "My Drive"] {
+            raizes.push(disco.join(meu));
+        }
+        for comp in ["Drives compartilhados", "Shared drives"] {
+            if let Ok(lista) = std::fs::read_dir(disco.join(comp)) {
+                raizes.extend(lista.flatten().map(|e| e.path()));
+            }
+        }
+    }
+    raizes
+}
+
+/// Procura o banco de fotos e a pasta dos clientes nos discos deste computador
+/// (notebook da Bianca com o Drive em outra letra, por exemplo). O que não achar
+/// fica como estava.
+pub fn achar(base: Config) -> Config {
+    let mut cfg = base;
+    let raizes = raizes_do_drive();
+    let primeiro = |rels: &[&str]| {
+        raizes.iter().flat_map(|r| rels.iter().map(move |rel| r.join(rel))).find(|p| p.is_dir())
+    };
+    if let Some(p) = primeiro(&[r"Somado\SMD Fotos dos produtos", r"SMD Fotos dos produtos"]) {
+        cfg.banco = p.to_string_lossy().into_owned();
+    }
+    if let Some(p) = primeiro(&[
+        r"Backup_Drive_Antigo\CLIENTES\SUPERMERCADOS",
+        r"CLIENTES\SUPERMERCADOS",
+    ]) {
+        cfg.clientes = p.to_string_lossy().into_owned();
+    }
+    cfg
+}
+
+/// A configuração salva; na 1ª vez neste computador, procura as pastas sozinho.
 pub fn ler(app: &AppHandle) -> Config {
-    arquivo_config(app)
+    if let Some(cfg) = arquivo_config(app)
         .and_then(|a| std::fs::read_to_string(a).ok())
-        .and_then(|t| serde_json::from_str(&t).ok())
-        .unwrap_or_default()
+        .and_then(|t| serde_json::from_str::<Config>(&t).ok())
+    {
+        return cfg;
+    }
+    let cfg = achar(Config::default());
+    let _ = gravar(app, &cfg);
+    cfg
+}
+
+fn gravar(app: &AppHandle, cfg: &Config) -> Result<(), String> {
+    let arq = arquivo_config(app).ok_or("sem pasta de configuração")?;
+    if let Some(p) = arq.parent() {
+        std::fs::create_dir_all(p).map_err(|e| e.to_string())?;
+    }
+    let texto = serde_json::to_string_pretty(cfg).map_err(|e| e.to_string())?;
+    std::fs::write(&arq, texto).map_err(|e| e.to_string())
 }
 
 pub fn parar(app: &AppHandle) {
@@ -108,12 +165,13 @@ pub fn ler_config_encarte(app: AppHandle) -> Config {
 
 #[tauri::command]
 pub fn salvar_config_encarte(app: AppHandle, config: Config) -> Result<(), String> {
-    let arq = arquivo_config(&app).ok_or("sem pasta de configuração")?;
-    if let Some(p) = arq.parent() {
-        std::fs::create_dir_all(p).map_err(|e| e.to_string())?;
-    }
-    let texto = serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?;
-    std::fs::write(&arq, texto).map_err(|e| e.to_string())?;
+    gravar(&app, &config)?;
     subir(&app);
     Ok(())
+}
+
+/// Botão "Achar automaticamente": devolve o que achou (quem salva é a tela).
+#[tauri::command]
+pub fn achar_pastas_encarte(app: AppHandle) -> Config {
+    achar(ler(&app))
 }
