@@ -188,7 +188,17 @@ fn abrir_na_web(app: AppHandle, url: String) {
 
 async fn procurar_atualizacao(app: AppHandle) {
     use tauri_plugin_updater::UpdaterExt;
-    let Ok(updater) = app.updater() else { return };
+    // Só sobe de versão. Sem isso, uma versão de teste mais nova que a última
+    // Release "atualizava" pra trás: o programa fechava pra rodar o instalador
+    // antigo, que desistia (não instala por cima de versão maior).
+    let Ok(builder) = app
+        .updater_builder()
+        .version_comparator(|atual, nova| nova.version > atual)
+        .build()
+    else {
+        return;
+    };
+    let updater = builder;
     if let Ok(Some(update)) = updater.check().await {
         if update.download_and_install(|_, _| {}, || {}).await.is_ok() {
             app.restart();
