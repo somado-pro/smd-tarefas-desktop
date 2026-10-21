@@ -61,7 +61,7 @@ fn abrir_caminho(app: &AppHandle, caminho: &str) {
 
 fn nova_tarefa(app: &AppHandle) {
     mostrar(app);
-    na_pagina(app, "window.dispatchEvent(new CustomEvent('smd:open-quick-add'));");
+    na_pagina(app, "document.dispatchEvent(new CustomEvent('smd:open-quick-add'));");
 }
 
 // ---------- ícone da bandeja com o número de não lidas ----------
