@@ -60,6 +60,19 @@ var init_contexto = __esm({
   }
 });
 
+// local/encarte-pc/sharp.ts
+var sharp_exports = {};
+__export(sharp_exports, {
+  default: () => sharp
+});
+function sharp() {
+  throw new Error("sharp indispon\xEDvel no servidor do encarte no PC");
+}
+var init_sharp = __esm({
+  "local/encarte-pc/sharp.ts"() {
+  }
+});
+
 // ../../../node_modules/tslib/tslib.es6.mjs
 var tslib_es6_exports = {};
 __export(tslib_es6_exports, {
@@ -14516,7 +14529,7 @@ var init_next_headers = __esm({
 // local/encarte-pc/servidor.ts
 init_contexto();
 import { createServer } from "node:http";
-import { promises as fs10 } from "node:fs";
+import { promises as fs11 } from "node:fs";
 import path9 from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -14933,7 +14946,7 @@ async function miniatura(arq, largura) {
   const chave = createHash("sha1").update(`${arq}|${st.mtimeMs}|${largura}|v2`).digest("hex").slice(0, 20);
   const destino = path.join(pastaCache(), chave + ".webp");
   if (!await statOuNull(destino)) {
-    const sharp2 = (await import("sharp")).default;
+    const sharp2 = (await Promise.resolve().then(() => (init_sharp(), sharp_exports))).default;
     let img = sharp2(arq, { limitInputPixels: false, unlimited: true });
     const { width: original = 0 } = await img.metadata();
     const reduz = largura > 0 && original > largura;
@@ -16337,7 +16350,7 @@ async function previaPng(projeto, op = {}) {
     if (![s, dx, dy, ax, ay].every(Number.isFinite)) return m;
     return `<g id="${id}" data-com-selo="${v}" transform="translate(${dx} ${dy}) translate(${ax} ${ay}) scale(${s}) translate(${-ax} ${-ay})">`;
   });
-  const sharp2 = (await import("sharp")).default;
+  const sharp2 = (await Promise.resolve().then(() => (init_sharp(), sharp_exports))).default;
   const largura = Math.max(200, Math.min(2e3, op.largura || 900));
   return sharp2(Buffer.from(svg), { density: 144 }).resize({ width: largura }).flatten({ background: "#ffffff" }).png().toBuffer();
 }
@@ -26624,10 +26637,10 @@ __export(route_exports19, {
 });
 
 // lib/encarte/internet.ts
+init_sharp();
 import { randomUUID as randomUUID3 } from "node:crypto";
 import { promises as fs8 } from "node:fs";
 import path8 from "node:path";
-import sharp from "sharp";
 var LOJAS = [
   { host: "www.savegnago.com.br", nome: "Savegnago" },
   { host: "www.zonasul.com.br", nome: "Zona Sul" },
@@ -26763,26 +26776,24 @@ async function fotoDeLink(link) {
     r = await baixarExterno(pg.img);
   }
   if (r.tipo.includes("svg")) throw new Error("SVG n\xE3o serve: precisa ser foto");
-  let buf;
-  try {
-    buf = await sharp(r.corpo, { limitInputPixels: 8e7 }).rotate().resize({ width: 3e3, height: 3e3, fit: "inside", withoutEnlargement: true }).png().toBuffer();
-  } catch {
-    throw new Error("O link n\xE3o \xE9 de uma foto");
-  }
+  const buf = await normalizar(r.corpo, "O link n\xE3o \xE9 de uma foto");
   if (!nome) {
     const arq = decodeURIComponent(new URL(r.url).pathname.split("/").pop() || "");
     nome = arq.replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " ").trim();
   }
   return { buf, img: r.url, nome };
 }
+async function normalizar(corpo, erro5) {
+  try {
+    return await sharp(corpo, { limitInputPixels: 8e7 }).rotate().resize({ width: 3e3, height: 3e3, fit: "inside", withoutEnlargement: true }).png().toBuffer();
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("sharp indispon\xEDvel")) return corpo;
+    throw new Error(erro5);
+  }
+}
 async function criarPedidoDeArquivo(corpo, nome) {
   if (!corpo.length || corpo.length > MAX_ORIGINAL) throw new Error("Foto vazia ou grande demais");
-  let buf;
-  try {
-    buf = await sharp(corpo, { limitInputPixels: 8e7 }).rotate().resize({ width: 3e3, height: 3e3, fit: "inside", withoutEnlargement: true }).png().toBuffer();
-  } catch {
-    throw new Error("O arquivo n\xE3o \xE9 uma foto");
-  }
+  const buf = await normalizar(corpo, "O arquivo n\xE3o \xE9 uma foto");
   return gravarPedido(buf, ".png", "arquivo", nome);
 }
 async function criarPedido(img, nome) {
@@ -26826,6 +26837,14 @@ async function caminhoOriginal(id) {
   return p ? path8.join(pastaPedido(id), p.original) : null;
 }
 var arqWorker = () => path8.join(pastaRecortes(), "worker.json");
+async function registrarWorker(info) {
+  await fs8.mkdir(pastaRecortes(), { recursive: true });
+  await gravarJson(arqWorker(), {
+    nome: String(info.nome || "").slice(0, 60),
+    modelo: String(info.modelo || "").slice(0, 60),
+    visto: (/* @__PURE__ */ new Date()).toISOString()
+  });
+}
 async function statusWorker() {
   try {
     const w = JSON.parse(await fs8.readFile(arqWorker(), "utf8"));
@@ -26833,6 +26852,40 @@ async function statusWorker() {
   } catch {
     return { online: false };
   }
+}
+async function pegarProximo() {
+  const ids = await fs8.readdir(pastaRecortes()).catch(() => []);
+  const agora = Date.now();
+  const fila = [];
+  for (const id of ids) {
+    const p2 = idValido(id) ? await lerPedido(id) : null;
+    if (!p2) continue;
+    const preso = p2.status === "processando" && agora - Date.parse(p2.pego || p2.criado) > PRESO_MS;
+    if (p2.status === "pendente" || preso) fila.push(p2);
+  }
+  fila.sort((a, b) => a.criado.localeCompare(b.criado));
+  const p = fila[0];
+  if (!p) return null;
+  p.status = "processando";
+  p.pego = (/* @__PURE__ */ new Date()).toISOString();
+  await salvarPedido(p);
+  return p;
+}
+async function concluirPedido(id, png) {
+  const p = await lerPedido(id);
+  if (!p) throw new Error("Pedido n\xE3o existe");
+  await fs8.writeFile(arqRecorte(id), png);
+  p.status = "pronto";
+  p.pronto = (/* @__PURE__ */ new Date()).toISOString();
+  delete p.erro;
+  await salvarPedido(p);
+}
+async function falharPedido(id, erro5) {
+  const p = await lerPedido(id);
+  if (!p) throw new Error("Pedido n\xE3o existe");
+  p.status = "erro";
+  p.erro = erro5.slice(0, 300) || "Erro no recorte";
+  await salvarPedido(p);
 }
 
 // app/api/encarte/internet/busca/route.ts
@@ -27396,6 +27449,81 @@ async function GET29(req) {
   return NextResponse.json(await listarTemplates(recarregar));
 }
 
+// app/api/v1/encarte/recorte/[id]/route.ts
+var route_exports38 = {};
+__export(route_exports38, {
+  GET: () => GET30,
+  PUT: () => PUT8,
+  dynamic: () => dynamic31,
+  runtime: () => runtime31
+});
+import { promises as fs10 } from "node:fs";
+
+// local/encarte-pc/api-handler.ts
+async function withApiAuth(_req, fn) {
+  void _req;
+  try {
+    return await fn({ workspaceId: "", userId: "" });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
+  }
+}
+
+// app/api/v1/encarte/recorte/[id]/route.ts
+var runtime31 = "nodejs";
+var dynamic31 = "force-dynamic";
+async function GET30(req, context) {
+  return withApiAuth(req, async () => {
+    const { id } = await context.params;
+    const arq = await caminhoOriginal(id);
+    if (!arq) return NextResponse.json({ error: "Pedido n\xE3o existe" }, { status: 404 });
+    const buf = await fs10.readFile(arq);
+    return new Response(new Uint8Array(buf), { headers: { "Content-Type": "application/octet-stream" } });
+  });
+}
+async function PUT8(req, context) {
+  return withApiAuth(req, async () => {
+    const { id } = await context.params;
+    const erro5 = new URL(req.url).searchParams.get("erro");
+    if (erro5 !== null) {
+      await falharPedido(id, erro5);
+      return NextResponse.json({ ok: true });
+    }
+    const png = await lerCorpo(req);
+    if (!png) return NextResponse.json({ error: "Arquivo grande demais" }, { status: 413 });
+    if (png.length < 8 || png.readUInt32BE(0) !== 2303741511) {
+      return NextResponse.json({ error: "N\xE3o \xE9 PNG" }, { status: 400 });
+    }
+    await concluirPedido(id, png);
+    return NextResponse.json({ ok: true });
+  });
+}
+
+// app/api/v1/encarte/recorte/proximo/route.ts
+var route_exports39 = {};
+__export(route_exports39, {
+  POST: () => POST15,
+  dynamic: () => dynamic32,
+  runtime: () => runtime32
+});
+var runtime32 = "nodejs";
+var dynamic32 = "force-dynamic";
+var ESPERA_MS = 2e4;
+var PASSO_MS = 400;
+async function POST15(req) {
+  return withApiAuth(req, async () => {
+    const corpo = await req.json().catch(() => ({}));
+    const fim = Date.now() + ESPERA_MS;
+    for (let volta = 0; ; volta++) {
+      if (volta % 12 === 0) await registrarWorker(corpo ?? {});
+      const p = await pegarProximo();
+      if (p) return NextResponse.json({ id: p.id, nome: p.nome });
+      if (Date.now() >= fim || req.signal.aborted) return new Response(null, { status: 204 });
+      await new Promise((ok) => setTimeout(ok, PASSO_MS));
+    }
+  });
+}
+
 // local/encarte-pc/rotas.gerado.ts
 var ROTAS_API = [
   { caminho: "/api/encarte/biblioteca/[id]/[acao]", modulo: route_exports },
@@ -27434,7 +27562,9 @@ var ROTAS_API = [
   { caminho: "/api/encarte/templates/[id]/padrao", modulo: route_exports34 },
   { caminho: "/api/encarte/templates/[id]/pranchetas", modulo: route_exports35 },
   { caminho: "/api/encarte/templates/[id]/svg", modulo: route_exports36 },
-  { caminho: "/api/encarte/templates", modulo: route_exports37 }
+  { caminho: "/api/encarte/templates", modulo: route_exports37 },
+  { caminho: "/api/v1/encarte/recorte/[id]", modulo: route_exports38 },
+  { caminho: "/api/v1/encarte/recorte/proximo", modulo: route_exports39 }
 ];
 
 // local/encarte-pc/servidor.ts
@@ -27484,7 +27614,7 @@ async function estatico(res, caminho) {
   const arq = path9.resolve(PUBLICO, rel);
   if (!arq.startsWith(PUBLICO + path9.sep)) return false;
   try {
-    const dados = await fs10.readFile(arq);
+    const dados = await fs11.readFile(arq);
     res.writeHead(200, {
       "Content-Type": TIPOS[path9.extname(arq).toLowerCase()] ?? "application/octet-stream",
       "Cache-Control": "no-cache"
