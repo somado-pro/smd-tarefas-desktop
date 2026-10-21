@@ -1,6 +1,6 @@
 [package]
 name = "smd-tarefas-desktop"
-version = "0.1.1"
+version = "0.2.0"
 description = "Somado Tarefas na bandeja do Windows"
 edition = "2021"
 
@@ -14,9 +14,9 @@ tauri-plugin-global-shortcut = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-window-state = "2"
+tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-ureq = { version = "2", features = ["json"] }
 
 [target.'cfg(windows)'.dependencies]
 tauri-winrt-notification = "0.7"

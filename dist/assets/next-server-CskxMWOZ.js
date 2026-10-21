@@ -1,0 +1,1 @@
+class t extends Response{static json(e,s){return Response.json(e,s)}static redirect(e,s=307){return new Response(null,{status:s,headers:{Location:String(e)}})}static next(){return new Response(null)}}export{t as N};

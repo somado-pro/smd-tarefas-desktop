@@ -1,7 +1,8 @@
-// Somado Tarefas na bandeja do Windows: uma janela que carrega
-// https://tarefas.somado.com.br, fica do lado do relógio e avisa com
-// notificação nativa. O próprio programa consulta /api/desktop/notificacoes
-// com o login da janela (vigiar_notificacoes).
+// Somado Tarefas na bandeja do Windows. Desde a v0.2.0 (SMD-1133) a janela
+// carrega o APP LOCAL empacotado (dist/, gerado pelo `npm run build:local` do
+// smd-gerencia), que lê e grava direto no Supabase: o programa funciona com a
+// VPS fora do ar. É a página que pergunta as notificações e chama os comandos
+// daqui (definir_nao_lidas, notificar, abrir_na_web).
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::sync::Mutex;
@@ -12,6 +13,7 @@ use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
+/// A web: só pra abrir no navegador as telas que não existem no app local.
 const SITE: &str = "https://tarefas.somado.com.br";
 const ARG_MINIMIZADO: &str = "--minimizado";
 const ICONE: &[u8] = include_bytes!("../icons/32x32.png");
@@ -119,7 +121,7 @@ fn icone_com_numero(n: u32) -> Image<'static> {
     Image::new_owned(px, w as u32, h as u32)
 }
 
-// ---------- notificações: o programa pergunta direto ao site ----------
+// ---------- notificações: a página (app local) avisa o programa ----------
 
 fn atualizar_icone(app: &AppHandle, n: u32) {
     let estado = app.state::<Estado>();
@@ -160,52 +162,26 @@ fn notificar(app: &AppHandle, titulo: &str, corpo: &str, url: String) {
     let _ = (app, titulo, corpo, url);
 }
 
-/// Usa o login da própria janela (cookies do WebView2) pra consultar
-/// /api/desktop/notificacoes de 30 em 30 s. Roda fora da thread principal,
-/// porque ler cookies dela trava no Windows.
-fn vigiar_notificacoes(app: AppHandle) {
-    std::thread::spawn(move || {
-        let mut desde: Option<String> = None;
-        std::thread::sleep(std::time::Duration::from_secs(5));
-        loop {
-            if let Some(w) = janela(&app) {
-                let site: tauri::Url = SITE.parse().unwrap();
-                if let Ok(cookies) = w.cookies_for_url(site) {
-                    let cabecalho = cookies
-                        .iter()
-                        .map(|c| format!("{}={}", c.name(), c.value()))
-                        .collect::<Vec<_>>()
-                        .join("; ");
-                    let mut url = format!("{SITE}/api/desktop/notificacoes");
-                    if let Some(d) = &desde {
-                        url.push_str("?desde=");
-                        url.push_str(&d.replace(':', "%3A").replace('+', "%2B"));
-                    }
-                    let resp = ureq::get(&url)
-                        .set("Cookie", &cabecalho)
-                        .timeout(std::time::Duration::from_secs(15))
-                        .call();
-                    if let Ok(r) = resp {
-                        if let Ok(d) = r.into_json::<serde_json::Value>() {
-                            desde = d["agora"].as_str().map(String::from).or(desde);
-                            let n = d["naoLidas"].as_u64().unwrap_or(0) as u32;
-                            let app2 = app.clone();
-                            let _ = app.run_on_main_thread(move || atualizar_icone(&app2, n));
-                            for nv in d["novas"].as_array().cloned().unwrap_or_default() {
-                                notificar(
-                                    &app,
-                                    nv["titulo"].as_str().unwrap_or("Somado Tarefas"),
-                                    nv["corpo"].as_str().unwrap_or(""),
-                                    nv["url"].as_str().unwrap_or("/inbox").to_string(),
-                                );
-                            }
-                        }
-                    }
-                }
-            }
-            std::thread::sleep(std::time::Duration::from_secs(30));
-        }
-    });
+/// Número de não lidas (aba Principal) pro ícone da bandeja.
+#[tauri::command]
+fn definir_nao_lidas(app: AppHandle, n: u32) {
+    atualizar_icone(&app, n);
+}
+
+/// Toast nativo de um aviso novo. `url` é um caminho do app ("/?task=<id>").
+#[tauri::command]
+fn notificar_aviso(app: AppHandle, titulo: String, corpo: String, url: String) {
+    notificar(&app, &titulo, &corpo, url);
+}
+
+/// Telas que só existem na web (encarte, configurações de admin) abrem no
+/// navegador padrão. Só aceita endereço da própria web.
+#[tauri::command]
+fn abrir_na_web(app: AppHandle, url: String) {
+    use tauri_plugin_opener::OpenerExt;
+    if url.starts_with(&format!("{SITE}/")) {
+        let _ = app.opener().open_url(url, None::<&str>);
+    }
 }
 
 // ---------- atualização automática ----------
@@ -232,6 +208,8 @@ fn main() {
         ))
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_opener::init())
+        .invoke_handler(tauri::generate_handler![definir_nao_lidas, notificar_aviso, abrir_na_web])
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, atalho, ev| {
@@ -251,7 +229,7 @@ fn main() {
             let handle = app.handle().clone();
             let minimizado = std::env::args().any(|a| a == ARG_MINIMIZADO);
 
-            WebviewWindowBuilder::new(app, "main", WebviewUrl::External(SITE.parse().unwrap()))
+            WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                 .title("Somado Tarefas")
                 .inner_size(1280.0, 820.0)
                 .min_inner_size(420.0, 500.0)
@@ -316,7 +294,6 @@ fn main() {
             let _ = gs.register(atalho_janela);
             let _ = gs.register(atalho_nova);
 
-            vigiar_notificacoes(handle.clone());
             tauri::async_runtime::spawn(procurar_atualizacao(handle));
             Ok(())
         })
