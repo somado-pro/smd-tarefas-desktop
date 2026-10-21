@@ -1,0 +1,28 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Somado Tarefas",
+  "version": "0.1.0",
+  "identifier": "br.com.somado.tarefas",
+  "build": { "frontendDist": "../dist" },
+  "app": {
+    "windows": [],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper" },
+      "nsis": { "installMode": "currentUser", "languages": ["PortugueseBR"] }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU4MjVCQjU2QzFGMTk0MTAKUldRUWxQSEJWcnNsNkxNKzVmbjdSblFlS2J6bDNTWUdsN2VCVy9WODM3MENDM05JNTkrWWhoTUIK",
+      "endpoints": ["https://github.com/somado-pro/smd-tarefas-desktop/releases/latest/download/latest.json"],
+      "windows": { "installMode": "passive" }
+    }
+  }
+}
