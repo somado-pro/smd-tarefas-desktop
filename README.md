@@ -49,5 +49,7 @@ Compilar local (opcional): instalar Rust + Build Tools do Visual Studio, depois
 
 ## Instalar
 
-Rodar o `.exe` (instala só pro usuário, sem pedir admin). No PC do Matheus foi
-instalado em `D:\Somado Tarefas` com `"Somado Tarefas_x.y.z_x64-setup.exe" /S /D=D:\Somado Tarefas`.
+Rodar o `.exe` (instala só pro usuário, sem pedir admin, em
+`%LOCALAPPDATA%\Somado Tarefas` — é onde fica no PC do Matheus, a pedido dele).
+Silencioso: `& "Somado Tarefas_x.y.z_x64-setup.exe" /S`. Pra outra pasta,
+`/D=<caminho>` por último e sem aspas (o instalador lembra da última pasta).
