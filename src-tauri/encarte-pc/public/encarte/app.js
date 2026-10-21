@@ -6036,7 +6036,31 @@ const NO_PC = location.hostname === '127.0.0.1';
 if (NO_PC) {
   $('#ex-vps').textContent = 'Salvar na pasta de trabalho (Prancheta N.jpg em 1x/)';
   $('#ex-vps-status').textContent = 'Gera aqui no PC e grava direto na pasta. Espere terminar antes de fechar.';
-  $('#ex-trabalho').classList.add('oculto');
+  // no programa sobra só o salvar (pedido do Matheus, 21/10): o resto é da web
+  for (const id of ['#ex-trabalho', '#ex-pagina', '#ex-todas', '#ex-produtos']) $(id).classList.add('oculto');
+  // disquete = salva a edição, gera as pranchetas na pasta e abre a pasta no Explorer
+  const disquete = $('#ed-salvar');
+  disquete.removeAttribute('data-abre');
+  disquete.title = 'Salvar: gera as pranchetas na pasta de trabalho e abre a pasta';
+  disquete.onclick = async () => {
+    if (disquete.disabled) return;
+    await prepararPastaTrabalho();
+    const pasta = pastaDoCampo();
+    // sem pasta (cliente sem TEMPLATES no caminho): abre o Exportar pra colar o caminho
+    if (!pasta) return abrirSheet('sh-exportar');
+    disquete.disabled = true;
+    const st = $('#ed-salvo');
+    try {
+      const r = await exportarNoNavegador(pasta, { status: t => { st.textContent = t; } });
+      st.textContent = `${r.ok} prancheta(s) na pasta` + (r.falhou ? ` · ${r.falhou} não gravaram` : '');
+      if (r.ok) {
+        mostrarAbrirPasta(pasta);
+        $('#ex-abrir-pasta').click();
+      } else aviso('Nada foi gravado na pasta');
+    } catch (e) {
+      st.textContent = e.message === 'sessao' ? 'Sessão expirou: abra o encarte de novo pelo programa.' : 'Erro ao salvar: ' + e.message;
+    } finally { disquete.disabled = false; }
+  };
 }
 $('#ex-vps').onclick = async () => {
   const pasta = pastaDoCampo();
