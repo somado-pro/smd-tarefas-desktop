@@ -1,7 +1,8 @@
 # Somado Tarefas — programa do Windows
 
-Fica na bandeja (do lado do relógio), como o do ClickUp, e abre
-https://tarefas.somado.com.br numa janela própria. Feito com Tauri 2 (usa o
+Fica na bandeja (do lado do relógio), como o do ClickUp, e abre o Somado
+Tarefas numa janela própria. Desde a v0.2.0 o app vem EMPACOTADO (não depende
+da VPS: fala direto com o Supabase). Feito com Tauri 2 (usa o
 WebView2 do Windows; instalador de poucos MB). Tarefa: SMD-1109.
 
 ## O que faz
@@ -20,11 +21,29 @@ WebView2 do Windows; instalador de poucos MB). Tarefa: SMD-1109.
 
 ## Como funciona
 
-A janela carrega o site em produção. O próprio programa (thread
-`vigiar_notificacoes` em `src-tauri/src/main.rs`) lê o login da janela (cookies
-do WebView2) e, a cada 30 s, consulta `GET /api/desktop/notificacoes?desde=<ISO>`
-(rota do smd-gerencia, PR #204): atualiza o número no ícone e mostra um toast
-pra cada nova. A página não fala com o programa (sem IPC aberto pro site).
+A janela carrega `dist/`, que é o **app local** do smd-gerencia
+(`npm run build:local`, SMD-1132): o mesmo front da web, que lê e grava direto
+no Supabase com o login da pessoa (sessão guardada no próprio programa). Com a
+VPS fora do ar ele continua abrindo, editando e avisando.
+
+A página é quem pergunta as notificações (de 30 em 30 s) e chama os comandos do
+programa (`src-tauri/src/main.rs`): `definir_nao_lidas` (número no ícone),
+`notificar_aviso` (toast nativo; o clique volta pra página por
+`window.__smdIr`) e `abrir_na_web` (telas que só existem na web, como o
+encarte, abrem no navegador).
+
+### Atualizar o app que vai dentro
+
+`dist/` é gerado, não se edita à mão. Quando o front do smd-gerencia mudar:
+
+```powershell
+powershell -File scripts/atualizar-app-local.ps1
+```
+
+Isso roda o `build:local` no clone do smd-gerencia e copia pra `dist/`
+(`dist/VERSAO-DO-APP.txt` diz de qual commit veio). Depois, versão nova como
+abaixo. O pacote é público junto com o instalador: só leva a chave pública
+(anon) do Supabase; quem protege os dados é a RLS.
 
 ## Gerar o instalador
 
