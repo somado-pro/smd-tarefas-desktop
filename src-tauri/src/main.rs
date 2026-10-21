@@ -184,6 +184,33 @@ fn abrir_na_web(app: AppHandle, url: String) {
     }
 }
 
+// ---------- links somado-tarefas:// (botão "Abrir pasta" do editor de encarte) ----------
+
+const ESQUEMA: &str = "somado-tarefas";
+
+/// somado-tarefas://abrir-pasta?caminho=<pasta> abre a pasta no Explorer. Só
+/// pasta que existe (nunca arquivo nem programa): o link pode vir de qualquer
+/// página, então o pior que ele faz é abrir uma janela do Explorer.
+fn tratar_link(app: &AppHandle, link: &str) {
+    let Ok(url) = tauri::Url::parse(link) else { return };
+    if url.scheme() != ESQUEMA || url.host_str() != Some("abrir-pasta") {
+        return;
+    }
+    let Some(caminho) = url.query_pairs().find(|(k, _)| k == "caminho").map(|(_, v)| v.into_owned()) else {
+        return;
+    };
+    if std::path::Path::new(&caminho).is_dir() {
+        use tauri_plugin_opener::OpenerExt;
+        let _ = app.opener().open_path(caminho, None::<&str>);
+    } else {
+        notificar(app, "Pasta não encontrada", &caminho, "/".to_string());
+    }
+}
+
+fn eh_link(arg: &str) -> bool {
+    arg.starts_with(&format!("{ESQUEMA}:"))
+}
+
 // ---------- atualização automática ----------
 
 async fn procurar_atualizacao(app: AppHandle) {
@@ -211,7 +238,18 @@ fn main() {
     let atalho_nova = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::Space);
 
     tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| mostrar(app)))
+        // Link somado-tarefas:// com o programa aberto chega como 2ª instância:
+        // trata o link sem trazer a janela pra frente.
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            let links: Vec<&String> = args.iter().filter(|a| eh_link(a)).collect();
+            if links.is_empty() {
+                mostrar(app);
+            }
+            for l in links {
+                tratar_link(app, l);
+            }
+        }))
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
             Some(vec![ARG_MINIMIZADO]),
@@ -237,6 +275,16 @@ fn main() {
         .manage(Estado { nao_lidas: Mutex::new(0) })
         .setup(move |app| {
             let handle = app.handle().clone();
+
+            // Programa aberto PELO link (estava fechado): trata e segue normal.
+            for l in std::env::args().filter(|a| eh_link(a)) {
+                tratar_link(&handle, &l);
+            }
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                // Garante o registro do esquema no Windows (o instalador também faz).
+                let _ = app.deep_link().register_all();
+            }
             let minimizado = std::env::args().any(|a| a == ARG_MINIMIZADO);
 
             WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))

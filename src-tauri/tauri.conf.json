@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Somado Tarefas",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "identifier": "br.com.somado.tarefas",
   "build": { "frontendDist": "../dist" },
   "app": {
@@ -20,6 +20,9 @@
     }
   },
   "plugins": {
+    "deep-link": {
+      "desktop": { "schemes": ["somado-tarefas"] }
+    },
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU4MjVCQjU2QzFGMTk0MTAKUldRUWxQSEJWcnNsNkxNKzVmbjdSblFlS2J6bDNTWUdsN2VCVy9WODM3MENDM05JNTkrWWhoTUIK",
       "endpoints": ["https://github.com/somado-pro/smd-tarefas-desktop/releases/latest/download/latest.json"],
