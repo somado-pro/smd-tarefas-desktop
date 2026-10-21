@@ -6020,7 +6020,7 @@ function textoExportVps(e) {
 }
 async function acompanharExportVps(e) {
   clearTimeout(tExportVps); tExportVps = null;
-  if (SO_EXPORTAR || !S.edicao) return;
+  if (SO_EXPORTAR || !S.edicao || location.hostname === '127.0.0.1') return;
   if (e === undefined) {
     const d = await apiJson(`/edicoes/${encodeURIComponent(S.edicao.id)}/exportar`).catch(() => null);
     e = d ? d.exportacao : null;
@@ -6029,11 +6029,32 @@ async function acompanharExportVps(e) {
   mostrarAbrirPasta(e && e.status === 'pronto' ? e.pasta : '');
   if (e && (e.status === 'fila' || e.status === 'gerando')) tExportVps = setTimeout(() => acompanharExportVps(), 3000);
 }
+// Editor aberto pelo programa do Windows (servidor do encarte no PC, SMD-1146): não tem VPS no
+// caminho. O botão principal gera aqui mesmo, com o template que está na tela, e grava direto na
+// pasta do G: — a VPS usaria a cópia dela do template, que pode estar atrasada.
+const NO_PC = location.hostname === '127.0.0.1';
+if (NO_PC) {
+  $('#ex-vps').textContent = 'Salvar na pasta de trabalho (Prancheta N.jpg em 1x/)';
+  $('#ex-vps-status').textContent = 'Gera aqui no PC e grava direto na pasta. Espere terminar antes de fechar.';
+  $('#ex-trabalho').classList.add('oculto');
+}
 $('#ex-vps').onclick = async () => {
   const pasta = pastaDoCampo();
   if (!pasta) return aviso('Defina a pasta de trabalho');
   const bt = $('#ex-vps'); bt.disabled = true;
   const el = $('#ex-vps-status');
+  if (NO_PC) {
+    try {
+      const r = await exportarNoNavegador(pasta, { status: t => { el.textContent = t; } });
+      el.textContent = `${r.ok} prancheta(s) salvas em ${pasta}/1x`
+        + (r.falhou ? ` · ${r.falhou} arquivo(s) não gravaram` : '')
+        + (r.salvou ? ' · versão guardada' : ' · edição NÃO salva');
+      mostrarAbrirPasta(r.ok ? pasta : '');
+    } catch (e) {
+      el.textContent = e.message === 'sessao' ? 'Sessão expirou: abra o encarte de novo pelo programa.' : 'Erro ao salvar: ' + e.message;
+    } finally { bt.disabled = false; }
+    return;
+  }
   try {
     S.edicao.pastaTrabalho = pasta;
     el.textContent = 'salvando a edição…';
