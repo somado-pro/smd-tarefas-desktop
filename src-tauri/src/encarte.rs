@@ -87,15 +87,40 @@ pub fn achar(base: Config) -> Config {
     cfg
 }
 
-/// A configuração salva; na 1ª vez neste computador, procura as pastas sozinho.
+/// Pasta do Drive com os arquivos do sistema do encarte, iguais em todo computador:
+/// fontes/ (fonte nova é só soltar lá) e padroes_mercado.json (a VPS copia do repo).
+fn pasta_sistema() -> Option<PathBuf> {
+    raizes_do_drive()
+        .into_iter()
+        .map(|r| r.join("Somado").join("Encarte - sistema"))
+        .find(|p| p.is_dir())
+}
+
+/// Completa a configuração com a pasta do sistema do Drive (sem tirar o que a pessoa pôs).
+fn completar(mut cfg: Config) -> Config {
+    if let Some(sis) = pasta_sistema() {
+        let fontes = sis.join("fontes").to_string_lossy().into_owned();
+        if !cfg.fontes.split(';').any(|f| f.trim().eq_ignore_ascii_case(&fontes)) {
+            cfg.fontes = if cfg.fontes.trim().is_empty() { fontes } else { format!("{fontes};{}", cfg.fontes) };
+        }
+        let padroes = sis.join("padroes_mercado.json");
+        if cfg.padroes.trim().is_empty() && padroes.is_file() {
+            cfg.padroes = padroes.to_string_lossy().into_owned();
+        }
+    }
+    cfg
+}
+
+/// A configuração salva; na 1ª vez neste computador, procura as pastas sozinho. As fontes e
+/// as regras dos mercados da pasta do sistema no Drive entram sempre.
 pub fn ler(app: &AppHandle) -> Config {
     if let Some(cfg) = arquivo_config(app)
         .and_then(|a| std::fs::read_to_string(a).ok())
         .and_then(|t| serde_json::from_str::<Config>(&t).ok())
     {
-        return cfg;
+        return completar(cfg);
     }
-    let cfg = achar(Config::default());
+    let cfg = completar(achar(Config::default()));
     let _ = gravar(app, &cfg);
     cfg
 }
