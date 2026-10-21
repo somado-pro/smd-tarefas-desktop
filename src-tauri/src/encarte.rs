@@ -38,6 +38,27 @@ fn sem_prefixo(p: &std::path::Path) -> PathBuf {
     PathBuf::from(s.strip_prefix(r"\\?\").unwrap_or(&s).to_string())
 }
 
+/// Servidor do encarte que ficou rodando sozinho (o programa foi fechado à força ou trocado
+/// pelo instalador e o node filho sobrou) segura a porta: o novo não sobe e quem responde é o
+/// antigo, com a configuração e o código velhos. Encerra antes de subir.
+fn encerrar_orfaos() {
+    let mut cmd = Command::new("powershell");
+    cmd.args([
+        "-NoProfile",
+        "-Command",
+        "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { $_.CommandLine -like '*encarte-pc*servidor.mjs*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }",
+    ])
+    .stdin(Stdio::null())
+    .stdout(Stdio::null())
+    .stderr(Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // sem janela
+    }
+    let _ = cmd.status();
+}
+
 #[derive(Default)]
 pub struct Servidor(pub Mutex<Option<Child>>);
 
@@ -147,6 +168,7 @@ pub fn parar(app: &AppHandle) {
 /// script) só fica no log: o app usa a web nesse caso.
 pub fn subir(app: &AppHandle) {
     parar(app);
+    encerrar_orfaos();
     let Ok(recursos) = app.path().resource_dir() else { return };
     let script = sem_prefixo(&recursos.join("encarte-pc").join("servidor.mjs"));
     let Ok(dados) = app.path().app_local_data_dir() else { return };
