@@ -5,6 +5,8 @@
 // daqui (definir_nao_lidas, notificar, abrir_na_web).
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod encarte;
+
 use std::sync::Mutex;
 use tauri::image::Image;
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
@@ -257,7 +259,13 @@ fn main() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![definir_nao_lidas, notificar_aviso, abrir_na_web])
+        .invoke_handler(tauri::generate_handler![
+            definir_nao_lidas,
+            notificar_aviso,
+            abrir_na_web,
+            encarte::ler_config_encarte,
+            encarte::salvar_config_encarte
+        ])
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, atalho, ev| {
@@ -273,6 +281,7 @@ fn main() {
                 .build(),
         )
         .manage(Estado { nao_lidas: Mutex::new(0) })
+        .manage(encarte::Servidor::default())
         .setup(move |app| {
             let handle = app.handle().clone();
 
@@ -286,6 +295,9 @@ fn main() {
                 let _ = app.deep_link().register_all();
             }
             let minimizado = std::env::args().any(|a| a == ARG_MINIMIZADO);
+
+            // Editor de encarte no PC (sem VPS): o servidor local sobe junto.
+            encarte::subir(&handle);
 
             WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                 .title("Somado Tarefas")
@@ -313,10 +325,11 @@ fn main() {
             let abrir = MenuItem::with_id(app, "abrir", "Abrir", true, None::<&str>)?;
             let nova = MenuItem::with_id(app, "nova", "Nova tarefa", true, None::<&str>)?;
             let iniciar = CheckMenuItem::with_id(app, "iniciar", "Iniciar com o Windows", true, ligado, None::<&str>)?;
+            let config = MenuItem::with_id(app, "config", "Configurações do encarte", true, None::<&str>)?;
             let sair = MenuItem::with_id(app, "sair", "Sair", true, None::<&str>)?;
             let sep1 = PredefinedMenuItem::separator(app)?;
             let sep2 = PredefinedMenuItem::separator(app)?;
-            let menu = Menu::with_items(app, &[&abrir, &nova, &sep1, &iniciar, &sep2, &sair])?;
+            let menu = Menu::with_items(app, &[&abrir, &nova, &sep1, &config, &iniciar, &sep2, &sair])?;
 
             let iniciar2 = iniciar.clone();
             TrayIconBuilder::with_id("bandeja")
@@ -327,6 +340,7 @@ fn main() {
                 .on_menu_event(move |app, ev| match ev.id().as_ref() {
                     "abrir" => mostrar(app),
                     "nova" => nova_tarefa(app),
+                    "config" => abrir_caminho(app, "/configuracoes-pc"),
                     "iniciar" => {
                         let al = app.autolaunch();
                         let quer = !al.is_enabled().unwrap_or(false);
@@ -362,6 +376,12 @@ fn main() {
                 let _ = w.hide();
             }
         })
-        .run(tauri::generate_context!())
-        .expect("erro ao abrir o Somado Tarefas");
+        .build(tauri::generate_context!())
+        .expect("erro ao abrir o Somado Tarefas")
+        .run(|app, ev| {
+            // Sair do programa leva o servidor do encarte junto.
+            if let tauri::RunEvent::Exit = ev {
+                encarte::parar(app);
+            }
+        });
 }

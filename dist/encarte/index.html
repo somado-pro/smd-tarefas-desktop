@@ -1,6 +1,24 @@
 <!doctype html>
 <meta charset="utf-8"><title>Somado Tarefas</title>
 <body style="background:#16181c;color:#9aa0a6;font:14px system-ui;padding:24px">Abrindo o editor…
+<form id="f" method="post" action="http://127.0.0.1:47831/entrar">
+  <input type="hidden" name="a"><input type="hidden" name="r"><input type="hidden" name="volta">
+</form>
 <script>
-  location.replace("https://tarefas.somado.com.br/encarte/" + (location.pathname.split("/encarte/")[1] || "") + location.search + location.hash);
+  var resto = "/encarte/" + (location.pathname.split("/encarte/")[1] || "") + location.search + location.hash;
+  function web() { location.replace("https://tarefas.somado.com.br" + resto); }
+  var s = null;
+  try { s = JSON.parse(localStorage.getItem("smd-tarefas-local") || "null"); } catch (e) {}
+  if (!s || !s.access_token) { web(); }
+  else {
+    var pronto = false;
+    setTimeout(function () { if (!pronto) web(); }, 1500);
+    fetch("http://127.0.0.1:47831/saude").then(function (r) {
+      if (!r.ok) throw 0;
+      pronto = true;
+      var f = document.getElementById("f");
+      f.a.value = s.access_token; f.r.value = s.refresh_token; f.volta.value = resto;
+      f.submit();
+    }).catch(function () { if (!pronto) { pronto = true; web(); } });
+  }
 </script>
