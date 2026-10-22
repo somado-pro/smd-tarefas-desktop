@@ -1,0 +1,1 @@
+import{N as o}from"./next-server-CskxMWOZ.js";import{c as r}from"./index-DeOPjUWA.js";async function d(i,e){const{webhookId:t}=await e.params,a=await r(),{data:s}=await a.from("webhook_deliveries").select("id, event, response_status, created_at").eq("webhook_id",t).order("created_at",{ascending:!1}).limit(30);return o.json({deliveries:s??[]})}export{d as GET};
