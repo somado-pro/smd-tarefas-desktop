@@ -1,0 +1,1 @@
+import{N as t}from"./next-server-CskxMWOZ.js";import{b as n}from"./index-BNX5f7gD.js";async function e(a,s){const{formId:o}=await s.params,r=await n(o);return t.json({submissions:r})}export{e as GET};

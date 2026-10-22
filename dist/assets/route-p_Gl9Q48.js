@@ -1,0 +1,1 @@
+import{N as n}from"./next-server-CskxMWOZ.js";import{c as o}from"./index-BNX5f7gD.js";async function m(r,t){const{taskId:a}=await t.params,s=await o(),{data:e}=await s.from("comment_reactions").select("*, comments!inner(task_id)").eq("comments.task_id",a);return n.json({reactions:e??[]})}export{m as GET};

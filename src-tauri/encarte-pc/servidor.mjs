@@ -23971,19 +23971,28 @@ async function baixarMidia(chave) {
     return null;
   }
 }
+var baixando = /* @__PURE__ */ new Map();
 async function garantirLocal(local, chave) {
   try {
     await fs2.access(local);
     return local;
   } catch {
-    const dados = await baixarMidia(chave);
-    if (!dados) return null;
-    await fs2.mkdir(path2.dirname(local), { recursive: true });
-    const tmp = `${local}.${process.pid}.tmp`;
-    await fs2.writeFile(tmp, dados);
-    await fs2.rename(tmp, local);
-    return local;
+    let p = baixando.get(local);
+    if (!p) {
+      p = baixarParaDisco(local, chave).finally(() => baixando.delete(local));
+      baixando.set(local, p);
+    }
+    return p;
   }
+}
+async function baixarParaDisco(local, chave) {
+  const dados = await baixarMidia(chave);
+  if (!dados) return null;
+  await fs2.mkdir(path2.dirname(local), { recursive: true });
+  const tmp = `${local}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+  await fs2.writeFile(tmp, dados);
+  await fs2.rename(tmp, local);
+  return local;
 }
 var VALE_MS2 = 6e4;
 var listados = /* @__PURE__ */ new Map();
