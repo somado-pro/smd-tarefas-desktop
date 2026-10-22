@@ -184,7 +184,7 @@ async function abrirEdicao(id) {
   S.template = (await apiJson('/templates').catch(() => [])).find(x => x.id === ed.template) || null;
   let svgTxt;
   try {
-    const r = await api(`/templates/${encodeURIComponent(ed.template)}/svg`);
+    const r = await api(`/templates/${encodeURIComponent(ed.template)}/svg${ajQuery()}`); // ajQuery: modelo do card ajustado (modelo-card.js)
     if (!r.ok) throw new Error(r.status);
     svgTxt = await r.text();
   } catch (e) {
@@ -207,6 +207,7 @@ async function abrirEdicao(id) {
   await esperarFontes();
   aplicarVariaveis(S.svg);
   limparExport(S.svg); // sombra exportada como imagem e FUNDO no lugar de MARGEM_GRID (limpeza.js)
+  aplicarModeloAjPt(ed.modeloAjPt); // template do Illustrator: modelo do card ajustado só nesta edição (modelo-card.js)
   // divisórias desenhadas pelo construtor na grade padrão: o editor redesenha pela grade da edição
   // (refazerDivisorias, a partir do data-divisorias da grid_area)
   $$('g.divisorias-tpl', S.svg).forEach(g => g.remove());
@@ -3147,6 +3148,9 @@ async function salvarJa(opc = {}) {
     produtos: ed.produtos, textos: ed.textos, fundos: ed.fundos, grades: ed.grades, linhas: ed.linhas,
     paginasExtras: Array.isArray(ed.paginasExtras) ? ed.paginasExtras : [],
     estilo: S.estilo || {},
+    // modelo do card ajustado só nesta edição (modelo-card.js): construtor em %, Illustrator em pt
+    modelosAj: Array.isArray(ed.modelosAj) ? ed.modelosAj : [],
+    modeloAjPt: Array.isArray(ed.modeloAjPt) ? ed.modeloAjPt : [],
   };
   if (opc.versao) corpo.versao = true;
   // trava: o servidor recusa (409) se a edição mudou em outro lugar depois do que esta tela conhece
@@ -4670,6 +4674,40 @@ function apagarLogo() {
 }
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-apaga-logo]')) apagarLogo(); });
 $('#pb-zerar').onclick = () => { const ps = blocoPs(), t = S.bloco.tipo; marcar(...ps); for (const p of ps) { p[t + 'Dx'] = p[t + 'Dy'] = 0; if (ehApoio(t)) { p[t + 'Esc'] = 1; p[t + 'Off'] = false; } if (t === 'logo') p.logoEsc = 1; if (t === 'qtd') p.qtdEsc = 1; render(p); } mudou(); };
+// Voltar ao modelo (SMD-1149, pedido do Matheus 21/10/2026): o encarte fica como veio do tema — cada card no
+// tamanho e no lugar que o template dá, os textos soltos da arte (data, rodapé) no lugar original. O CONTEÚDO
+// fica: nome, preço, formato, limite, tarja, preços extras, De/selo/logo ligados, as fotos escolhidas e a casa
+// do card na grade. Com vários cards selecionados vale só pra eles (e os textos ficam como estão).
+const AJUSTES_DO_CARD = ['escNome', 'escPreco', 'fundoW', 'fundoH', 'fundoDx', 'fundoDy', 'nomeCaixa', 'nomeEntre',
+  'nomeAlinha', 'nomeLinhas', 'nomeBorda', 'nomeBordaCor', 'precoDx', 'precoDy', 'nomeDx', 'nomeDy', 'qtdDx', 'qtdDy',
+  'qtdEsc', 'qtdZ', 'escReal', 'escCent', 'apoioDx', 'apoioDy', 'apoioEsc', 'apoiosAj', 'apoioOff', 'areaImg', 'cellAj',
+  'fotoArea', 'fotoAlinha', 'fotoMao', 'fotoArranjo'];
+function voltarAoModelo() {
+  const so = S.selProds.size > 1;
+  const ps = (so ? [...S.selProds] : S.produtos).filter(p => !p.removido);
+  const txs = so ? [] : S.textos.filter(t => t.dx || t.dy || (t.esc && t.esc !== 1));
+  if (!ps.length && !txs.length) return aviso('Nada pra voltar');
+  if (!confirm(`Voltar ${so ? `os ${ps.length} cards selecionados` : 'o encarte inteiro'} ao modelo do tema?
+
+`
+    + 'Tamanhos e posições que você ajustou voltam ao do template. Nome, preço e fotos continuam. Dá pra desfazer (↶).')) return;
+  marcar(...ps, ...txs);
+  for (const p of ps) {
+    const e = estado(p);
+    for (const k of AJUSTES_DO_CARD) delete e[k];
+    if (e.logo) { delete e.logo.dx; delete e.logo.dy; delete e.logo.esc; }
+    // a casa da grade sem o ajuste à mão
+    e.cell = p.cellAuto ? { ...p.cellAuto } : e.cell;
+    aplicarEstado(p, e);
+    if (p.fotos.length) { arranjar(p, 'auto'); marcarArranjo(p, 'auto'); p.fotoPend = null; }
+    render(p);
+  }
+  for (const tx of txs) aplicarTexto(tx, { ...estadoTexto(tx), dx: undefined, dy: undefined, esc: undefined });
+  atribuirZonas(ps);
+  mudou(); painel();
+  aviso(so ? `${ps.length} cards voltaram ao modelo` : 'Encarte voltou ao modelo do tema');
+}
+$('#gr-modelo').onclick = voltarAoModelo;
 
 
 // ---------------------------------------------------------------- especial (destaque)
@@ -4679,7 +4717,7 @@ async function carregarEspeciais(tplId) {
   S.moldes = { normal: S.molde };
   const dentro = $$('g[id^="PRODUTO_ESPECIAL"]', S.svg)[0];
   if (dentro) { const m = dentro.cloneNode(true); S.moldes['tpl'] = m; S.moldes['tpl'].nome = 'Especial do template'; }
-  const lista = await apiJson(`/templates/${encodeURIComponent(tplId)}/especiais`).catch(() => []);
+  const lista = await apiJson(`/templates/${encodeURIComponent(tplId)}/especiais${ajQuery()}`).catch(() => []);
   let defs = $('defs', S.svg); if (!defs) { defs = el('defs'); S.svg.insertBefore(defs, S.svg.firstChild); }
   let ne = 0, nh = 0;
   lista.forEach((esp, k) => {

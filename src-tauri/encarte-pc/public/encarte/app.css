@@ -278,3 +278,18 @@ body.com-chat #editor { margin-right: 380px; }
 .seg button.ativa { background: var(--sel); color: #fff; }
 .seg button.ativa .si { color: #fff; }
 .seg button:disabled { opacity: .4; cursor: default; }
+
+/* modelo do card isolado (modelo-card.js, SMD-1150) */
+#iso-painel { position: fixed; right: 16px; bottom: 16px; z-index: 60; width: min(340px, calc(100vw - 32px));
+  background: var(--sup); border: 1px solid var(--borda); border-radius: 12px; padding: 12px; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+#iso-painel .iso-tit { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+#iso-painel .iso-tit small { color: var(--suave); flex: 1; }
+#iso-painel .iso-lin { display: flex; align-items: center; gap: 6px; margin: 6px 0; flex-wrap: wrap; }
+#iso-painel .iso-lin > span { width: 64px; }
+#iso-painel .iso-lin select { flex: 1; min-width: 0; }
+#iso-painel .desligado { opacity: .4; pointer-events: none; }
+#iso-painel .iso-acoes { display: flex; gap: 8px; margin-top: 10px; }
+#iso-painel .iso-acoes .btn { flex: 1; }
+#iso-esc { min-width: 48px; text-align: center; }
+#iso-painel .iso-motivo { margin: 4px 0 6px; padding: 6px 8px; border-radius: 8px; font-size: 13px;
+  background: color-mix(in srgb, #f59e0b 16%, transparent); border: 1px solid color-mix(in srgb, #f59e0b 45%, transparent); }

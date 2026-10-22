@@ -70,6 +70,7 @@
           <label class="chk" title="Ligado: reorganizar, mudar colunas ou adicionar produto reaplica o ajuste de cada card (Área do produto) na casa nova. Desligado: volta tudo ao automático"><input type="checkbox" id="gr-manter"> manter ajustes dos cards ao reorganizar</label>
         </div>
         <div class="linha-btn"><button class="btn" id="gr-area">▭ Editar área da grade</button><button class="btn" id="gr-blocos" title="Mostra a casa de cada produto na grade; toque num bloco e arraste as bolinhas laranja pra mudar só ele">▦ Ver blocos dos produtos</button></div>
+        <div class="linha-btn"><button class="btn" id="gr-modelo" title="Desfaz os ajustes de tamanho e posição dos cards e dos textos e deixa como veio do tema. Nome, preço e fotos continuam. Com vários selecionados, vale só pra eles.">↺ Voltar ao modelo</button></div>
         <div id="gr-area-box" class="oculto">
           <div class="ajustes">
             <span class="grupo"><small>Topo</small><button class="step" data-ga="top:-4">▲</button><button class="step" data-ga="top:4">▼</button></span>
@@ -94,6 +95,7 @@
       <div class="p-cab pp-topo">
         <b id="pp-num"></b>
         <span class="pp-acoes">
+          <button class="ic" id="pp-modelo" title="Editar o modelo do card (o resto fica cinza): só neste encarte ou salvar no template" aria-label="Editar o modelo do card"><svg class="si" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 15l6-6 2 2-6 6H8z"/></svg></button>
           <button class="ic" id="pp-trocar-lugar" title="Trocar de lugar com outro produto" aria-label="Trocar de lugar"><svg class="si" viewBox="0 0 24 24"><path d="M7 10h14l-4-4"/><path d="M17 14H3l4 4"/></svg></button>
           <button class="ic" id="pp-adicionar" title="Produto depois deste" aria-label="Produto depois deste"><svg class="si" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="8" rx="1.5"/><path d="M12 14v7M8.5 17.5h7"/></svg></button>
           <button class="ic perigo" id="pp-remover" title="Remover produto" aria-label="Remover produto"><svg class="si" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></button>
@@ -557,11 +559,30 @@
   <p id="ex-status" class="dica"></p>
 </div>
 
+<div id="iso-painel" class="oculto">
+  <div class="iso-tit"><b>Modelo do card</b><small id="iso-sub"></small><button class="mini" id="iso-sair" title="Sair (Esc)" aria-label="Sair">✕</button></div>
+  <label class="iso-lin">Peça <select id="iso-peca"></select></label>
+  <div class="iso-lin" id="iso-mover"><span>Lugar</span>
+    <button class="step" data-iso-mv="-1:0" aria-label="Esquerda">←</button><button class="step" data-iso-mv="0:-1" aria-label="Cima">↑</button><button class="step" data-iso-mv="0:1" aria-label="Baixo">↓</button><button class="step" data-iso-mv="1:0" aria-label="Direita">→</button>
+  </div>
+  <p class="iso-motivo oculto" id="iso-motivo"></p>
+  <div class="iso-lin" id="iso-tam"><span>Tamanho</span><button class="step" data-iso-esc="0.95" aria-label="Menor">−</button><b id="iso-esc">100%</b><button class="step" data-iso-esc="1.05" aria-label="Maior">+</button></div>
+  <label class="iso-lin" id="iso-cor-l">Cor <input type="color" id="iso-cor"></label>
+  <label class="iso-lin" id="iso-fonte-l">Fonte <select id="iso-fonte"><option value="">(a do template)</option></select></label>
+  <div class="iso-lin"><button class="btn sec" id="iso-desfazer-peca">Desfazer esta peça</button><button class="btn sec perigo oculto" id="iso-tirar">Tirar o ajuste do encarte</button></div>
+  <div class="iso-acoes">
+    <button class="btn" id="iso-so-aqui" title="Vale pros cards deste modelo só nesta edição">Só neste encarte</button>
+    <button class="btn pri" id="iso-salvar-tpl" title="Grava no modelo do construtor e republica o template">Salvar no template</button>
+  </div>
+  <p class="dica" id="iso-dica"></p>
+</div>
+
 <script src="busca.js"></script>
 <script src="linhas.js"></script>
 <script src="divisorias.js"></script>
 <script src="limpeza.js"></script>
 <script src="app.js"></script>
+<script src="modelo-card.js"></script>
 <script src="chat.js"></script>
 </body>
 </html>

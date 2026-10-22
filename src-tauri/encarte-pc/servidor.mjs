@@ -73,7 +73,7 @@ var init_sharp = __esm({
   }
 });
 
-// ../../../node_modules/tslib/tslib.es6.mjs
+// node_modules/tslib/tslib.es6.mjs
 var tslib_es6_exports = {};
 __export(tslib_es6_exports, {
   __addDisposableResource: () => __addDisposableResource,
@@ -512,7 +512,7 @@ function __rewriteRelativeImportExtension(path11, preserveJsx) {
 }
 var extendStatics, __assign, __createBinding, __setModuleDefault, ownKeys, _SuppressedError, tslib_es6_default;
 var init_tslib_es6 = __esm({
-  "../../../node_modules/tslib/tslib.es6.mjs"() {
+  "node_modules/tslib/tslib.es6.mjs"() {
     extendStatics = function(d, b) {
       extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
         d2.__proto__ = b2;
@@ -598,9 +598,9 @@ var init_tslib_es6 = __esm({
   }
 });
 
-// ../../../node_modules/@supabase/functions-js/dist/main/helper.js
+// node_modules/@supabase/functions-js/dist/main/helper.js
 var require_helper = __commonJS({
-  "../../../node_modules/@supabase/functions-js/dist/main/helper.js"(exports) {
+  "node_modules/@supabase/functions-js/dist/main/helper.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.resolveFetch = void 0;
@@ -614,9 +614,9 @@ var require_helper = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/functions-js/dist/main/types.js
+// node_modules/@supabase/functions-js/dist/main/types.js
 var require_types = __commonJS({
-  "../../../node_modules/@supabase/functions-js/dist/main/types.js"(exports) {
+  "node_modules/@supabase/functions-js/dist/main/types.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.FunctionRegion = exports.FunctionsHttpError = exports.FunctionsRelayError = exports.FunctionsFetchError = exports.FunctionsError = void 0;
@@ -674,9 +674,9 @@ var require_types = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/functions-js/dist/main/FunctionsClient.js
+// node_modules/@supabase/functions-js/dist/main/FunctionsClient.js
 var require_FunctionsClient = __commonJS({
-  "../../../node_modules/@supabase/functions-js/dist/main/FunctionsClient.js"(exports) {
+  "node_modules/@supabase/functions-js/dist/main/FunctionsClient.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.FunctionsClient = void 0;
@@ -952,9 +952,9 @@ var require_FunctionsClient = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/functions-js/dist/main/index.js
+// node_modules/@supabase/functions-js/dist/main/index.js
 var require_main = __commonJS({
-  "../../../node_modules/@supabase/functions-js/dist/main/index.js"(exports) {
+  "node_modules/@supabase/functions-js/dist/main/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.FunctionRegion = exports.FunctionsRelayError = exports.FunctionsHttpError = exports.FunctionsFetchError = exports.FunctionsError = exports.FunctionsClient = void 0;
@@ -981,9 +981,9 @@ var require_main = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/realtime-js/dist/main/lib/websocket-factory.js
+// node_modules/@supabase/realtime-js/dist/main/lib/websocket-factory.js
 var require_websocket_factory = __commonJS({
-  "../../../node_modules/@supabase/realtime-js/dist/main/lib/websocket-factory.js"(exports) {
+  "node_modules/@supabase/realtime-js/dist/main/lib/websocket-factory.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.WebSocketFactory = void 0;
@@ -1104,9 +1104,9 @@ Suggested solution: ${env.workaround}`;
   }
 });
 
-// ../../../node_modules/@supabase/realtime-js/dist/main/lib/version.js
+// node_modules/@supabase/realtime-js/dist/main/lib/version.js
 var require_version = __commonJS({
-  "../../../node_modules/@supabase/realtime-js/dist/main/lib/version.js"(exports) {
+  "node_modules/@supabase/realtime-js/dist/main/lib/version.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.version = void 0;
@@ -1114,9 +1114,9 @@ var require_version = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/realtime-js/dist/main/lib/constants.js
+// node_modules/@supabase/realtime-js/dist/main/lib/constants.js
 var require_constants = __commonJS({
-  "../../../node_modules/@supabase/realtime-js/dist/main/lib/constants.js"(exports) {
+  "node_modules/@supabase/realtime-js/dist/main/lib/constants.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CONNECTION_STATE = exports.TRANSPORTS = exports.CHANNEL_EVENTS = exports.CHANNEL_STATES = exports.SOCKET_STATES = exports.MAX_PUSH_BUFFER_SIZE = exports.WS_CLOSE_NORMAL = exports.DEFAULT_TIMEOUT = exports.VERSION = exports.DEFAULT_VSN = exports.VSN_2_0_0 = exports.VSN_1_0_0 = exports.DEFAULT_VERSION = void 0;
@@ -1162,9 +1162,9 @@ var require_constants = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/realtime-js/dist/main/lib/serializer.js
+// node_modules/@supabase/realtime-js/dist/main/lib/serializer.js
 var require_serializer = __commonJS({
-  "../../../node_modules/@supabase/realtime-js/dist/main/lib/serializer.js"(exports) {
+  "node_modules/@supabase/realtime-js/dist/main/lib/serializer.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var Serializer = class {
@@ -1309,9 +1309,9 @@ var require_serializer = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/realtime-js/dist/main/lib/transformers.js
+// node_modules/@supabase/realtime-js/dist/main/lib/transformers.js
 var require_transformers = __commonJS({
-  "../../../node_modules/@supabase/realtime-js/dist/main/lib/transformers.js"(exports) {
+  "node_modules/@supabase/realtime-js/dist/main/lib/transformers.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.httpEndpointURL = exports.toTimestampString = exports.toArray = exports.toJson = exports.toNumber = exports.toBoolean = exports.convertCell = exports.convertColumn = exports.convertChangeData = exports.PostgresTypes = void 0;
@@ -1488,9 +1488,9 @@ var require_transformers = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/phoenix/priv/static/phoenix.cjs.js
+// node_modules/@supabase/phoenix/priv/static/phoenix.cjs.js
 var require_phoenix_cjs = __commonJS({
-  "../../../node_modules/@supabase/phoenix/priv/static/phoenix.cjs.js"(exports, module) {
+  "node_modules/@supabase/phoenix/priv/static/phoenix.cjs.js"(exports, module) {
     "use strict";
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
@@ -3296,9 +3296,9 @@ var require_phoenix_cjs = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/realtime-js/dist/main/phoenix/presenceAdapter.js
+// node_modules/@supabase/realtime-js/dist/main/phoenix/presenceAdapter.js
 var require_presenceAdapter = __commonJS({
-  "../../../node_modules/@supabase/realtime-js/dist/main/phoenix/presenceAdapter.js"(exports) {
+  "node_modules/@supabase/realtime-js/dist/main/phoenix/presenceAdapter.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var phoenix_1 = require_phoenix_cjs();
@@ -3394,9 +3394,9 @@ var require_presenceAdapter = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/realtime-js/dist/main/RealtimePresence.js
+// node_modules/@supabase/realtime-js/dist/main/RealtimePresence.js
 var require_RealtimePresence = __commonJS({
-  "../../../node_modules/@supabase/realtime-js/dist/main/RealtimePresence.js"(exports) {
+  "node_modules/@supabase/realtime-js/dist/main/RealtimePresence.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.REALTIME_PRESENCE_LISTEN_EVENTS = void 0;
@@ -3438,9 +3438,9 @@ var require_RealtimePresence = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/realtime-js/dist/main/lib/normalizeChannelError.js
+// node_modules/@supabase/realtime-js/dist/main/lib/normalizeChannelError.js
 var require_normalizeChannelError = __commonJS({
-  "../../../node_modules/@supabase/realtime-js/dist/main/lib/normalizeChannelError.js"(exports) {
+  "node_modules/@supabase/realtime-js/dist/main/lib/normalizeChannelError.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.normalizeChannelError = normalizeChannelError;
@@ -3464,9 +3464,9 @@ var require_normalizeChannelError = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/realtime-js/dist/main/phoenix/channelAdapter.js
+// node_modules/@supabase/realtime-js/dist/main/phoenix/channelAdapter.js
 var require_channelAdapter = __commonJS({
-  "../../../node_modules/@supabase/realtime-js/dist/main/phoenix/channelAdapter.js"(exports) {
+  "node_modules/@supabase/realtime-js/dist/main/phoenix/channelAdapter.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var constants_1 = require_constants();
@@ -3571,9 +3571,9 @@ var require_channelAdapter = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/realtime-js/dist/main/RealtimeChannel.js
+// node_modules/@supabase/realtime-js/dist/main/RealtimeChannel.js
 var require_RealtimeChannel = __commonJS({
-  "../../../node_modules/@supabase/realtime-js/dist/main/RealtimeChannel.js"(exports) {
+  "node_modules/@supabase/realtime-js/dist/main/RealtimeChannel.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.REALTIME_CHANNEL_STATES = exports.REALTIME_SUBSCRIBE_STATES = exports.REALTIME_LISTEN_TYPES = exports.REALTIME_POSTGRES_CHANGES_LISTEN_EVENT = void 0;
@@ -4261,9 +4261,9 @@ var require_RealtimeChannel = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/realtime-js/dist/main/phoenix/socketAdapter.js
+// node_modules/@supabase/realtime-js/dist/main/phoenix/socketAdapter.js
 var require_socketAdapter = __commonJS({
-  "../../../node_modules/@supabase/realtime-js/dist/main/phoenix/socketAdapter.js"(exports) {
+  "node_modules/@supabase/realtime-js/dist/main/phoenix/socketAdapter.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var phoenix_1 = require_phoenix_cjs();
@@ -4379,9 +4379,9 @@ var require_socketAdapter = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+// node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
 var require_RealtimeClient = __commonJS({
-  "../../../node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js"(exports) {
+  "node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var tslib_1 = (init_tslib_es6(), __toCommonJS(tslib_es6_exports));
@@ -5048,9 +5048,9 @@ Option 2: Install and provide the "ws" package:
   }
 });
 
-// ../../../node_modules/@supabase/realtime-js/dist/main/index.js
+// node_modules/@supabase/realtime-js/dist/main/index.js
 var require_main2 = __commonJS({
-  "../../../node_modules/@supabase/realtime-js/dist/main/index.js"(exports) {
+  "node_modules/@supabase/realtime-js/dist/main/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.WebSocketFactory = exports.REALTIME_CHANNEL_STATES = exports.REALTIME_SUBSCRIBE_STATES = exports.REALTIME_PRESENCE_LISTEN_EVENTS = exports.REALTIME_POSTGRES_CHANGES_LISTEN_EVENT = exports.REALTIME_LISTEN_TYPES = exports.RealtimeClient = exports.RealtimeChannel = exports.RealtimePresence = void 0;
@@ -5081,9 +5081,9 @@ var require_main2 = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/lib/version.js
+// node_modules/@supabase/auth-js/dist/main/lib/version.js
 var require_version2 = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/lib/version.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/lib/version.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.version = void 0;
@@ -5091,9 +5091,9 @@ var require_version2 = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/lib/constants.js
+// node_modules/@supabase/auth-js/dist/main/lib/constants.js
 var require_constants2 = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/lib/constants.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/lib/constants.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.JWKS_TTL = exports.BASE64URL_REGEX = exports.API_VERSIONS = exports.API_VERSION_HEADER_NAME = exports.NETWORK_FAILURE = exports.DEFAULT_HEADERS = exports.AUDIENCE = exports.STORAGE_KEY = exports.GOTRUE_URL = exports.EXPIRY_MARGIN_MS = exports.AUTO_REFRESH_TICK_THRESHOLD = exports.AUTO_REFRESH_TICK_DURATION_MS = void 0;
@@ -5122,9 +5122,9 @@ var require_constants2 = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/lib/errors.js
+// node_modules/@supabase/auth-js/dist/main/lib/errors.js
 var require_errors = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/lib/errors.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/lib/errors.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.AuthInvalidJwtError = exports.AuthWeakPasswordError = exports.AuthRetryableFetchError = exports.AuthPKCECodeVerifierMissingError = exports.AuthPKCEGrantCodeExchangeError = exports.AuthImplicitGrantRedirectError = exports.AuthInvalidCredentialsError = exports.AuthInvalidTokenResponseError = exports.AuthSessionMissingError = exports.CustomAuthError = exports.AuthUnknownError = exports.AuthApiError = exports.AuthError = void 0;
@@ -5270,9 +5270,9 @@ var require_errors = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/lib/base64url.js
+// node_modules/@supabase/auth-js/dist/main/lib/base64url.js
 var require_base64url = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/lib/base64url.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/lib/base64url.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.byteToBase64URL = byteToBase64URL;
@@ -5460,9 +5460,9 @@ var require_base64url = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/lib/helpers.js
+// node_modules/@supabase/auth-js/dist/main/lib/helpers.js
 var require_helpers = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/lib/helpers.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/lib/helpers.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Deferred = exports.removeItemAsync = exports.getItemAsync = exports.setItemAsync = exports.looksLikeFetchResponse = exports.resolveFetch = exports.supportsLocalStorage = exports.isBrowser = void 0;
@@ -5782,9 +5782,9 @@ var require_helpers = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/lib/fetch.js
+// node_modules/@supabase/auth-js/dist/main/lib/fetch.js
 var require_fetch = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/lib/fetch.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/lib/fetch.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.handleError = handleError2;
@@ -5950,9 +5950,9 @@ var require_fetch = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/lib/types.js
+// node_modules/@supabase/auth-js/dist/main/lib/types.js
 var require_types2 = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/lib/types.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/lib/types.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.SIGN_OUT_SCOPES = void 0;
@@ -5960,9 +5960,9 @@ var require_types2 = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/GoTrueAdminApi.js
+// node_modules/@supabase/auth-js/dist/main/GoTrueAdminApi.js
 var require_GoTrueAdminApi = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/GoTrueAdminApi.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/GoTrueAdminApi.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var tslib_1 = (init_tslib_es6(), __toCommonJS(tslib_es6_exports));
@@ -7049,9 +7049,9 @@ var require_GoTrueAdminApi = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/lib/local-storage.js
+// node_modules/@supabase/auth-js/dist/main/lib/local-storage.js
 var require_local_storage = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/lib/local-storage.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/lib/local-storage.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.memoryLocalStorageAdapter = memoryLocalStorageAdapter;
@@ -7071,9 +7071,9 @@ var require_local_storage = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/lib/locks.js
+// node_modules/@supabase/auth-js/dist/main/lib/locks.js
 var require_locks = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/lib/locks.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/lib/locks.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.ProcessLockAcquireTimeoutError = exports.NavigatorLockAcquireTimeoutError = exports.LockAcquireTimeoutError = exports.internals = void 0;
@@ -7249,9 +7249,9 @@ var require_locks = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/lib/polyfills.js
+// node_modules/@supabase/auth-js/dist/main/lib/polyfills.js
 var require_polyfills = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/lib/polyfills.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/lib/polyfills.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.polyfillGlobalThis = polyfillGlobalThis;
@@ -7276,9 +7276,9 @@ var require_polyfills = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/lib/web3/ethereum.js
+// node_modules/@supabase/auth-js/dist/main/lib/web3/ethereum.js
 var require_ethereum = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/lib/web3/ethereum.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/lib/web3/ethereum.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.getAddress = getAddress;
@@ -7354,9 +7354,9 @@ ${suffix}`;
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/lib/webauthn.errors.js
+// node_modules/@supabase/auth-js/dist/main/lib/webauthn.errors.js
 var require_webauthn_errors = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/lib/webauthn.errors.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/lib/webauthn.errors.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.WebAuthnUnknownError = exports.WebAuthnError = void 0;
@@ -7545,9 +7545,9 @@ var require_webauthn_errors = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/lib/webauthn.js
+// node_modules/@supabase/auth-js/dist/main/lib/webauthn.js
 var require_webauthn = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/lib/webauthn.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/lib/webauthn.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.WebAuthnApi = exports.DEFAULT_REQUEST_OPTIONS = exports.DEFAULT_CREATION_OPTIONS = exports.webAuthnAbortService = exports.WebAuthnAbortService = exports.identifyAuthenticationError = exports.identifyRegistrationError = exports.isWebAuthnError = exports.WebAuthnError = void 0;
@@ -8104,9 +8104,9 @@ var require_webauthn = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/GoTrueClient.js
+// node_modules/@supabase/auth-js/dist/main/GoTrueClient.js
 var require_GoTrueClient = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/GoTrueClient.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/GoTrueClient.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var tslib_1 = (init_tslib_es6(), __toCommonJS(tslib_es6_exports));
@@ -13017,9 +13017,9 @@ var require_GoTrueClient = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/AuthAdminApi.js
+// node_modules/@supabase/auth-js/dist/main/AuthAdminApi.js
 var require_AuthAdminApi = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/AuthAdminApi.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/AuthAdminApi.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var tslib_1 = (init_tslib_es6(), __toCommonJS(tslib_es6_exports));
@@ -13029,9 +13029,9 @@ var require_AuthAdminApi = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/AuthClient.js
+// node_modules/@supabase/auth-js/dist/main/AuthClient.js
 var require_AuthClient = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/AuthClient.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/AuthClient.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var tslib_1 = (init_tslib_es6(), __toCommonJS(tslib_es6_exports));
@@ -13041,9 +13041,9 @@ var require_AuthClient = __commonJS({
   }
 });
 
-// ../../../node_modules/@supabase/auth-js/dist/main/index.js
+// node_modules/@supabase/auth-js/dist/main/index.js
 var require_main3 = __commonJS({
-  "../../../node_modules/@supabase/auth-js/dist/main/index.js"(exports) {
+  "node_modules/@supabase/auth-js/dist/main/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.processLock = exports.lockInternals = exports.NavigatorLockAcquireTimeoutError = exports.navigatorLock = exports.AuthClient = exports.AuthAdminApi = exports.GoTrueClient = exports.GoTrueAdminApi = void 0;
@@ -13074,9 +13074,9 @@ var require_main3 = __commonJS({
   }
 });
 
-// ../../../node_modules/react/cjs/react.production.js
+// node_modules/react/cjs/react.production.js
 var require_react_production = __commonJS({
-  "../../../node_modules/react/cjs/react.production.js"(exports) {
+  "node_modules/react/cjs/react.production.js"(exports) {
     "use strict";
     var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element");
     var REACT_PORTAL_TYPE = Symbol.for("react.portal");
@@ -13515,9 +13515,9 @@ var require_react_production = __commonJS({
   }
 });
 
-// ../../../node_modules/react/cjs/react.development.js
+// node_modules/react/cjs/react.development.js
 var require_react_development = __commonJS({
-  "../../../node_modules/react/cjs/react.development.js"(exports, module) {
+  "node_modules/react/cjs/react.development.js"(exports, module) {
     "use strict";
     "production" !== process.env.NODE_ENV && (function() {
       function defineDeprecationWarning(methodName, info) {
@@ -14487,9 +14487,9 @@ var require_react_development = __commonJS({
   }
 });
 
-// ../../../node_modules/react/index.js
+// node_modules/react/index.js
 var require_react = __commonJS({
-  "../../../node_modules/react/index.js"(exports, module) {
+  "node_modules/react/index.js"(exports, module) {
     "use strict";
     if (process.env.NODE_ENV === "production") {
       module.exports = require_react_production();
@@ -15096,11 +15096,116 @@ import fs3 from "fs/promises";
 import path3 from "path";
 import { randomUUID } from "crypto";
 
+// lib/encarte/modelo-ajuste.ts
+var GRUPOS = {
+  grupo_preco: ["preco_fundo", "moeda_fundo", "moeda", "preco", "centavos", "unidade"],
+  grupo_de: ["de_fundo", "de_rotulo", "de_valor"],
+  grupo_selo: ["selo_fundo", "selo_rotulo", "selo_moeda", "selo_valor"],
+  grupo_nome: ["nome_fundo", "nome"],
+  grupo_gatilho: ["gatilho_fundo", "gatilho"]
+};
+var JUNTOS = { area: ["area", "foto"] };
+var TEXTOS = /* @__PURE__ */ new Set(["nome", "moeda", "preco", "centavos", "unidade", "limite", "de_rotulo", "de_valor", "selo_rotulo", "selo_moeda", "selo_valor", "gatilho"]);
+var VERSOES = ["campos", "horizontal", "especial"];
+var num = (v) => typeof v === "number" && Number.isFinite(v);
+var r2 = (v) => Math.round(v * 100) / 100;
+var ehCor = (v) => typeof v === "string" && /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(v);
+var ehFonte = (v) => typeof v === "string" && /^[\w .,'-]{1,80}$/.test(v);
+function normalizarAjustes(entrada) {
+  if (!Array.isArray(entrada)) return [];
+  const out = [];
+  for (const a of entrada.slice(0, 40)) {
+    if (!a || typeof a !== "object") continue;
+    const o = a;
+    if (!num(o.modelo) || !VERSOES.includes(o.versao) || !o.pecas || typeof o.pecas !== "object") continue;
+    const pecas = {};
+    for (const [k, v] of Object.entries(o.pecas).slice(0, 60)) {
+      if (!/^(grupo_[a-z]+|[a-z_]+|extras\.\d{1,2})$/.test(k) || !v || typeof v !== "object") continue;
+      const p = v, aj = {};
+      if (num(p.dx) && Math.abs(p.dx) <= 200) aj.dx = r2(p.dx);
+      if (num(p.dy) && Math.abs(p.dy) <= 200) aj.dy = r2(p.dy);
+      if (num(p.esc) && p.esc >= 0.2 && p.esc <= 5 && Math.abs(p.esc - 1) > 1e-3) aj.esc = Math.round(p.esc * 1e3) / 1e3;
+      if (ehCor(p.cor)) aj.cor = p.cor;
+      if (ehFonte(p.fonte)) aj.fonte = p.fonte;
+      if (Object.keys(aj).length) pecas[k] = aj;
+    }
+    if (Object.keys(pecas).length) out.push({ modelo: o.modelo, versao: o.versao, pecas });
+  }
+  return out;
+}
+function uniao(bs) {
+  const x0 = Math.min(...bs.map((b) => b.x)), y0 = Math.min(...bs.map((b) => b.y));
+  return { x: x0, y: y0, w: Math.max(...bs.map((b) => b.x + b.w)) - x0, h: Math.max(...bs.map((b) => b.y + b.h)) - y0 };
+}
+var caixaDe = (o) => {
+  const c = o;
+  return c && num(c.x) && num(c.y) && num(c.w) && num(c.h) ? { x: c.x, y: c.y, w: c.w, h: c.h } : null;
+};
+function alvosDaPeca(campos, peca) {
+  const c = campos;
+  const m = peca.match(/^extras\.(\d+)$/);
+  if (m) {
+    const i = Number(m[1]), ex = campos.extras;
+    return ex && ex[i] ? [{ chave: peca, pega: () => ex[i], poe: (v) => {
+      ex[i] = v;
+    } }] : [];
+  }
+  const ks = GRUPOS[peca] || JUNTOS[peca] || [peca];
+  return ks.filter((k) => c[k] && typeof c[k] === "object").map((k) => ({ chave: k, pega: () => c[k], poe: (v) => {
+    c[k] = v;
+  } }));
+}
+function aplicarPeca(campos, peca, aj) {
+  const alvos = alvosDaPeca(campos, peca);
+  if (!alvos.length) return;
+  const caixas = alvos.map((a) => caixaDe(a.pega())).filter((b) => !!b);
+  const U = caixas.length ? uniao(caixas) : null;
+  const s = aj.esc || 1;
+  const ox = U ? peca === "grupo_preco" ? U.x + U.w : U.x + U.w / 2 : 0;
+  const oy = U ? peca === "grupo_preco" ? U.y + U.h : U.y + U.h / 2 : 0;
+  for (const a of alvos) {
+    const o = { ...a.pega() }, b = caixaDe(o);
+    if (b && U) {
+      o.x = r2(ox + (b.x - ox) * s + (aj.dx || 0));
+      o.y = r2(oy + (b.y - oy) * s + (aj.dy || 0));
+      o.w = r2(b.w * s);
+      o.h = r2(b.h * s);
+    }
+    if (s !== 1) {
+      for (const k of ["tamanho", "borda", "raio", "largura_max"]) if (num(o[k])) o[k] = r2(o[k] * s);
+    }
+    const texto = TEXTOS.has(a.chave) || a.chave.startsWith("extras.") && o.tipo === "texto";
+    if (aj.cor && (texto || "cor" in o)) o.cor = aj.cor;
+    if (aj.fonte && texto) o.fonte = aj.fonte;
+    a.poe(o);
+  }
+}
+function aplicarFundoCard(m, campos, aj) {
+  if (!aj.cor) return;
+  if (campos.fundo_card) campos.fundo_card = { ...campos.fundo_card, cor: aj.cor };
+  else m.fundo_cor = aj.cor;
+}
+function aplicarAjustesNoProjeto(projeto, ajustes) {
+  const p = JSON.parse(JSON.stringify(projeto));
+  for (const a of ajustes) {
+    const m = p.modelos_card.find((x) => x.indice === a.modelo);
+    if (!m) continue;
+    const alvos = [];
+    if (m[a.versao]) alvos.push(m[a.versao]);
+    for (const [k, f] of Object.entries(m.formatos || {})) if (k.startsWith(a.versao + ":")) alvos.push(f);
+    for (const campos of alvos) for (const [peca, aj] of Object.entries(a.pecas)) {
+      if (peca === "fundo_card") aplicarFundoCard(m, campos, aj);
+      else aplicarPeca(campos, peca, aj);
+    }
+  }
+  return p;
+}
+
 // lib/encarte/midia.ts
 import { promises as fs2 } from "node:fs";
 import path2 from "node:path";
 
-// ../../../node_modules/@supabase/supabase-js/dist/index.mjs
+// node_modules/@supabase/supabase-js/dist/index.mjs
 var dist_exports = {};
 __export(dist_exports, {
   FunctionRegion: () => import_functions_js.FunctionRegion,
@@ -15115,7 +15220,7 @@ __export(dist_exports, {
 });
 var import_functions_js = __toESM(require_main(), 1);
 
-// ../../../node_modules/@supabase/postgrest-js/dist/index.mjs
+// node_modules/@supabase/postgrest-js/dist/index.mjs
 var DEFAULT_MAX_RETRIES = 3;
 var getRetryDelay = (attemptIndex) => Math.min(1e3 * 2 ** attemptIndex, 3e4);
 var RETRYABLE_STATUS_CODES = [520, 503];
@@ -20049,10 +20154,10 @@ var PostgrestClient = class PostgrestClient2 {
   }
 };
 
-// ../../../node_modules/@supabase/supabase-js/dist/index.mjs
+// node_modules/@supabase/supabase-js/dist/index.mjs
 var import_realtime_js = __toESM(require_main2(), 1);
 
-// ../../../node_modules/iceberg-js/dist/index.mjs
+// node_modules/iceberg-js/dist/index.mjs
 var IcebergError = class extends Error {
   constructor(message, opts) {
     super(message);
@@ -20585,7 +20690,7 @@ var IcebergRestCatalog = class {
   }
 };
 
-// ../../../node_modules/@supabase/storage-js/dist/index.mjs
+// node_modules/@supabase/storage-js/dist/index.mjs
 function _typeof2(o) {
   "@babel/helpers - typeof";
   return _typeof2 = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o$1) {
@@ -23248,7 +23353,7 @@ var StorageClient = class extends StorageBucketApi {
   }
 };
 
-// ../../../node_modules/@supabase/supabase-js/dist/index.mjs
+// node_modules/@supabase/supabase-js/dist/index.mjs
 var import_auth_js = __toESM(require_main3(), 1);
 __reExport(dist_exports, __toESM(require_main2(), 1));
 __reExport(dist_exports, __toESM(require_main3(), 1));
@@ -23921,7 +24026,7 @@ function divisoriasDaZona(cells, o = {}) {
   const v = o.v !== false, h = o.h !== false, recuo = Math.max(0, Number(o.recuo) || 0);
   const vaoMax = Number(o.vaoMax) > 0 ? Number(o.vaoMax) : 40;
   const cs = (cells || []).filter((c) => c && c.w > 0 && c.h > 0);
-  const r22 = (n) => Math.round(n * 100) / 100;
+  const r23 = (n) => Math.round(n * 100) / 100;
   const ver = [], hor = [];
   for (const a of cs) for (const b of cs) {
     if (a === b) continue;
@@ -23951,7 +24056,7 @@ function divisoriasDaZona(cells, o = {}) {
   const empurra = (div, s) => {
     const a = s.a + recuo, b = s.b - recuo;
     if (b - a < 4) return;
-    res.push(div === "v" ? { div, x1: r22(s.c), y1: r22(a), x2: r22(s.c), y2: r22(b) } : { div, x1: r22(a), y1: r22(s.c), x2: r22(b), y2: r22(s.c) });
+    res.push(div === "v" ? { div, x1: r23(s.c), y1: r23(a), x2: r23(s.c), y2: r23(b) } : { div, x1: r23(a), y1: r23(s.c), x2: r23(b), y2: r23(s.c) });
   };
   for (const s of juntar(ver, 0.5)) empurra("v", s);
   for (const s of juntar(hor, vaoMax)) empurra("h", s);
@@ -24245,7 +24350,7 @@ function precoNaCasa(campos, ref, casa) {
   const r = campos.preco_ref && campos.preco_ref.w > 0 && campos.preco_ref.h > 0 ? campos.preco_ref : ref;
   return r ? camposNaCasa(campos, r, casa) : campos;
 }
-function svgCampos(campos, num, card) {
+function svgCampos(campos, num2, card) {
   const out = [];
   const { foto, area, nome, preco_fundo, moeda_fundo, moeda, preco, centavos, unidade } = campos;
   const porRegra = areaPorRegra(campos, card);
@@ -24253,10 +24358,10 @@ function svgCampos(campos, num, card) {
     const b = porRegra || caixa(area, card);
     const dados = porRegra ? ` data-regra="1" data-margem="${[area.margem_t, area.margem_r, area.margem_b, area.margem_l].map((v) => v ?? 6).join(" ")}" data-nome="${area.resp_nome !== false ? 1 : 0}" data-preco-baixo="${area.resp_preco_baixo !== false ? 1 : 0}" data-preco-cima="${area.resp_preco_cima ? 1 : 0}" data-espaco="${area.espaco ?? 6}"` : ' data-fixa="1"';
     const alinha = area.foto_alinha && /^(cima|centro|baixo) (esq|centro|dir)$/.test(area.foto_alinha) ? ` data-foto-alinha="${area.foto_alinha}"` : "";
-    out.push(`  <rect id="produto_${num}_area"${dados}${alinha} x="${n2(b.x)}" y="${n2(b.y)}" width="${n2(b.w)}" height="${n2(b.h)}" fill="none" stroke="none"/>`);
+    out.push(`  <rect id="produto_${num2}_area"${dados}${alinha} x="${n2(b.x)}" y="${n2(b.y)}" width="${n2(b.w)}" height="${n2(b.h)}" fill="none" stroke="none"/>`);
   }
   const extra = (e, k) => {
-    const b = caixa(e, card), id = `extra_${num}_${k + 1}`;
+    const b = caixa(e, card), id = `extra_${num2}_${k + 1}`;
     const ancora = dadosTrava(e, e.trava) + (e.frente || e.topo ? ' data-frente="1"' : "");
     let t = "";
     if (e.tipo === "texto") t = svgTexto(id, e, b, e.texto);
@@ -24270,18 +24375,18 @@ function svgCampos(campos, num, card) {
   });
   if (foto) {
     const b = porRegra || caixa(foto, card);
-    out.push(`  <image id="produto_${num}_var_01_imagem" x="${n2(b.x)}" y="${n2(b.y)}" width="${n2(b.w)}" height="${n2(b.h)}" preserveAspectRatio="xMidYMid meet"/>`);
+    out.push(`  <image id="produto_${num2}_var_01_imagem" x="${n2(b.x)}" y="${n2(b.y)}" width="${n2(b.w)}" height="${n2(b.h)}" preserveAspectRatio="xMidYMid meet"/>`);
   }
   (campos.extras || []).forEach((e, k) => {
     if (e.frente && !e.topo) extra(e, k);
   });
   if (campos.gatilho || campos.gatilho_fundo) {
     const dados = ` data-ancora="esq" data-ancora-v="${ancoraVGatilho(campos)}" data-frente="1"`;
-    if (campos.gatilho_fundo) out.push("  " + svgForma(`produto_${num}_tarja_fundo`, caixa(campos.gatilho_fundo, card), campos.gatilho_fundo).replace(/^<(\w+) /, `<$1${dados} `));
+    if (campos.gatilho_fundo) out.push("  " + svgForma(`produto_${num2}_tarja_fundo`, caixa(campos.gatilho_fundo, card), campos.gatilho_fundo).replace(/^<(\w+) /, `<$1${dados} `));
     if (campos.gatilho) {
       const g = campos.gatilho, b = caixa(g, card), ls = linhasGatilho(g.texto_exemplo), { y, entre } = baseGatilho(b, g, ls.length);
       const tsp = ls.map((l, i) => `<tspan x="0" y="${i ? entre : 0}">${esc(l)}</tspan>`).join("");
-      out.push(`  <text id="produto_${num}_gatilho"${dados} ${fontStr(g.fonte, g.tamanho)} ${pinta("fill", g.cor)}${borda(g, true)}${estiloTexto(g)} transform="translate(${n2(b.x + b.w / 2)} ${y})" ${anchor("middle")}>${tsp}</text>`);
+      out.push(`  <text id="produto_${num2}_gatilho"${dados} ${fontStr(g.fonte, g.tamanho)} ${pinta("fill", g.cor)}${borda(g, true)}${estiloTexto(g)} transform="translate(${n2(b.x + b.w / 2)} ${y})" ${anchor("middle")}>${tsp}</text>`);
     }
   }
   if (nome) {
@@ -24290,19 +24395,19 @@ function svgCampos(campos, num, card) {
     const ml = [1, 2, 3].includes(Number(nome.max_linhas)) ? ` data-linhas="${Number(nome.max_linhas)}"` : "";
     const dadosTxt = ` data-largura="${n2(b.w)}" data-altura="${n2(b.h)}"${v}${ml}`;
     const nf = campos.nome_fundo;
-    if (!nf) out.push("  " + svgTexto(`produto_${num}_nome`, nome, b, nome.texto_exemplo || "PRODUTO", void 0, false, dadosTxt));
+    if (!nf) out.push("  " + svgTexto(`produto_${num2}_nome`, nome, b, nome.texto_exemplo || "PRODUTO", void 0, false, dadosTxt));
     else {
       const m = margensNome(nf);
       const dados = ` data-regra="${nf.regra || "fixo"}" data-margem="${[m.t, m.r, m.b, m.l].join(" ")}"`;
-      out.push(`  <g id="produto_${num}_nome">`);
-      out.push("    " + svgForma(`fundo_nome_${num}`, caixa(nf, card), nf).replace(/^<(\w+) /, `<$1${dados} `));
-      out.push("    " + svgTexto(`produto_${num}_nome_texto`, nome, b, nome.texto_exemplo || "PRODUTO", void 0, false, dadosTxt));
+      out.push(`  <g id="produto_${num2}_nome">`);
+      out.push("    " + svgForma(`fundo_nome_${num2}`, caixa(nf, card), nf).replace(/^<(\w+) /, `<$1${dados} `));
+      out.push("    " + svgTexto(`produto_${num2}_nome_texto`, nome, b, nome.texto_exemplo || "PRODUTO", void 0, false, dadosTxt));
       out.push("  </g>");
     }
   }
   if (campos.limite) {
     const l = campos.limite;
-    out.push("  " + svgTexto(`produto_${num}_qtd_max`, l, caixa(l, card), l.texto_exemplo || "LIMITE 3 UN", void 0, false, ' data-exemplo="1"'));
+    out.push("  " + svgTexto(`produto_${num2}_qtd_max`, l, caixa(l, card), l.texto_exemplo || "LIMITE 3 UN", void 0, false, ' data-exemplo="1"'));
   }
   if (preco_fundo || moeda_fundo || moeda || preco || unidade) {
     let comSelo = "";
@@ -24331,10 +24436,10 @@ function svgCampos(campos, num, card) {
         }
       }
     }
-    out.push(`  <g id="PRECO_${num}"${comSelo}>`);
+    out.push(`  <g id="PRECO_${num2}"${comSelo}>`);
     if (preco_fundo) {
       const b = caixa(preco_fundo, card);
-      let f = svgForma(`fundo_preco_${num}`, b, preco_fundo);
+      let f = svgForma(`fundo_preco_${num2}`, b, preco_fundo);
       if (preco_fundo.regra && preco_fundo.regra !== "fixo") {
         const c = preco_fundo.cantos && preco_fundo.cantos.length === 4 ? preco_fundo.cantos : [true, true, true, true];
         const dados = [
@@ -24352,13 +24457,13 @@ function svgCampos(campos, num, card) {
       }
       out.push("    " + ps("preco_fundo", f));
     }
-    if (moeda_fundo) out.push("    " + ps("moeda_fundo", svgForma(`fundo_moeda_${num}`, caixa(moeda_fundo, card), moeda_fundo)));
-    if (moeda) out.push("    " + ps("moeda", svgTexto(`moeda_${num}`, moeda, caixa(moeda, card), "R$")));
+    if (moeda_fundo) out.push("    " + ps("moeda_fundo", svgForma(`fundo_moeda_${num2}`, caixa(moeda_fundo, card), moeda_fundo)));
+    if (moeda) out.push("    " + ps("moeda", svgTexto(`moeda_${num2}`, moeda, caixa(moeda, card), "R$")));
     if (preco && centavos) {
-      out.push("    " + ps("preco", svgTexto(`produto_${num}_preco_real`, preco, caixa(preco, card), "0", "end")));
-      out.push("    " + ps("centavos", svgTexto(`produto_${num}_preco_centavos`, centavos, caixa(centavos, card), ",00", "start")));
-    } else if (preco) out.push("    " + ps("preco", svgTexto(`produto_${num}_preco`, preco, caixa(preco, card), "0,00")));
-    if (unidade) out.push("    " + ps("unidade", svgTexto(`produto_${num}_formato`, unidade, caixa(unidade, card), unidade.texto_exemplo || "kg")));
+      out.push("    " + ps("preco", svgTexto(`produto_${num2}_preco_real`, preco, caixa(preco, card), "0", "end")));
+      out.push("    " + ps("centavos", svgTexto(`produto_${num2}_preco_centavos`, centavos, caixa(centavos, card), ",00", "start")));
+    } else if (preco) out.push("    " + ps("preco", svgTexto(`produto_${num2}_preco`, preco, caixa(preco, card), "0,00")));
+    if (unidade) out.push("    " + ps("unidade", svgTexto(`produto_${num2}_formato`, unidade, caixa(unidade, card), unidade.texto_exemplo || "kg")));
     out.push(`  </g>`);
   }
   if (campos.de_valor) {
@@ -24366,18 +24471,18 @@ function svgCampos(campos, num, card) {
     const pcs = [campos.de_fundo, campos.de_rotulo, v].filter(Boolean);
     const u = { x: Math.min(...pcs.map((c) => c.x)), y: Math.min(...pcs.map((c) => c.y)) };
     const uw = Math.max(...pcs.map((c) => c.x + c.w)) - u.x, uh = Math.max(...pcs.map((c) => c.y + c.h)) - u.y;
-    out.push(`  <g id="produto_${num}_de"${dadosTrava({ ...u, w: uw, h: uh }, campos.de_trava || "preco")} style="display:none">`);
-    if (campos.de_fundo) out.push("    " + svgForma(`de_fundo_${num}`, caixa(campos.de_fundo, card), campos.de_fundo));
-    if (campos.de_rotulo) out.push("    " + svgTexto(`de_rotulo_${num}`, campos.de_rotulo, caixa(campos.de_rotulo, card), campos.de_rotulo.texto_exemplo || "DE R$"));
-    out.push("    " + svgTexto(`produto_${num}_preco_de`, v, bv, "0,00", void 0, v.riscar !== false));
+    out.push(`  <g id="produto_${num2}_de"${dadosTrava({ ...u, w: uw, h: uh }, campos.de_trava || "preco")} style="display:none">`);
+    if (campos.de_fundo) out.push("    " + svgForma(`de_fundo_${num2}`, caixa(campos.de_fundo, card), campos.de_fundo));
+    if (campos.de_rotulo) out.push("    " + svgTexto(`de_rotulo_${num2}`, campos.de_rotulo, caixa(campos.de_rotulo, card), campos.de_rotulo.texto_exemplo || "DE R$"));
+    out.push("    " + svgTexto(`produto_${num2}_preco_de`, v, bv, "0,00", void 0, v.riscar !== false));
     out.push(`  </g>`);
   }
   if (campos.selo_valor) {
-    out.push(`  <g id="produto_${num}_selo" style="display:none">`);
-    if (campos.selo_fundo) out.push("    " + svgForma(`selo_fundo_${num}`, caixa(campos.selo_fundo, card), campos.selo_fundo));
-    if (campos.selo_rotulo) out.push("    " + svgTexto(`selo_rotulo_${num}`, campos.selo_rotulo, caixa(campos.selo_rotulo, card), campos.selo_rotulo.texto_exemplo || "CLUBE"));
-    if (campos.selo_moeda) out.push("    " + svgTexto(`moeda_selo_${num}`, campos.selo_moeda, caixa(campos.selo_moeda, card), "R$"));
-    out.push("    " + svgTexto(`produto_${num}_valor_selo`, campos.selo_valor, caixa(campos.selo_valor, card), "0,00"));
+    out.push(`  <g id="produto_${num2}_selo" style="display:none">`);
+    if (campos.selo_fundo) out.push("    " + svgForma(`selo_fundo_${num2}`, caixa(campos.selo_fundo, card), campos.selo_fundo));
+    if (campos.selo_rotulo) out.push("    " + svgTexto(`selo_rotulo_${num2}`, campos.selo_rotulo, caixa(campos.selo_rotulo, card), campos.selo_rotulo.texto_exemplo || "CLUBE"));
+    if (campos.selo_moeda) out.push("    " + svgTexto(`moeda_selo_${num2}`, campos.selo_moeda, caixa(campos.selo_moeda, card), "R$"));
+    out.push("    " + svgTexto(`produto_${num2}_valor_selo`, campos.selo_valor, caixa(campos.selo_valor, card), "0,00"));
     out.push(`  </g>`);
   }
   (campos.extras || []).forEach((e, k) => {
@@ -24385,8 +24490,8 @@ function svgCampos(campos, num, card) {
   });
   return out;
 }
-function svgCard(gId, num, modelo, campos, card, horizontal = false) {
-  const nn = String(num).padStart(2, "0");
+function svgCard(gId, num2, modelo, campos, card, horizontal = false) {
+  const nn = String(num2).padStart(2, "0");
   const fc = campos.fundo_card;
   if (fc) modelo = { ...modelo, fundo_cor: fc.cor, raio: fc.raio ?? modelo.raio, borda: fc.borda ?? modelo.borda, borda_cor: fc.borda_cor ?? modelo.borda_cor };
   const r = modelo.raio ? ` rx="${modelo.raio}" ry="${modelo.raio}"` : "";
@@ -24454,7 +24559,7 @@ function gerarSvgTemplate(projeto, opcoes = {}) {
   const pranchetas = [];
   const casaPorModelo = /* @__PURE__ */ new Map();
   const refPorModelo = casasNormaisPorModelo(projeto);
-  let num = 1, ga = 0;
+  let num2 = 1, ga = 0;
   projeto.pranchetas.forEach((pr, pi) => {
     const ox = pi * (W + VAO);
     pranchetas.push({ nome: pr.nome, x: ox, y: 0, w: W, h: H });
@@ -24478,8 +24583,8 @@ function gerarSvgTemplate(projeto, opcoes = {}) {
         const card = { x: z.x + ox + k * (cw + c.e), y: z.y + r * (c.h + c.e), w: cw, h: c.h };
         const hz = usaHorizontal(m, z, cw, c.h);
         casas.push(card);
-        cards.push(svgCard(`PRODUTO_${num}`, num, m, hz ? versaoNaCasa(m, "horizontal", card, null) : versaoNaCasa(m, "campos", card, refPorModelo.get(m.id)), card, hz));
-        num++;
+        cards.push(svgCard(`PRODUTO_${num2}`, num2, m, hz ? versaoNaCasa(m, "horizontal", card, null) : versaoNaCasa(m, "campos", card, refPorModelo.get(m.id)), card, hz));
+        num2++;
       }
       if (dv) corpo.push(svgDivisorias(gaId, casas, dv, Math.max(40, c.e * 3)));
       corpo.push(...cards);
@@ -24575,9 +24680,9 @@ var CAMPOS_DO_GRUPO = {
 };
 var NOME_DO_GRUPO = { produto: "Produto", preco: "Pre\xE7o", de: "Pre\xE7o DE", selo: "Selo do clube", gatilho: "Gatilho" };
 var clone2 = (o) => JSON.parse(JSON.stringify(o));
-var r2 = (v) => +v.toFixed(2);
+var r22 = (v) => +v.toFixed(2);
 var paraPt = (c, casa) => ({ x: c.x / 100 * casa.w, y: c.y / 100 * casa.h, w: c.w / 100 * casa.w, h: c.h / 100 * casa.h });
-function uniao(bs) {
+function uniao2(bs) {
   const x = Math.min(...bs.map((b) => b.x)), y = Math.min(...bs.map((b) => b.y));
   return { x, y, w: Math.max(...bs.map((b) => b.x + b.w)) - x, h: Math.max(...bs.map((b) => b.y + b.h)) - y };
 }
@@ -24620,24 +24725,24 @@ function posicionar(caixa2, casaOrig, alvo, pos) {
 function escalar(o, s) {
   if (s === 1) return o;
   const r = o;
-  for (const k of ["tamanho", "borda", "raio", "respiro"]) if (typeof r[k] === "number") r[k] = r2(r[k] * s);
+  for (const k of ["tamanho", "borda", "raio", "respiro"]) if (typeof r[k] === "number") r[k] = r22(r[k] * s);
   return o;
 }
 var temRef = (c) => !!(c.preco_ref && c.preco_ref.w > 0 && c.preco_ref.h > 0);
 function naCasa(campos, casa) {
   const c = temRef(campos) ? camposNaCasa(campos, campos.preco_ref, casa) : campos;
-  return { ...c, preco_ref: { w: r2(casa.w), h: r2(casa.h) } };
+  return { ...c, preco_ref: { w: r22(casa.w), h: r22(casa.h) } };
 }
 function extrairGrupo(campos, grupo, casa) {
   if (temRef(campos)) campos = naCasa(campos, casa);
   const ks = CAMPOS_DO_GRUPO[grupo].filter((k) => campos[k]);
   if (!ks.length) throw new Error(`O grupo ${NOME_DO_GRUPO[grupo]} est\xE1 desligado neste card`);
-  const bs = ks.map((k) => paraPt(campos[k], casa)), caixa2 = uniao(bs);
+  const bs = ks.map((k) => paraPt(campos[k], casa)), caixa2 = uniao2(bs);
   const pecas = {};
   ks.forEach((k, i) => {
-    pecas[k] = { ...clone2(campos[k]), x: r2(bs[i].x - caixa2.x), y: r2(bs[i].y - caixa2.y), w: r2(bs[i].w), h: r2(bs[i].h) };
+    pecas[k] = { ...clone2(campos[k]), x: r22(bs[i].x - caixa2.x), y: r22(bs[i].y - caixa2.y), w: r22(bs[i].w), h: r22(bs[i].h) };
   });
-  return { grupo, casa: { w: r2(casa.w), h: r2(casa.h) }, caixa: { x: r2(caixa2.x), y: r2(caixa2.y), w: r2(caixa2.w), h: r2(caixa2.h) }, pecas };
+  return { grupo, casa: { w: r22(casa.w), h: r22(casa.h) }, caixa: { x: r22(caixa2.x), y: r22(caixa2.y), w: r22(caixa2.w), h: r22(caixa2.h) }, pecas };
 }
 function aplicarGrupo(campos, g, casa, pos) {
   if (temRef(campos)) campos = naCasa(campos, casa);
@@ -24645,17 +24750,17 @@ function aplicarGrupo(campos, g, casa, pos) {
   for (const k of CAMPOS_DO_GRUPO[g.grupo]) delete novo[k];
   const { x, y, s } = posicionar(g.caixa, g.casa, casa, pos);
   for (const [k, p] of Object.entries(g.pecas)) {
-    novo[k] = escalar({ ...clone2(p), x: r2((x + p.x * s) / casa.w * 100), y: r2((y + p.y * s) / casa.h * 100), w: r2(p.w * s / casa.w * 100), h: r2(p.h * s / casa.h * 100) }, s);
+    novo[k] = escalar({ ...clone2(p), x: r22((x + p.x * s) / casa.w * 100), y: r22((y + p.y * s) / casa.h * 100), w: r22(p.w * s / casa.w * 100), h: r22(p.h * s / casa.h * 100) }, s);
   }
   return novo;
 }
 function relativos(els, caixa2) {
-  return els.map((e) => ({ ...clone2(e), x: r2(e.x - caixa2.x), y: r2(e.y - caixa2.y), w: r2(e.w), h: r2(e.h) }));
+  return els.map((e) => ({ ...clone2(e), x: r22(e.x - caixa2.x), y: r22(e.y - caixa2.y), w: r22(e.w), h: r22(e.h) }));
 }
 function extrairElementos(pr, ids, tamanho) {
   const els = pr.elementos.filter((e) => ids.includes(e.id));
   if (!els.length) throw new Error("Nenhum elemento com esses ids na prancheta");
-  const caixa2 = uniao(els);
+  const caixa2 = uniao2(els);
   return { origem: "prancheta", casa: { ...tamanho }, caixa: caixa2, elementos: relativos(els, caixa2) };
 }
 function extrairExtras(campos, casa, indices) {
@@ -24667,8 +24772,8 @@ function extrairExtras(campos, casa, indices) {
     if (el.tipo === "imagem" && !el.ajuste) el.ajuste = "contain";
     return el;
   });
-  const caixa2 = uniao(els);
-  return { origem: "card", casa: { w: r2(casa.w), h: r2(casa.h) }, caixa: caixa2, elementos: relativos(els, caixa2) };
+  const caixa2 = uniao2(els);
+  return { origem: "card", casa: { w: r22(casa.w), h: r22(casa.h) }, caixa: caixa2, elementos: relativos(els, caixa2) };
 }
 function aplicarElementosPrancheta(pr, c, tamanho, pos, novoId = novoIdPadrao) {
   const p = clone2(pr);
@@ -24679,7 +24784,7 @@ function aplicarElementosPrancheta(pr, c, tamanho, pos, novoId = novoIdPadrao) {
     while (usados.has(id)) id = novoId(e.tipo);
     usados.add(id);
     ids.push(id);
-    p.elementos.push(escalar({ ...clone2(e), id, x: r2(x + e.x * s), y: r2(y + e.y * s), w: r2(e.w * s), h: r2(e.h * s) }, s));
+    p.elementos.push(escalar({ ...clone2(e), id, x: r22(x + e.x * s), y: r22(y + e.y * s), w: r22(e.w * s), h: r22(e.h * s) }, s));
   }
   return { prancheta: p, ids };
 }
@@ -24689,7 +24794,7 @@ function aplicarElementosCard(campos, c, casa, pos) {
   const { x, y, s } = posicionar(c.caixa, c.origem === "card" ? c.casa : null, casa, pos);
   const extras = c.elementos.map((e) => {
     const { id, ajuste, ...resto } = clone2(e);
-    return escalar({ ...resto, x: r2((x + e.x * s) / casa.w * 100), y: r2((y + e.y * s) / casa.h * 100), w: r2(e.w * s / casa.w * 100), h: r2(e.h * s / casa.h * 100) }, s);
+    return escalar({ ...resto, x: r22((x + e.x * s) / casa.w * 100), y: r22((y + e.y * s) / casa.h * 100), w: r22(e.w * s / casa.w * 100), h: r22(e.h * s / casa.h * 100) }, s);
   });
   novo.extras = [...novo.extras || [], ...extras];
   return novo;
@@ -24698,7 +24803,7 @@ function extrairCard(p, modeloId) {
   const m = p.modelos_card.find((x) => x.id === modeloId);
   if (!m) throw new Error("Modelo n\xE3o encontrado: " + modeloId);
   const c = casaDoModelo(p, modeloId);
-  return { modelo: clone2(m), casa: { w: r2(c.w), h: r2(c.h) } };
+  return { modelo: clone2(m), casa: { w: r22(c.w), h: r22(c.h) } };
 }
 function extrairEstrutura(p) {
   const { tamanho, espaco_padrao, modelos_card, pranchetas, blocos } = clone2(p);
@@ -24845,7 +24950,7 @@ function usarNoProjeto(p, item, d, novoId) {
 
 // lib/encarte/projetos-template.ts
 var TABELA = "encarte_projetos_template";
-var VERSOES = "encarte_projetos_template_versoes";
+var VERSOES2 = "encarte_projetos_template_versoes";
 var VERSAO_A_CADA_MIN = 10;
 function dirProjetos() {
   return path3.join(process.env.ENCARTE_DIR || "/srv/encarte", "projetos-template");
@@ -24939,9 +25044,9 @@ async function salvarProjeto(client, d) {
     atualizado_em: agora
   }).eq("id", d.id).eq("workspace_id", d.workspaceId).select("*").single();
   if (error) throw error;
-  const { data: ult } = await client.from(VERSOES).select("criado_em").eq("projeto_id", d.id).order("criado_em", { ascending: false }).limit(1).maybeSingle();
+  const { data: ult } = await client.from(VERSOES2).select("criado_em").eq("projeto_id", d.id).order("criado_em", { ascending: false }).limit(1).maybeSingle();
   if (d.versao || !ult || Date.now() - new Date(ult.criado_em).getTime() > VERSAO_A_CADA_MIN * 6e4) {
-    await client.from(VERSOES).insert({ projeto_id: d.id, projeto: corpoDoProjeto(p), criado_por: d.userId });
+    await client.from(VERSOES2).insert({ projeto_id: d.id, projeto: corpoDoProjeto(p), criado_por: d.userId });
   }
   return { projeto: linhaParaProjeto(data) };
 }
@@ -24951,13 +25056,13 @@ async function deletarProjeto(client, workspaceId, id) {
 }
 async function listarVersoes(client, workspaceId, id) {
   if (!await lerProjeto(client, workspaceId, id)) throw new Error("Projeto n\xE3o encontrado");
-  const { data, error } = await client.from(VERSOES).select("id, criado_em, criado_por").eq("projeto_id", id).order("criado_em", { ascending: false }).limit(50);
+  const { data, error } = await client.from(VERSOES2).select("id, criado_em, criado_por").eq("projeto_id", id).order("criado_em", { ascending: false }).limit(50);
   if (error) throw error;
   return (data || []).map((v) => ({ id: v.id, criadoEm: v.criado_em, autor: v.criado_por }));
 }
 async function lerVersao(client, workspaceId, id, versaoId) {
   if (!await lerProjeto(client, workspaceId, id)) throw new Error("Projeto n\xE3o encontrado");
-  const { data, error } = await client.from(VERSOES).select("projeto, criado_em").eq("id", versaoId).eq("projeto_id", id).maybeSingle();
+  const { data, error } = await client.from(VERSOES2).select("projeto, criado_em").eq("id", versaoId).eq("projeto_id", id).maybeSingle();
   if (error) throw error;
   return data ? { projeto: data.projeto, criadoEm: data.criado_em } : null;
 }
@@ -25054,11 +25159,8 @@ function donoCliente(folderId) {
   if (!/^[0-9a-f-]{8,40}$/i.test(folderId)) throw new Error("Pasta de cliente inv\xE1lida");
   return `cli-${folderId}`;
 }
-async function publicarTemplate(projetoOrig, blocosCliente = []) {
-  const projeto = resolverBlocos(projetoOrig, projetoOrig.blocos, blocosCliente);
+function imagensDaPublicacao(projeto) {
   const cli = limpo(projeto.cliente), tema = limpo(projeto.tema);
-  const dir = path3.join(pastaLocal("clientes"), cli, "TEMPLATES", tema);
-  await criarPastaAberta(dir);
   const nome = limpo(projeto.nome).replace(/especial/gi, "Esp");
   const copiadas = [], daMarca = [];
   const imagem = (ref) => {
@@ -25068,6 +25170,13 @@ async function publicarTemplate(projetoOrig, blocosCliente = []) {
     (marca ? daMarca : copiadas).push(arq);
     return `${CANON_CLIENTES}/${cli}/TEMPLATES/${tema}/${destino}`.replace(/\//g, "\\");
   };
+  return { cli, tema, nome, imagem, copiadas, daMarca };
+}
+async function publicarTemplate(projetoOrig, blocosCliente = []) {
+  const projeto = resolverBlocos(projetoOrig, projetoOrig.blocos, blocosCliente);
+  const { cli, tema, nome, imagem, copiadas, daMarca } = imagensDaPublicacao(projeto);
+  const dir = path3.join(pastaLocal("clientes"), cli, "TEMPLATES", tema);
+  await criarPastaAberta(dir);
   const resultado = gerarSvgTemplate(corpoDoProjeto(projeto), { imagem });
   const dirSaida = modoDireto() ? null : path3.join(pastaSaida("clientes"), cli, "TEMPLATES", tema);
   if (dirSaida) await criarPastaAberta(dirSaida);
@@ -25100,6 +25209,41 @@ async function publicarTemplate(projetoOrig, blocosCliente = []) {
 }
 async function marcarPublicado(client, workspaceId, id) {
   await client.from(TABELA).update({ publicado_em: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", id).eq("workspace_id", workspaceId);
+}
+async function svgsComAjuste(tpl, ajustes) {
+  if (!tpl.projeto) return null;
+  const c = resolver(caminhoProjeto(tpl.svg));
+  const arq = c && await acharArquivo(c.local);
+  if (!arq) return null;
+  const publicado = JSON.parse(await fs3.readFile(arq, "utf8"));
+  const projeto = aplicarAjustesNoProjeto(publicado, ajustes);
+  const { nome, imagem } = imagensDaPublicacao(projeto);
+  const r = gerarSvgTemplate(projeto, { imagem });
+  return {
+    svg: prepararSvg(r.svg),
+    especiais: r.especiais.map((e) => ({ nome: `${nome} especial ${limpo(e.nome)}`, svg: prepararSvg(e.svg) }))
+  };
+}
+async function salvarAjusteNoTemplate(client, ctx, id, ajustes, forcar, blocosDe) {
+  const atual2 = await lerProjeto(client, ctx.workspaceId, id);
+  if (!atual2) return null;
+  const naoPublicado = !atual2.publicadoEm || new Date(atual2.atualizadoEm).getTime() - new Date(atual2.publicadoEm).getTime() > 5e3;
+  if (naoPublicado && !forcar) return { pendente: true, atualizadoEm: atual2.atualizadoEm, publicadoEm: atual2.publicadoEm };
+  const projeto = aplicarAjustesNoProjeto(atual2, ajustes);
+  const r = await salvarProjeto(client, {
+    workspaceId: ctx.workspaceId,
+    userId: ctx.userId,
+    id,
+    projeto,
+    base: atual2.atualizadoEm,
+    versao: true,
+    folderId: void 0
+  });
+  if (r.conflito || !r.projeto) throw Object.assign(new Error("Algu\xE9m salvou o projeto do template agora h\xE1 pouco. Tente de novo."), { status: 409 });
+  const salvo = await lerProjeto(client, ctx.workspaceId, id);
+  await publicarTemplate(salvo, await blocosDe(salvo.folderId));
+  await marcarPublicado(client, ctx.workspaceId, id);
+  return { ok: true, atualizadoEm: salvo.atualizadoEm };
 }
 
 // lib/encarte/previa-template.ts
@@ -27096,7 +27240,7 @@ async function GET18(req) {
   return NextResponse.json({ pasta: c.canonico, arquivos: await listarImagens(c) });
 }
 
-// app/api/encarte/projetos-template/[id]/copiar-modelo/route.ts
+// app/api/encarte/projetos-template/[id]/ajustar-modelo/route.ts
 var route_exports23 = {};
 __export(route_exports23, {
   POST: () => POST9,
@@ -27106,6 +27250,39 @@ __export(route_exports23, {
 var runtime16 = "nodejs";
 var dynamic16 = "force-dynamic";
 async function POST9(req, ctx) {
+  const c = await contextoWeb();
+  if (c.erro) return c.erro;
+  const { id } = await ctx.params;
+  try {
+    const body = await req.json();
+    const ajustes = normalizarAjustes(body && body.ajustes);
+    if (!ajustes.length) return NextResponse.json({ error: "Nenhum ajuste" }, { status: 400 });
+    const r = await salvarAjusteNoTemplate(
+      c.client,
+      { workspaceId: c.workspaceId, userId: c.userId },
+      id,
+      ajustes,
+      !!body.forcar,
+      (folderId) => blocosDoCliente(c.client, c.workspaceId, folderId)
+    );
+    if (!r) return NextResponse.json({ error: "Projeto n\xE3o encontrado" }, { status: 404 });
+    if ("pendente" in r) return NextResponse.json({ error: "O construtor tem mudan\xE7a ainda n\xE3o publicada", ...r }, { status: 409 });
+    return NextResponse.json(r);
+  } catch (e) {
+    return erroJson(e, e.status || 500);
+  }
+}
+
+// app/api/encarte/projetos-template/[id]/copiar-modelo/route.ts
+var route_exports24 = {};
+__export(route_exports24, {
+  POST: () => POST10,
+  dynamic: () => dynamic17,
+  runtime: () => runtime17
+});
+var runtime17 = "nodejs";
+var dynamic17 = "force-dynamic";
+async function POST10(req, ctx) {
   const c = await contextoWeb();
   if (c.erro) return c.erro;
   const { id } = await ctx.params;
@@ -27120,15 +27297,15 @@ async function POST9(req, ctx) {
 }
 
 // app/api/encarte/projetos-template/[id]/duplicar/route.ts
-var route_exports24 = {};
-__export(route_exports24, {
-  POST: () => POST10,
-  dynamic: () => dynamic17,
-  runtime: () => runtime17
+var route_exports25 = {};
+__export(route_exports25, {
+  POST: () => POST11,
+  dynamic: () => dynamic18,
+  runtime: () => runtime18
 });
-var runtime17 = "nodejs";
-var dynamic17 = "force-dynamic";
-async function POST10(req, ctx) {
+var runtime18 = "nodejs";
+var dynamic18 = "force-dynamic";
+async function POST11(req, ctx) {
   const c = await contextoWeb();
   if (c.erro) return c.erro;
   const { id } = await ctx.params;
@@ -27142,16 +27319,16 @@ async function POST10(req, ctx) {
 }
 
 // app/api/encarte/projetos-template/[id]/imagem/route.ts
-var route_exports25 = {};
-__export(route_exports25, {
+var route_exports26 = {};
+__export(route_exports26, {
   GET: () => GET19,
-  POST: () => POST11,
-  dynamic: () => dynamic18,
-  runtime: () => runtime18
+  POST: () => POST12,
+  dynamic: () => dynamic19,
+  runtime: () => runtime19
 });
-var runtime18 = "nodejs";
-var dynamic18 = "force-dynamic";
-async function POST11(req, ctx) {
+var runtime19 = "nodejs";
+var dynamic19 = "force-dynamic";
+async function POST12(req, ctx) {
   const negado = await exigirUsuario();
   if (negado) return negado;
   const { id } = await ctx.params;
@@ -27171,14 +27348,14 @@ async function GET19(req, ctx) {
 }
 
 // app/api/encarte/projetos-template/[id]/previa/route.ts
-var route_exports26 = {};
-__export(route_exports26, {
+var route_exports27 = {};
+__export(route_exports27, {
   GET: () => GET20,
-  dynamic: () => dynamic19,
-  runtime: () => runtime19
+  dynamic: () => dynamic20,
+  runtime: () => runtime20
 });
-var runtime19 = "nodejs";
-var dynamic19 = "force-dynamic";
+var runtime20 = "nodejs";
+var dynamic20 = "force-dynamic";
 async function GET20(req, ctx) {
   const c = await contextoWeb();
   if (c.erro) return c.erro;
@@ -27203,15 +27380,15 @@ async function GET20(req, ctx) {
 }
 
 // app/api/encarte/projetos-template/[id]/publicar/route.ts
-var route_exports27 = {};
-__export(route_exports27, {
-  POST: () => POST12,
-  dynamic: () => dynamic20,
-  runtime: () => runtime20
+var route_exports28 = {};
+__export(route_exports28, {
+  POST: () => POST13,
+  dynamic: () => dynamic21,
+  runtime: () => runtime21
 });
-var runtime20 = "nodejs";
-var dynamic20 = "force-dynamic";
-async function POST12(_req, ctx) {
+var runtime21 = "nodejs";
+var dynamic21 = "force-dynamic";
+async function POST13(_req, ctx) {
   const c = await contextoWeb();
   if (c.erro) return c.erro;
   const { id } = await ctx.params;
@@ -27227,16 +27404,16 @@ async function POST12(_req, ctx) {
 }
 
 // app/api/encarte/projetos-template/[id]/route.ts
-var route_exports28 = {};
-__export(route_exports28, {
+var route_exports29 = {};
+__export(route_exports29, {
   DELETE: () => DELETE2,
   GET: () => GET21,
   PUT: () => PUT6,
-  dynamic: () => dynamic21,
-  runtime: () => runtime21
+  dynamic: () => dynamic22,
+  runtime: () => runtime22
 });
-var runtime21 = "nodejs";
-var dynamic21 = "force-dynamic";
+var runtime22 = "nodejs";
+var dynamic22 = "force-dynamic";
 async function GET21(req, ctx) {
   const c = await contextoWeb();
   if (c.erro) return c.erro;
@@ -27289,15 +27466,15 @@ async function DELETE2(_req, ctx) {
 }
 
 // app/api/encarte/projetos-template/route.ts
-var route_exports29 = {};
-__export(route_exports29, {
+var route_exports30 = {};
+__export(route_exports30, {
   GET: () => GET22,
-  POST: () => POST13,
-  dynamic: () => dynamic22,
-  runtime: () => runtime22
+  POST: () => POST14,
+  dynamic: () => dynamic23,
+  runtime: () => runtime23
 });
-var runtime22 = "nodejs";
-var dynamic22 = "force-dynamic";
+var runtime23 = "nodejs";
+var dynamic23 = "force-dynamic";
 async function GET22(req) {
   const c = await contextoWeb();
   if (c.erro) return c.erro;
@@ -27308,7 +27485,7 @@ async function GET22(req) {
     return erroJson(e);
   }
 }
-async function POST13(req) {
+async function POST14(req) {
   const c = await contextoWeb();
   if (c.erro) return c.erro;
   try {
@@ -27325,15 +27502,15 @@ async function POST13(req) {
 }
 
 // app/api/encarte/reindexar/route.ts
-var route_exports30 = {};
-__export(route_exports30, {
-  POST: () => POST14,
-  dynamic: () => dynamic23,
-  runtime: () => runtime23
+var route_exports31 = {};
+__export(route_exports31, {
+  POST: () => POST15,
+  dynamic: () => dynamic24,
+  runtime: () => runtime24
 });
-var runtime23 = "nodejs";
-var dynamic23 = "force-dynamic";
-async function POST14() {
+var runtime24 = "nodejs";
+var dynamic24 = "force-dynamic";
+async function POST15() {
   const negado = await exigirUsuario();
   if (negado) return negado;
   if (modoDireto()) {
@@ -27345,14 +27522,14 @@ async function POST14() {
 }
 
 // app/api/encarte/sugerir-pasta/route.ts
-var route_exports31 = {};
-__export(route_exports31, {
+var route_exports32 = {};
+__export(route_exports32, {
   GET: () => GET23,
-  dynamic: () => dynamic24,
-  runtime: () => runtime24
+  dynamic: () => dynamic25,
+  runtime: () => runtime25
 });
-var runtime24 = "nodejs";
-var dynamic24 = "force-dynamic";
+var runtime25 = "nodejs";
+var dynamic25 = "force-dynamic";
 function hojeLocal() {
   const d = /* @__PURE__ */ new Date();
   const p = (n) => String(n).padStart(2, "0");
@@ -27371,19 +27548,26 @@ async function GET23(req) {
 }
 
 // app/api/encarte/templates/[id]/especiais/route.ts
-var route_exports32 = {};
-__export(route_exports32, {
+var route_exports33 = {};
+__export(route_exports33, {
   GET: () => GET24,
-  dynamic: () => dynamic25,
-  runtime: () => runtime25
+  dynamic: () => dynamic26,
+  runtime: () => runtime26
 });
-var runtime25 = "nodejs";
-var dynamic25 = "force-dynamic";
-async function GET24(_req, context) {
+var runtime26 = "nodejs";
+var dynamic26 = "force-dynamic";
+async function GET24(req, context) {
   const negado = await exigirUsuario();
   if (negado) return negado;
   const { id } = await context.params;
   const tpl = await acharTemplate(id);
+  let aj = [];
+  try {
+    aj = normalizarAjustes(JSON.parse(new URL(req.url).searchParams.get("aj") || "[]"));
+  } catch {
+  }
+  const comAjuste = tpl && aj.length ? await svgsComAjuste(tpl, aj).catch(() => null) : null;
+  if (comAjuste) return NextResponse.json(comAjuste.especiais);
   const out = [];
   for (const arq of tpl?.especiais ?? []) {
     const svg = await lerSvgPreparado(arq);
@@ -27395,12 +27579,12 @@ async function GET24(_req, context) {
 }
 
 // app/api/encarte/templates/[id]/estilo/route.ts
-var route_exports33 = {};
-__export(route_exports33, {
+var route_exports34 = {};
+__export(route_exports34, {
   GET: () => GET25,
   PUT: () => PUT7,
-  dynamic: () => dynamic26,
-  runtime: () => runtime26
+  dynamic: () => dynamic27,
+  runtime: () => runtime27
 });
 
 // lib/encarte/estilos.ts
@@ -27445,8 +27629,8 @@ async function salvarEstiloDoTemplate(client, dados) {
 }
 
 // app/api/encarte/templates/[id]/estilo/route.ts
-var runtime26 = "nodejs";
-var dynamic26 = "force-dynamic";
+var runtime27 = "nodejs";
+var dynamic27 = "force-dynamic";
 async function workspaceDaEdicao(edicao, templateId) {
   if (!edicao) return null;
   const ed = await buscarEdicao(await createClient2(), edicao);
@@ -27485,14 +27669,14 @@ async function PUT7(req, context) {
 }
 
 // app/api/encarte/templates/[id]/padrao/route.ts
-var route_exports34 = {};
-__export(route_exports34, {
+var route_exports35 = {};
+__export(route_exports35, {
   GET: () => GET26,
-  dynamic: () => dynamic27,
-  runtime: () => runtime27
+  dynamic: () => dynamic28,
+  runtime: () => runtime28
 });
-var runtime27 = "nodejs";
-var dynamic27 = "force-dynamic";
+var runtime28 = "nodejs";
+var dynamic28 = "force-dynamic";
 async function GET26(_req, context) {
   const negado = await exigirUsuario();
   if (negado) return negado;
@@ -27503,14 +27687,14 @@ async function GET26(_req, context) {
 }
 
 // app/api/encarte/templates/[id]/pranchetas/route.ts
-var route_exports35 = {};
-__export(route_exports35, {
+var route_exports36 = {};
+__export(route_exports36, {
   GET: () => GET27,
-  dynamic: () => dynamic28,
-  runtime: () => runtime28
+  dynamic: () => dynamic29,
+  runtime: () => runtime29
 });
-var runtime28 = "nodejs";
-var dynamic28 = "force-dynamic";
+var runtime29 = "nodejs";
+var dynamic29 = "force-dynamic";
 async function GET27(_req, context) {
   const negado = await exigirUsuario();
   if (negado) return negado;
@@ -27521,20 +27705,21 @@ async function GET27(_req, context) {
 }
 
 // app/api/encarte/templates/[id]/svg/route.ts
-var route_exports36 = {};
-__export(route_exports36, {
+var route_exports37 = {};
+__export(route_exports37, {
   GET: () => GET28,
-  dynamic: () => dynamic29,
-  runtime: () => runtime29
+  dynamic: () => dynamic30,
+  runtime: () => runtime30
 });
-var runtime29 = "nodejs";
-var dynamic29 = "force-dynamic";
-async function GET28(_req, context) {
+var runtime30 = "nodejs";
+var dynamic30 = "force-dynamic";
+async function GET28(req, context) {
   const negado = await exigirUsuario();
   if (negado) return negado;
   const { id } = await context.params;
   const tpl = await acharTemplate(id);
-  const svg = tpl && await lerSvgPreparado(tpl.svg);
+  const aj = ajustesDaUrl(req);
+  const svg = tpl && (aj.length && (await svgsComAjuste(tpl, aj).catch(() => null))?.svg || await lerSvgPreparado(tpl.svg));
   if (!svg) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return new Response(svg, {
     headers: {
@@ -27543,16 +27728,25 @@ async function GET28(_req, context) {
     }
   });
 }
+function ajustesDaUrl(req) {
+  const t = new URL(req.url).searchParams.get("aj");
+  if (!t) return [];
+  try {
+    return normalizarAjustes(JSON.parse(t));
+  } catch {
+    return [];
+  }
+}
 
 // app/api/encarte/templates/route.ts
-var route_exports37 = {};
-__export(route_exports37, {
+var route_exports38 = {};
+__export(route_exports38, {
   GET: () => GET29,
-  dynamic: () => dynamic30,
-  runtime: () => runtime30
+  dynamic: () => dynamic31,
+  runtime: () => runtime31
 });
-var runtime30 = "nodejs";
-var dynamic30 = "force-dynamic";
+var runtime31 = "nodejs";
+var dynamic31 = "force-dynamic";
 async function GET29(req) {
   const negado = await exigirUsuario();
   if (negado) return negado;
@@ -27561,12 +27755,12 @@ async function GET29(req) {
 }
 
 // app/api/v1/encarte/recorte/[id]/route.ts
-var route_exports38 = {};
-__export(route_exports38, {
+var route_exports39 = {};
+__export(route_exports39, {
   GET: () => GET30,
   PUT: () => PUT8,
-  dynamic: () => dynamic31,
-  runtime: () => runtime31
+  dynamic: () => dynamic32,
+  runtime: () => runtime32
 });
 import { promises as fs11 } from "node:fs";
 
@@ -27581,8 +27775,8 @@ async function withApiAuth(_req, fn) {
 }
 
 // app/api/v1/encarte/recorte/[id]/route.ts
-var runtime31 = "nodejs";
-var dynamic31 = "force-dynamic";
+var runtime32 = "nodejs";
+var dynamic32 = "force-dynamic";
 async function GET30(req, context) {
   return withApiAuth(req, async () => {
     const { id } = await context.params;
@@ -27611,17 +27805,17 @@ async function PUT8(req, context) {
 }
 
 // app/api/v1/encarte/recorte/proximo/route.ts
-var route_exports39 = {};
-__export(route_exports39, {
-  POST: () => POST15,
-  dynamic: () => dynamic32,
-  runtime: () => runtime32
+var route_exports40 = {};
+__export(route_exports40, {
+  POST: () => POST16,
+  dynamic: () => dynamic33,
+  runtime: () => runtime33
 });
-var runtime32 = "nodejs";
-var dynamic32 = "force-dynamic";
+var runtime33 = "nodejs";
+var dynamic33 = "force-dynamic";
 var ESPERA_MS = 2e4;
 var PASSO_MS = 400;
-async function POST15(req) {
+async function POST16(req) {
   return withApiAuth(req, async () => {
     const corpo = await req.json().catch(() => ({}));
     const fim = Date.now() + ESPERA_MS;
@@ -27659,23 +27853,24 @@ var ROTAS_API = [
   { caminho: "/api/encarte/internet/recorte/[id]", modulo: route_exports20 },
   { caminho: "/api/encarte/internet/recorte", modulo: route_exports21 },
   { caminho: "/api/encarte/pasta", modulo: route_exports22 },
-  { caminho: "/api/encarte/projetos-template/[id]/copiar-modelo", modulo: route_exports23 },
-  { caminho: "/api/encarte/projetos-template/[id]/duplicar", modulo: route_exports24 },
-  { caminho: "/api/encarte/projetos-template/[id]/imagem", modulo: route_exports25 },
-  { caminho: "/api/encarte/projetos-template/[id]/previa", modulo: route_exports26 },
-  { caminho: "/api/encarte/projetos-template/[id]/publicar", modulo: route_exports27 },
-  { caminho: "/api/encarte/projetos-template/[id]", modulo: route_exports28 },
-  { caminho: "/api/encarte/projetos-template", modulo: route_exports29 },
-  { caminho: "/api/encarte/reindexar", modulo: route_exports30 },
-  { caminho: "/api/encarte/sugerir-pasta", modulo: route_exports31 },
-  { caminho: "/api/encarte/templates/[id]/especiais", modulo: route_exports32 },
-  { caminho: "/api/encarte/templates/[id]/estilo", modulo: route_exports33 },
-  { caminho: "/api/encarte/templates/[id]/padrao", modulo: route_exports34 },
-  { caminho: "/api/encarte/templates/[id]/pranchetas", modulo: route_exports35 },
-  { caminho: "/api/encarte/templates/[id]/svg", modulo: route_exports36 },
-  { caminho: "/api/encarte/templates", modulo: route_exports37 },
-  { caminho: "/api/v1/encarte/recorte/[id]", modulo: route_exports38 },
-  { caminho: "/api/v1/encarte/recorte/proximo", modulo: route_exports39 }
+  { caminho: "/api/encarte/projetos-template/[id]/ajustar-modelo", modulo: route_exports23 },
+  { caminho: "/api/encarte/projetos-template/[id]/copiar-modelo", modulo: route_exports24 },
+  { caminho: "/api/encarte/projetos-template/[id]/duplicar", modulo: route_exports25 },
+  { caminho: "/api/encarte/projetos-template/[id]/imagem", modulo: route_exports26 },
+  { caminho: "/api/encarte/projetos-template/[id]/previa", modulo: route_exports27 },
+  { caminho: "/api/encarte/projetos-template/[id]/publicar", modulo: route_exports28 },
+  { caminho: "/api/encarte/projetos-template/[id]", modulo: route_exports29 },
+  { caminho: "/api/encarte/projetos-template", modulo: route_exports30 },
+  { caminho: "/api/encarte/reindexar", modulo: route_exports31 },
+  { caminho: "/api/encarte/sugerir-pasta", modulo: route_exports32 },
+  { caminho: "/api/encarte/templates/[id]/especiais", modulo: route_exports33 },
+  { caminho: "/api/encarte/templates/[id]/estilo", modulo: route_exports34 },
+  { caminho: "/api/encarte/templates/[id]/padrao", modulo: route_exports35 },
+  { caminho: "/api/encarte/templates/[id]/pranchetas", modulo: route_exports36 },
+  { caminho: "/api/encarte/templates/[id]/svg", modulo: route_exports37 },
+  { caminho: "/api/encarte/templates", modulo: route_exports38 },
+  { caminho: "/api/v1/encarte/recorte/[id]", modulo: route_exports39 },
+  { caminho: "/api/v1/encarte/recorte/proximo", modulo: route_exports40 }
 ];
 
 // local/encarte-pc/servidor.ts
