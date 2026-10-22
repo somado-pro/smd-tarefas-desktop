@@ -1,1 +1,0 @@
-import{N as e}from"./next-server-CskxMWOZ.js";import{e as t,f as n,h as c,i}from"./index-DeOPjUWA.js";async function l(){const s=await t();if(!s)return e.json({spaces:[],folders:[],lists:[]});const[a,o,r]=await Promise.all([n(s),c(s),i(s)]);return e.json({spaces:a,folders:o,lists:r})}export{l as GET};

@@ -27913,8 +27913,16 @@ async function corpoDe(req) {
   for await (const p of req) partes.push(p);
   return Buffer.concat(partes);
 }
-async function responder(res, r, extra = []) {
-  const cab = {};
+var ORIGEM_APP = new URL(APP).origin;
+var CORS_APP = {
+  "Access-Control-Allow-Origin": ORIGEM_APP,
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE",
+  "Access-Control-Allow-Headers": "content-type, x-smd-a, x-smd-r",
+  "Access-Control-Max-Age": "600",
+  Vary: "Origin"
+};
+async function responder(res, r, extra = [], cors) {
+  const cab = { ...cors };
   r.headers.forEach((v, k) => {
     if (k !== "set-cookie") cab[k] = v;
   });
@@ -27963,16 +27971,28 @@ async function atender(req, res) {
   if (url.pathname.startsWith("/api/")) {
     const metodo = (req.method ?? "GET").toUpperCase();
     const origem = req.headers.origin;
-    if (metodo !== "GET" && metodo !== "HEAD" && origem && origem !== url.origin) {
+    const doApp = origem === ORIGEM_APP;
+    const cors = doApp ? CORS_APP : void 0;
+    if (doApp && metodo === "OPTIONS") {
+      res.writeHead(204, CORS_APP).end();
+      return;
+    }
+    if (metodo !== "GET" && metodo !== "HEAD" && origem && origem !== url.origin && !doApp) {
       res.writeHead(403).end();
       return;
+    }
+    const acesso = req.headers["x-smd-a"];
+    const renovar = req.headers["x-smd-r"];
+    if (doApp && typeof acesso === "string" && typeof renovar === "string") {
+      ctx.cookies.set("smd_a", acesso);
+      ctx.cookies.set("smd_r", renovar);
     }
     for (const rota of TABELA3) {
       const m = url.pathname.match(rota.regex);
       if (!m) continue;
       const handler = rota.modulo[metodo];
       if (!handler) {
-        res.writeHead(405).end();
+        res.writeHead(405, cors).end();
         return;
       }
       const params = Object.fromEntries(rota.nomes.map((n, i) => [n, decodeURIComponent(m[i + 1])]));
@@ -27990,11 +28010,11 @@ async function atender(req, res) {
           console.error("[encarte-pc]", metodo, url.pathname, e);
           r = Response.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
         }
-        await responder(res, r, ctx.devolver);
+        await responder(res, r, doApp ? [] : ctx.devolver, cors);
       });
       return;
     }
-    await responder(res, Response.json({ error: "Isso s\xF3 funciona na web." }, { status: 501 }));
+    await responder(res, Response.json({ error: "Isso s\xF3 funciona na web." }, { status: 501 }), [], cors);
     return;
   }
   if (await estatico(res, url.pathname)) return;
