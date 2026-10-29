@@ -32,7 +32,7 @@ const S = {
   ui: null,
   indice: null, raizBanco: '',
   molde: null,                // card limpo do template (pra criar produto novo)
-  grades: {},                 // por zona: {<chave>: {colunas, espaco, cheiasEmCima, area, linhas?}}
+  grades: {},                 // por zona: {<chave>: {colunas, espaco, cheiasEmCima, linha1, area, linhas?}}
   linhas: [],                 // linhas divisórias (ver linhas.js e a seção "linhas divisórias")
   selLinha: null,             // id da linha selecionada (a 1ª, quando são várias: é a referência)
   selLinhas: [],              // as outras linhas selecionadas junto (Shift ou "Vários")
@@ -88,7 +88,13 @@ const SO_EXPORTAR = URLP.get('exportar') === '1';
 // volta = endereço da tarefa; só aceita caminho do próprio site (nada de mandar pra fora)
 const VOLTA = (() => {
   const v = URLP.get('volta'); if (!v) return '';
-  try { const u = new URL(v, location.origin); return u.origin === location.origin ? u.pathname + u.search + u.hash : ''; }
+  try {
+    const u = new URL(v, location.origin);
+    if (u.origin === location.origin) return u.pathname + u.search + u.hash;
+    // app do PC: o editor roda no servidor do encarte (127.0.0.1) e a tarefa no programa (#/list/…);
+    // o servidor manda caminho que não é dele de volta pro programa (local/encarte-pc/servidor.ts)
+    return /^#\/[^/]/.test(u.hash) ? u.hash.slice(1) : '';
+  }
   catch (e) { return ''; }
 })();
 function alerta(txt) {
@@ -160,9 +166,10 @@ async function telaInicio() {
 }
 
 // ---------------------------------------------------------------- abrir edição
-async function abrirEdicao(id) {
-  let ed;
-  try {
+// op.ed: reabre com a ficha que já está na memória, sem buscar (prévia do modelo do card, modelo-card.js)
+async function abrirEdicao(id, op = {}) {
+  let ed = op.ed;
+  if (!ed) try {
     const d = await apiJson('/edicoes/' + encodeURIComponent(id));
     ed = d && d.id ? d : d && d.edicao;
     if (!ed) throw new Error('edição vazia');
@@ -184,7 +191,7 @@ async function abrirEdicao(id) {
   S.template = (await apiJson('/templates').catch(() => [])).find(x => x.id === ed.template) || null;
   let svgTxt;
   try {
-    const r = await api(`/templates/${encodeURIComponent(ed.template)}/svg${ajQuery()}`); // ajQuery: modelo do card ajustado (modelo-card.js)
+    const r = await api(`/templates/${encodeURIComponent(ed.template)}/svg`, ajPedido()); // ajPedido: modelo do card ajustado (modelo-card.js)
     if (!r.ok) throw new Error(r.status);
     svgTxt = await r.text();
   } catch (e) {
@@ -222,6 +229,7 @@ async function abrirEdicao(id) {
   lerTemplate();
   await carregarEspeciais(ed.template);
   S.padrao = ((await apiJson(`/templates/${encodeURIComponent(ed.template)}/padrao`).catch(() => null)) || {}).padrao || null;
+  S.regras = lerRegrasTpl();
   // estilo salvo no template ("Salvar no template"): vale em toda edição dele, abaixo do estilo da edição
   S.estiloTpl = ((await apiJson(`/templates/${encodeURIComponent(ed.template)}/estilo?edicao=${encodeURIComponent(ed.id)}`).catch(() => null)) || {}).estilo || {};
   montarPaginas(prs ? [...prs, ...novas] : novas.length && !temEncarte ? [...base, ...novas] : null);
@@ -283,6 +291,7 @@ async function abrirEdicao(id) {
   // manda já na abertura, sem esperar mexer nele
   for (const p of S.produtos) if (!p.removido && (regraFundo(p) || p.areaRegra)) render(p);
   for (const p of S.produtos) assentarFotosDaFicha(p);
+  ordenarCamadas();
   avisoTemplateMudou();
   irPagina(guardar.ler('pag:' + ed.id, 0));
   painel();
@@ -620,6 +629,13 @@ function lerProduto(g) {
     const esq = b.x - card.x, centro = Math.abs(b.x + b.width / 2 - (card.x + card.width / 2));
     p.base.nome.esquerda = esq < card.width * 0.15 && centro > card.width * 0.12;
   }
+  // preso ao preço (data-preso="gap esq dir", "-" = lado livre), no fundo do nome ou no texto sem fundo:
+  // ver nomePresoAoPreco
+  const presoEl = nomeG && (nomeG.hasAttribute('data-preso') ? nomeG : nomeG.querySelector('[data-preso]'));
+  if (presoEl) {
+    const ps = presoEl.getAttribute('data-preso').trim().split(/\s+/), lim = v => (v == null || v === '-' || !isFinite(+v) ? null : +v);
+    if (ps[0] && isFinite(+ps[0])) p.base.preso = { gap: +ps[0], esq: lim(ps[1]), dir: lim(ps[2]) };
+  }
   // tarja atrás do nome (Redemais Hora Mais: o preenchimento da caixa de texto do Illustrator sai
   // como <rect> dentro do grupo do nome): guarda o respiro em volta do texto pra a tarja acompanhar
   // o nome escrito, e se ela vem colada em cima do preço o nome passa a andar com o preço
@@ -778,6 +794,14 @@ function areaM(p) { return p.areaAj || p.areaM0; }
 function topoPeloNome(p, M = areaM(p)) {
   return M.tn != null && p.nomeBase != null && !!String(p.nome || '').trim() && !p.caixaNome && !p.base.nomeNoPreco
     && !nomeNaTarja(p) && !(S.padrao && S.padrao.titulo && regra('titulo').y === 'bottom');
+}
+// regras ligadas/desligadas no construtor (data-regras na raiz do SVG, 22/10/2026). Valem acima do
+// padroes_mercado.json; chave que o template não traz segue o padrão do cliente / do código.
+function lerRegrasTpl() {
+  try { const r = JSON.parse(S.svg.getAttribute('data-regras') || 'null'); return r && typeof r === 'object' ? r : null; } catch { return null; }
+}
+function regraTpl(chave, atual) {
+  return S.regras && Object.prototype.hasOwnProperty.call(S.regras, chave) ? S.regras[chave] : atual;
 }
 // área por regras (template do construtor, data-regra na produto_NN_area): margens até a borda do
 // card, começa abaixo do nome e termina antes do preço (ou depois do preço que fica em cima).
@@ -1134,7 +1158,7 @@ function prepararLogos() {
   S.logoMolde = src ? { dr: src.logo.base.dr / src.card.w, dt: src.logo.base.dt / src.card.h, w: src.logo.base.w / src.card.w,
     k: src.logo.base.h / src.logo.base.w, arq: src.logoArq } : null;
 }
-function regrasLogo() { const r = S.padrao && S.padrao.logo_auto; return Array.isArray(r) ? r : []; }
+function regrasLogo() { if (regraTpl('logo_auto', true) === false) return []; const r = S.padrao && S.padrao.logo_auto; return Array.isArray(r) ? r : []; }
 function podeLogo(p) { return !!(p.logo || S.logoMolde || regrasLogo().length); }
 function garantirLogo(p) {
   if (p.logo) return true;
@@ -1216,10 +1240,59 @@ function levarParaPagina(p) {
   // grupo na página": dois cards novos na mesma folha nascem juntos no grupo da prancheta 1 ao abrir
   // a edição e um travava o outro (Marcelino Quinta da Economia, 21/10/2026: buraco na exportação)
   const naPagina = pai => S.produtos.filter(o => o !== p && o.g.parentNode === pai && paginaDe(o) === i).length;
-  if (!q || naPagina(p.g.parentNode) >= naPagina(q.g.parentNode)) return;
-  const a = matrizAteRaiz(p.g.parentNode), b = matrizAteRaiz(q.g.parentNode);
+  // folha sem nenhum card do template (todos trocados por cards novos, Redemais 22/10/2026): sem vizinho
+  // pra seguir, o card ficava no grupo da prancheta 1, recortado e invisível. Vai pro grupo da prancheta dele.
+  const pg = S.paginas[i], grupo = pg && (pg.g || (pg.fundo && pg.fundo.closest('g[id^="PRANCHETA_"]')));
+  const destino = grupo || (q && q.g.parentNode);
+  if (!destino || destino === p.g.parentNode) return;
+  if (!grupo && naPagina(p.g.parentNode) >= naPagina(q.g.parentNode)) return;
+  const a = matrizAteRaiz(p.g.parentNode), b = matrizAteRaiz(destino);
   if (['a', 'b', 'c', 'd', 'e', 'f'].some(k => Math.abs(a[k] - b[k]) > 1e-6)) return;
-  q.g.parentNode.appendChild(p.g);
+  destino.appendChild(p.g);
+}
+
+// Trazer pra frente / Mandar pra trás (Matheus, 26/10/2026): ordem de pilha do card inteiro entre os
+// cards (p.z na ficha: 0 = a do template, maior = mais na frente). Só os cards trocam de lugar entre si,
+// nas posições que os cards já ocupam no grupo: o fundo da página e a arte continuam por baixo, e a
+// ordem foto/nome/preço dentro do card não muda. Grupo sem nenhum z fica como o template desenhou.
+// ordem de baixo pra cima: z, e no empate a ordem dos produtos (a do template, novos no fim)
+function ordemCamadas(itens) {
+  return itens.map((o, k) => ({ o, k })).sort((a, b) => (a.o.z || 0) - (b.o.z || 0) || a.o.i - b.o.i || a.k - b.k).map(x => x.o);
+}
+const paisComCamada = new WeakSet();
+function ordenarCamadas() {
+  if (!S.produtos) return;
+  const porPai = new Map();
+  S.produtos.forEach((p, i) => {
+    const pai = p.g && p.g.parentNode; if (!pai) return;
+    const l = porPai.get(pai) || []; l.push({ p, z: p.z || 0, i }); porPai.set(pai, l);
+  });
+  for (const [pai, l] of porPai) {
+    if (l.some(o => o.z)) paisComCamada.add(pai); else if (!paisComCamada.has(pai)) continue;
+    const atual = [...pai.children].map(n => l.find(o => o.p.g === n)).filter(Boolean);
+    const quer = ordemCamadas(atual);
+    if (quer.every((o, k) => o === atual[k])) continue;
+    // marca o lugar de cada card e põe os cards de volta na ordem nova
+    const marcas = atual.map(o => { const m = document.createComment(''); pai.insertBefore(m, o.p.g); return m; });
+    quer.forEach((o, k) => marcas[k].replaceWith(o.p.g));
+  }
+}
+// automação (somado-encarte ajustar --frente/--tras): camadaCard(p, 'frente'|'tras') → z novo
+function camadaCard(p, lado) {
+  const pg = paginaDe(p), outros = S.produtos.filter(o => o !== p && !o.removido && paginaDe(o) === pg).map(o => o.z || 0);
+  if (lado === 'frente') p.z = Math.max(0, ...outros) + 1;
+  else if (lado === 'tras') p.z = Math.min(0, ...outros) - 1;
+  else p.z = 0;
+  ordenarCamadas();
+  return p.z;
+}
+function camadaSel(lado) {
+  const ps = [...new Set([S.sel, ...S.selProds])].filter(p => p && p.g);
+  if (!ps.length) return;
+  marcar(...ps);
+  for (const p of ps) camadaCard(p, lado);
+  mudou(); painel();
+  aviso(lado === 'frente' ? 'Card na frente dos outros' : 'Card atrás dos outros');
 }
 
 // textos fora dos produtos (validade, telefone, endereço, chamadas): cada "pilha" de cópias
@@ -1647,7 +1720,7 @@ function aplicarGradesDaFicha(gr) {
     if (ok && !T0) S.gradesLegado.add(k);
     const { areaTpl, ...resto } = g;
     // linha incompleta sempre embaixo: vale também pras fichas salvas antes da regra
-    Object.assign(S.grades[k], resto, { area: ok ? A : T, cheiasEmCima: true });
+    Object.assign(S.grades[k], resto, { area: ok ? A : T, cheiasEmCima: regraTpl('linha_incompleta_embaixo', true), linha1: S.grades[k].linha1 });
   }
 }
 // índice da página na ordem antiga (ENCARTE_ da esquerda pra direita)
@@ -1768,7 +1841,10 @@ function renderNome(p) {
   const esquerda = !tarja && !!(p.caixaNome || (b.esquerda && !(S.padrao && S.padrao.titulo)));
   // caixa desenhada no construtor: o nome fica nela, com o alinhamento que o template deu
   const cx = !tarja && b.caixa ? b.caixa : null;
-  const auto = cx ? cx.ancora : tarja || esquerda ? 'start' : 'middle';
+  // preso ao preço: o texto segue o alinhamento do nome no construtor (Matheus: direita travada, texto à
+  // esquerda); quem obedece aos limites é a caixa inteira, em nomePresoAoPreco
+  const preso = !tarja ? p.base.preso || null : null;
+  const auto = cx ? cx.ancora : preso || tarja || esquerda ? 'start' : 'middle';
   const x0 = cx ? cx.x + cx.w * (auto === 'middle' ? 0.5 : auto === 'end' ? 1 : 0) : tarja ? b.esq - alarga : esquerda ? b.esq : b.cx;
   // alinhamento escolhido à mão (p.nomeAlinha: start|middle|end); sem ele, o editor decide (auto)
   const ancora = ['start', 'middle', 'end'].includes(p.nomeAlinha) ? p.nomeAlinha : auto;
@@ -1777,7 +1853,9 @@ function renderNome(p) {
   // "Caixa ↔" nunca leva o nome pra menos de 10 do R$
   const kt = tarja ? fatorTarja(p) : 1;
   const livre = tarja && p.base.moeda ? p.base.moeda.esq - x0 : 0;
-  let maxW = tarja && p.base.moeda ? Math.min((livre - 14) * p.nomeCaixa, livre - 10) * kt * p.escPreco
+  const cm = preso ? (p.base.caixaNome && p.base.caixaNome.m) || { l: 0, r: 0 } : null;
+  let maxW = preso ? Math.max(20, p.cell.w - (preso.esq || 0) - (preso.dir || 0) - cm.l - cm.r) * p.nomeCaixa
+    : tarja && p.base.moeda ? Math.min((livre - 14) * p.nomeCaixa, livre - 10) * kt * p.escPreco
     // caixa do construtor (card horizontal: nome na tarja à direita da foto): acompanha a largura do card
     : cx ? larguraCaixaConstrutor(p, cx) * (p.cell.w / p.card.w) * p.nomeCaixa
     : p.caixaNome ? Math.max(b.larg, p.cell.w * 0.45) * p.nomeCaixa // tarja do nome: no canto, sem cobrir a foto
@@ -1828,7 +1906,7 @@ function renderNome(p) {
   // que encolheu sozinho; tamanho pedido menor que ele fica, desde que não passe do piso. Com 2 linhas
   // abaixo do mínimo, tenta 3 antes de encolher. O mínimo é em pt da página: a fonte do <text> é
   // local e o texto pode ter escala própria.
-  const minCli = S.padrao && S.padrao.titulo && S.padrao.titulo.min_pt;
+  const minCli = regraTpl('titulo_min_pt', S.padrao && S.padrao.titulo && S.padrao.titulo.min_pt);
   const kl = escalaAteRaiz(ultimo) || 1;
   const minPt = Math.max(PISO_PT / kl, Math.min((minCli || PISO_PT) / kl, b.fonte * p.escNome));
   if (!maxL && w > maxW && !tarja && linhas.length === 2 && fonte * maxW / w < minPt) {
@@ -1943,6 +2021,9 @@ function posNome(p) {
   if (S.catalogo) dy = c.y + c.h / 2 - (b.y + b.height / 2);
   dx += p.nomeDx; dy += p.nomeDy;
   p.nomeTopo = b.y + dy; p.nomeBase = b.y + b.height + dy;
+  // guarda o deslocamento: as regras de depois (nome acima do preço, preso ao preço) somam a partir dele. Ler
+  // de volta do atributo falhava no Firefox e o nome ficava parado ao mover o card ou mudar o preço
+  p.nomeT = { x: dx || 0, y: dy || 0 };
   p.nomeG.setAttribute('transform', dx || dy ? `translate(${arred(dx)} ${arred(dy)})` : '');
 }
 
@@ -1950,17 +2031,40 @@ function posNome(p) {
 // proporção do card mas o preço continua do tamanho do molde, e a 2ª linha do nome sumia atrás da
 // caixa do preço ("PATINHO KG" sem o KG, Redemais 20/10/2026). Sobe o nome até ficar 2 pt acima do
 // preço, sem passar do topo do card. Nome arrastado à mão (nomeDx/Dy) fica onde a pessoa pôs.
+// fundo do nome preso ao preço (construtor, Matheus 22/10/2026): o pé do fundo fica gap pt acima do grupo
+// do preço; na largura, o lado com limite fica a esse tanto da borda do card e o lado livre cresce com o
+// título; os dois livres = centrado no preço. Arraste à mão (nomeDx/Dy) vale por cima.
+function nomePresoAoPreco(p) {
+  const pr = p.base.preso;
+  if (!pr || !p.nomeG || nomeNaTarja(p)) return false;
+  const alvo = p.fundoAlvo || p.precoG; if (!alvo || alvo === p.g) return false;
+  const tx = p.nomeT ? p.nomeT.x : 0, ty = p.nomeT ? p.nomeT.y : 0;
+  const n = retSvgBBox(p.nomeG), f = retSvgBBox(alvo); if (!n.w || !f.w) return false;
+  const cel = p.cell;
+  const X = pr.dir != null ? cel.x + cel.w - pr.dir - n.w : pr.esq != null ? cel.x + pr.esq : f.x + f.w / 2 - n.w / 2;
+  const Y = f.y - pr.gap - n.h;
+  const k = matrizAteRaiz(p.nomeG.parentNode), kx = Math.abs(k.a) || 1, ky = Math.abs(k.d) || 1;
+  const dx = tx + (X - n.x) / kx + p.nomeDx, dy = ty + (Y - n.y) / ky + p.nomeDy;
+  p.nomeT = { x: dx, y: dy };
+  p.nomeG.setAttribute('transform', `translate(${arred(dx)} ${arred(dy)})`);
+  p.nomeTopo += (Y - n.y) / ky + p.nomeDy; p.nomeBase += (Y - n.y) / ky + p.nomeDy;
+  return true;
+}
 function nomeAcimaDoPreco(p) {
+  if (!regraTpl('nome_acima_do_preco', true)) return;
   if (!p.nomeG || !p.base.nome || !p.base.nome.caixa || nomeNaTarja(p) || p.nomeDx || p.nomeDy) return;
   const alvo = p.fundoAlvo || p.precoG; if (!alvo || alvo === p.g) return;
   const n = retSvgBBox(p.nomeG), f = retSvgBBox(alvo); if (!n.w || !f.w) return;
   if (n.x >= f.x + f.w || n.x + n.w <= f.x) return; // não ficam um em cima do outro
+  // nome que o molde pôs embaixo do preço fica embaixo (Juarez Final de Semana, 22/10/2026: a regra
+  // jogava o nome pra cima do preço em todo card)
+  if (regraTpl('nome_embaixo_fica', true) && n.y + n.h / 2 >= f.y + f.h / 2) return;
   const sobra = n.y + n.h - (f.y - 2); if (sobra <= 0) return;
   const topo = retSvgBBox(p.g.querySelector('[id^="MARGEM_GRID"]') || p.g).y + 2;
   const sobe = Math.min(sobra, Math.max(0, n.y - topo)); if (sobe < 0.05) return;
   const k = Math.abs(matrizAteRaiz(p.nomeG.parentNode).d) || 1;
-  const m = (p.nomeG.getAttribute('transform') || '').match(/translate\(([-\d.]+)[ ,]+([-\d.]+)\)/);
-  const dx = m ? +m[1] : 0, dy = (m ? +m[2] : 0) - sobe / k;
+  const dx = p.nomeT ? p.nomeT.x : 0, dy = (p.nomeT ? p.nomeT.y : 0) - sobe / k;
+  p.nomeT = { x: dx, y: dy };
   p.nomeG.setAttribute('transform', `translate(${arred(dx)} ${arred(dy)})`);
   p.nomeTopo -= sobe / k; p.nomeBase -= sobe / k;
 }
@@ -1981,9 +2085,9 @@ function desenharSimples(e, b, txt, moeda) {
 // Só encolhe se nem assim couber — senão "29,99" sai com o 29 miúdo e o ,99 grande.
 function desenharDividido(realEl, centEl, br, bc, txt, moeda, kr = 1, kc = 1, p = null) {
   const { real, cent } = partesPreco(txt);
-  const anda = p && p.moedaPecas && S.padrao && S.padrao.moeda_anda;
+  const anda = p && p.moedaPecas && regraTpl('moeda_anda', S.padrao && S.padrao.moeda_anda);
   if (anda) {
-    for (const o of p.moedaPecas) { if (o.tr) o.el.setAttribute('transform', o.tr); else o.el.removeAttribute('transform'); }
+    for (const o of p.moedaPecas) { o.el.dataset.mvx = 0; o.el.dataset.mvy = 0; if (o.tr) o.el.setAttribute('transform', o.tr); else o.el.removeAttribute('transform'); }
     p.empurraCent = 0;
     esticarFundoPreco(p, 0);
   }
@@ -1997,7 +2101,7 @@ function desenharDividido(realEl, centEl, br, bc, txt, moeda, kr = 1, kc = 1, p 
     const caixa = p.precoFundoForma ? retSvgBBox(p.precoFundoForma) : { x: p.cell.x + 8, w: p.cell.w - 16 };
     // moeda_anda "fundo" (Lima, pedido do Matheus 06/10/2026): o fundo do preço estica pra esquerda junto
     // com o R$ até perto da borda do card, em vez de o valor encolher
-    const estica = S.padrao.moeda_anda === 'fundo' && p.precoFundoForma && p.precoFundoForma.tagName === 'rect';
+    const estica = anda === 'fundo' && p.precoFundoForma && p.precoFundoForma.tagName === 'rect';
     const folgaR = rm.x - caixa.x; // R$ → borda esquerda do fundo, como o template desenhou
     const limiteEsq = estica ? Math.min(caixa.x + 2, p.cell.x + 4 + folgaR) : caixa.x + 2;
     const d = Math.max(0, Math.min(w - maxW, (rm.x - limiteEsq) / sc));
@@ -2256,7 +2360,7 @@ function regraFundo(p) {
   if (!d || !d.regra || d.regra === 'fixo') return null;
   const m = (d.margem || '').split(/\s+/).map(Number);
   return {
-    modo: d.regra, lado: d.lado || 'ambos', respiro: +d.respiro || 0, encolhe: d.encolhe === '1', max: +d.max || 0,
+    modo: d.regra, lado: d.lado || 'ambos', borda: d.borda === 'esq' || d.borda === 'dir' ? d.borda : '', respiro: +d.respiro || 0, encolhe: d.encolhe === '1', max: +d.max || 0,
     margem: { t: m[0] || 0, r: m[1] || 0, b: m[2] || 0, l: m[3] || 0 },
     raio: +d.raio || 0, cantos: (d.cantos || '1111').split('').map(c => c === '1'),
   };
@@ -2266,6 +2370,7 @@ const pecasMoeda = p => (p.moedaPecas || (p.moeda ? [{ el: p.moeda, tr: p.moeda.
 function trBase(e) { if (e.dataset.tr0 == null) e.dataset.tr0 = e.getAttribute('transform') || ''; return e.dataset.tr0; }
 function moverLocal(e, dx, dy) {
   const k = Math.abs(matrizAteRaiz(e.parentNode).a) || 1, tr = trBase(e);
+  e.dataset.mvx = dx || 0; e.dataset.mvy = dy || 0;
   if (dx || dy) e.setAttribute('transform', `translate(${arred(dx / k)} ${arred(dy / k)}) ${tr}`.trim());
   else if (tr) e.setAttribute('transform', tr); else e.removeAttribute('transform');
 }
@@ -2308,6 +2413,12 @@ const uniao = rs => {
 function aplicarRegraFundo(p, rf) {
   const f = p.fundoAlvo, vis = e => getComputedStyle(e).display !== 'none' && retSvgBBox(e).w > 0;
   const medir = () => {
+    // R$ na borda (Matheus, 22/10/2026): o R$ (com o círculo) não encosta no valor, fica preso na borda
+    // lateral do fundo; o bloco é só o valor
+    if (rf.borda) {
+      for (const o of pecasMoeda(p)) moverLocal(o.el, 0, 0);
+      return uniao(pecasValor(p).filter(vis).map(retSvgBBox));
+    }
     // R$ encostado no começo do valor, nos dois sentidos (preço curto: ele chega perto; longo: sai da frente)
     const val = retSvgBBox(p.dividido ? p.real : p.preco), moedas = pecasMoeda(p);
     if (p.moeda && vis(p.moeda)) {
@@ -2331,7 +2442,10 @@ function aplicarRegraFundo(p, rf) {
   } else if ((p.regraK || 1) !== 1 && bloco.w / (p.regraK || 1) + 2 * r <= L.w) {
     p.regraK = 1; desenharValorRegra(p, p.precoTxt || '', 1); renderSimples(p, 'formato', p.formato, p.formatoTxt, 0); bloco = medir();
   }
-  let W = bloco.w + 2 * r;
+  // R$ na borda: metade dele entra no fundo, o valor fica no meio do que sobra
+  const ms = rf.borda ? pecasMoeda(p).map(o => o.el).filter(vis).map(retSvgBBox) : [];
+  const meiaM = ms.length ? uniao(ms).w / 2 : 0;
+  let W = bloco.w + 2 * r + meiaM;
   if (!rf.encolhe) W = Math.max(W, F0.w);
   if (rf.max) {
     // no espaço local do fundo (pt do template, sem a escala do grupo): passou do máximo, o grupo diminui
@@ -2353,14 +2467,25 @@ function aplicarRegraFundo(p, rf) {
   pintarFundo(f, { x: g.x + (x - F0.x) * kx, y: g.y + (y - F0.y) * kx, w: W * kx, h: g.h }, rf);
   // conteúdo dentro do fundo, com o respiro: dois lados = centrado; senão encostado no lado que não cresce
   const alvoX = rf.lado === 'ambos' ? x + (W - bloco.w) / 2 : rf.lado === 'esq' ? Math.min(bloco.x, x + W - r - bloco.w) : Math.max(bloco.x, x + r);
-  const dx = Math.max(x + r, Math.min(alvoX, x + W - r - bloco.w)) - bloco.x, dy = y - F0.y;
-  if (dx || dy) {
+  const dy = y - F0.y;
+  if (rf.borda) {
+    // valor no meio da parte do fundo que o R$ não cobre; R$ (e o círculo) com o meio na borda lateral
+    const ix = x + (rf.borda === 'esq' ? meiaM : 0), iw = W - meiaM;
+    const dxv = ix + (iw - bloco.w) / 2 - bloco.x;
+    for (const e of pecasValor(p)) moverLocal(e, dxv, dy);
+    if (ms.length) {
+      const M = uniao(ms), dxm = (rf.borda === 'esq' ? x : x + W) - (M.x + M.w / 2);
+      for (const o of pecasMoeda(p)) moverLocal(o.el, dxm, dy);
+    }
+  }
+  const dx = Math.max(x + r, Math.min(alvoX, x + W - r - bloco.w)) - bloco.x;
+  if (!rf.borda && (dx || dy)) {
     for (const e of pecasValor(p)) moverLocal(e, dx, dy);
     for (const o of pecasMoeda(p)) {
       // soma ao deslocamento do R$ que medir() já pôs
-      const tr = trBase(o.el), atual = (o.el.getAttribute('transform') || '').replace(tr, '').match(/translate\(([-\d.]+) ([-\d.]+)\)/);
-      const k = Math.abs(matrizAteRaiz(o.el.parentNode).a) || 1;
-      moverLocal(o.el, (atual ? +atual[1] * k : 0) + dx, (atual ? +atual[2] * k : 0) + dy);
+      // o deslocamento que o moverLocal já pôs fica guardado nele (data-mvx/mvy). Ler de volta do atributo
+      // falhava no Firefox, que reescreve o transform: o R$ caía em cima do valor (Redemais 23/10/2026)
+      moverLocal(o.el, +(o.el.dataset.mvx || 0) + dx, +(o.el.dataset.mvy || 0) + dy);
     }
   }
   // o Chrome às vezes não repinta o <text> que só mudou de transform: o R$ ficava na tela no lugar
@@ -2373,19 +2498,36 @@ function aplicarRegraFundo(p, rf) {
 // tarja que acompanha a largura da célula (padrão preco.ajustar_largura = fração da largura,
 // ex. 0.94 no J Meroto): card de molde grande ou pequeno sai com a tarja do mesmo tamanho
 function fatorTarja(p) {
-  const f = S.padrao && S.padrao.preco && S.padrao.preco.ajustar_largura;
+  const f = regraTpl('preco_ajustar_largura', S.padrao && S.padrao.preco && S.padrao.preco.ajustar_largura);
   return f && p.base.precoW ? (f * p.cell.w) / p.base.precoW : 1;
 }
 // quanto o grupo do preço anda (tx, ty) e a escala dele (s, em volta do canto inferior-direito a)
 // padrão encolhe_card_baixo: card mais baixo que o do template (grade com mais linhas) reduz nome e
 // preço na mesma proporção, senão o preço sobe por cima do nome
 function fatorCardBaixo(p) {
-  return S.padrao && S.padrao.encolhe_card_baixo && p.card.h > 0 ? Math.min(1, p.cell.h / p.card.h) : 1;
+  return regraTpl('encolhe_card_baixo', S.padrao && S.padrao.encolhe_card_baixo) && p.card.h > 0 ? Math.min(1, p.cell.h / p.card.h) : 1;
+}
+
+// preço proporcional à largura do card (Matheus, 26/10/2026): o grupo do preço ocupa a mesma fração da
+// largura que tinha no card do template — card mais estreito encolhe o preço, mais largo aumenta (sem
+// crescer mais que a altura do card cresceu). Ligado por padrão nos templates do construtor (regra
+// preco_proporcional); o ajustar_largura (J Meroto) já acompanha a casa pela tarja e manda
+function fatorLarguraPreco(p) {
+  if (!regraTpl('preco_proporcional', !!S.projetoTpl) || fatorTarja(p) !== 1) return 1;
+  const k = p.card, c = p.cell; if (!(k && k.w > 0 && k.h > 0)) return 1;
+  const kw = c.w / k.w;
+  return kw <= 1 ? kw : Math.max(1, Math.min(kw, c.h / k.h));
+}
+// escala do preço pelo tamanho do card: mais estreito e mais baixo ao mesmo tempo vale o que encolheu
+// mais (não multiplica as duas reduções)
+function fatorCardPreco(p) {
+  const kc = fatorCardBaixo(p), kl = fatorLarguraPreco(p);
+  return kl > 1 ? kl * kc : Math.min(kl, kc);
 }
 
 function deslocPreco(p) {
   const kc = fatorCardBaixo(p);
-  const a = p.base.precoG, s = p.escPreco * fatorTarja(p) * kc * fatorSelo(p) * (p.regraS || 1);
+  const a = p.base.precoG, s = p.escPreco * fatorTarja(p) * fatorCardPreco(p) * fatorSelo(p) * (p.regraS || 1);
   const c = p.cell, k = p.card;
   let tx, ty;
   if (S.padrao && S.padrao.preco) {
@@ -2552,7 +2694,7 @@ function render(p) {
     p.regraS = p.regraSNovo; zerarRegraFundo(p, rf); renderGrupoPreco(p);
     try { aplicarRegraFundo(p, rf); } catch (e) { console.warn('regra do fundo', p.id, e); }
   }
-  nomeAcimaDoPreco(p);
+  if (!nomePresoAoPreco(p)) nomeAcimaDoPreco(p);
   // a área por regras olha o preço já no lugar final: refaz e leva as fotos junto
   if (p.areaRegra && !p.areaAj) {
     const A1 = { ...p.area }; calcArea(p);
@@ -2665,7 +2807,7 @@ function estado(p) {
     precoDx: arred(p.precoDx), precoDy: arred(p.precoDy), nomeDx: arred(p.nomeDx), nomeDy: arred(p.nomeDy),
     qtdDx: p.qtdDx ? arred(p.qtdDx) : undefined, qtdDy: p.qtdDy ? arred(p.qtdDy) : undefined,
     qtdEsc: p.qtdEsc && p.qtdEsc !== 1 ? p.qtdEsc : undefined, qtdZ: p.qtdZ ?? undefined,
-    removido: p.removido || undefined,
+    removido: p.removido || undefined, z: p.z || undefined,
     escReal: p.escReal && p.escReal !== 1 ? p.escReal : undefined, escCent: p.escCent && p.escCent !== 1 ? p.escCent : undefined,
     apoioDx: p.apoioDx ? arred(p.apoioDx) : undefined, apoioDy: p.apoioDy ? arred(p.apoioDy) : undefined,
     apoioEsc: p.apoioEsc && p.apoioEsc !== 1 ? p.apoioEsc : undefined,
@@ -2816,7 +2958,7 @@ function aplicarEstado(p, e) {
   p.escReal = e.escReal || 1; p.escCent = e.escCent || 1; p.apoioDx = e.apoioDx || 0; p.apoioDy = e.apoioDy || 0; p.apoioEsc = e.apoioEsc || 1;
   (p.apoiosExtra || []).forEach((_, i) => { const n = 'apoio' + (i + 1), a = (e.apoiosAj || [])[i] || {}; p[n + 'Dx'] = a.dx || 0; p[n + 'Dy'] = a.dy || 0; p[n + 'Esc'] = a.esc || 1; p[n + 'Off'] = !!a.off; });
   p.apoioOff = !!e.apoioOff;
-  p.removido = !!e.removido || !!p.empilhado; p.novo = !!e.novo;
+  p.removido = !!e.removido || !!p.empilhado; p.novo = !!e.novo; p.z = e.z || 0;
   p.autoH = !!e.autoH; p.origemNormal = e.origemNormal || null; p.fixoNormal = !!e.fixoNormal;
   if (e.precosExtra) for (const v of p.extras || []) if (e.precosExtra[v.suf] != null) v.txt = e.precosExtra[v.suf];
   if (e.de && p.de) { p.deOn = !!e.de.on; if (e.de.preco != null) p.deTxt = e.de.preco; }
@@ -3115,6 +3257,7 @@ function mudou() {
   // foto mexida (arrastar, tamanho, arranjo): o tapete do card vai junto
   for (const p of new Set([S.sel, ...S.selProds, ...S.selImgs.map(prodDe)])) if (p && p.apoio) posApoio(p);
   refazerDivisorias(); // grade mexida: as divisórias vão pros vãos novos
+  ordenarCamadas(); // card novo, trocado de página ou desfeito: volta pra camada dele
   desenharSelecao();
   $('#ed-salvo').textContent = 'alterado…';
   S.mexeuDesdeMini = true;
@@ -3149,7 +3292,8 @@ async function salvarJa(opc = {}) {
     paginasExtras: Array.isArray(ed.paginasExtras) ? ed.paginasExtras : [],
     estilo: S.estilo || {},
     // modelo do card ajustado só nesta edição (modelo-card.js): construtor em %, Illustrator em pt
-    modelosAj: Array.isArray(ed.modelosAj) ? ed.modelosAj : [],
+    // painel do modelo do card aberto: o que está na tela é prévia, grava o de antes (modelo-card.js)
+    modelosAj: MC.quadro ? MC.ajOrig : Array.isArray(ed.modelosAj) ? ed.modelosAj : [],
     modeloAjPt: Array.isArray(ed.modeloAjPt) ? ed.modeloAjPt : [],
   };
   if (opc.versao) corpo.versao = true;
@@ -4083,6 +4227,8 @@ function trocarLugar(a, b) {
   mudou();
   aviso(`Produto ${a.rotulo} ⇄ ${b.rotulo}`);
 }
+$('#pp-frente').onclick = () => camadaSel('frente');
+$('#pp-tras').onclick = () => camadaSel('tras');
 $('#pp-trocar-lugar').onclick = () => { if (!S.sel) return; S.trocandoLugar = S.sel; desenharSelecao(); aviso('Agora toque no outro produto'); };
 
 // ---------------------------------------------------------------- grade (montarGrade)
@@ -4121,7 +4267,8 @@ function detectarGrade(k) {
   return {
     colunas: cont.length ? Math.max(...cont) : 4,
     espaco: gut,
-    cheiasEmCima: true, // regra global: linhas cheias em cima, incompleta embaixo
+    cheiasEmCima: regraTpl('linha_incompleta_embaixo', true), // regra global: linhas cheias em cima, incompleta embaixo
+    linha1: aceitaLinhaDe1(z), // parte elástica com mais de uma linha: 1/2, 2/3 (linha incompleta em cima)
     area: area || { x: pg.x, y: pg.y, w: pg.w, h: pg.h },
   };
 }
@@ -4144,7 +4291,7 @@ function retSvgBBox(e) {
 
 // padrão do cliente pode limitar a 1ª linha (Rigoni: 3 a 4 embaixo do título, nunca 5);
 // o resto segue a regra normal e a última linha pode ficar menor
-function primeiraLinhaMax() { const g = S.padrao && S.padrao.grade; return (g && g.primeira_linha_max) || 0; }
+function primeiraLinhaMax() { const g = S.padrao && S.padrao.grade; return regraTpl('primeira_linha_max', g && g.primeira_linha_max) || 0; }
 function distribuir(n, C, cheiasEmCima) {
   if (!n) return [];
   const m = primeiraLinhaMax();
@@ -4158,12 +4305,14 @@ function distribuir(n, C, cheiasEmCima) {
   }
   return distribuirLivre(n, C, cheiasEmCima);
 }
-function distribuirLivre(n, C, cheiasEmCima) {
+// aceita1: parte elástica da zona composta (Matheus, 26/10/2026) — lá linha de 1 pode (3 com 2 por
+// linha = 1/2, não uma linha de 3 espremida)
+function distribuirLivre(n, C, cheiasEmCima, aceita1) {
   if (!n) return [];
   const R = Math.ceil(n / C), base = Math.floor(n / R), rem = n % R;
   const rows = Array(R).fill(base);
   for (let k = 0; k < rem; k++) rows[cheiasEmCima ? k : R - 1 - k]++;
-  if (S.catalogo) return rows; // catálogo: 1 por linha é o certo (colunas=1 continua 1 coluna)
+  if (S.catalogo || aceita1) return rows; // catálogo: 1 por linha é o certo (colunas=1 continua 1 coluna)
   // linha com 1 item só não pode: pega um da linha mais cheia; sem de onde tirar, junta na vizinha
   for (let i = 0; i < rows.length && rows.length > 1; i++) {
     if (rows[i] !== 1) continue;
@@ -4176,15 +4325,18 @@ function distribuirLivre(n, C, cheiasEmCima) {
 }
 
 // quantos produtos em cada linha. g.linhas = as primeiras linhas escolhidas à mão (3 na 1ª, 5 na 2ª…);
-// o que sobra segue a regra automática embaixo delas. Sobrou 1 só: vai pra última linha escolhida.
+// o que sobra segue a regra automática embaixo delas. Sobrou 1 só: vai pra última linha escolhida (na
+// elástica, que aceita linha de 1, fica numa linha dele).
 function linhasDaGrade(g, n) {
   const fix = (g.linhas || []).map(v => Math.max(1, Math.round(+v) || 0)).filter(v => v > 0);
+  // elástica: incompleta em cima e linha de 1 pode (a regra "nunca linha de 1" e a do Rigoni não valem)
+  if (!fix.length && g.linha1) return distribuirLivre(n, g.colunas, false, true);
   if (!fix.length) return distribuir(n, g.colunas, g.cheiasEmCima);
   const rows = []; let resto = n;
   for (const v of fix) { if (resto <= 0) break; const t = Math.min(v, resto); rows.push(t); resto -= t; }
   if (resto > 0) {
-    const mais = distribuirLivre(resto, g.colunas, primeiraLinhaMax() ? false : g.cheiasEmCima);
-    if (mais.length === 1 && mais[0] === 1 && rows.length) rows[rows.length - 1]++;
+    const mais = distribuirLivre(resto, g.colunas, primeiraLinhaMax() ? false : g.cheiasEmCima, g.linha1);
+    if (!g.linha1 && mais.length === 1 && mais[0] === 1 && rows.length) rows[rows.length - 1]++;
     else rows.push(...mais);
   }
   return rows;
@@ -4315,13 +4467,23 @@ function criarProduto(id, num, moldeKey = 'normal', moldeDe = null) {
 }
 
 // cria um card vazio logo depois de 'depoisDe' na ordem de leitura (ou no fim da zona k)
+// o card que o TEMPLATE desenhou nesta zona (mesmo removido): o formato certo pra esse tamanho de casa.
+// Copiar o card de outra zona (o vizinho que já era cópia da capa) levava o desenho de outro tamanho, com
+// R$ e nome fora do lugar do modelo (Redemais 22/10/2026, folhas 2 a 4)
+function moldeDaZona(k) {
+  const R = S.porZona[k] && S.porZona[k].ret; if (!R || !S.limpos) return null;
+  const dentro = c => c && c.x + c.w / 2 >= R.x && c.x + c.w / 2 <= R.x + R.w && c.y + c.h / 2 >= R.y && c.y + c.h / 2 <= R.y + R.h;
+  const tpl = S.produtos.filter(q => !q.novo && q.molde === 'normal' && S.limpos[q.id] && dentro(q.card));
+  const tplN = tpl.filter(q => q.desenho !== 'horizontal');
+  return ((tplN.length ? tplN : tpl)[0] || {}).id || null;
+}
 function novoNaZona(k, depoisDe) {
   const num = proximoNum();
   // desenho normal na frente do horizontal (o automático troca depois, se a casa ficar larga)
   const todosDaZona = S.produtos.filter(q => q.zona === k && q.molde === 'normal');
   const normais = todosDaZona.filter(q => q.desenho !== 'horizontal' && !q.autoH);
   const daZona = normais.length ? normais : todosDaZona;
-  const orig = daZona.filter(q => S.limpos && S.limpos[q.id]).pop() || daZona.map(q => q.moldeDe).filter(Boolean).pop();
+  const orig = moldeDaZona(k) || daZona.filter(q => S.limpos && S.limpos[q.id]).pop() || daZona.map(q => q.moldeDe).filter(Boolean).pop();
   let origId = orig ? (orig.id || orig) : null;
   // zona esvaziada: template do construtor marca zona e card com data-modelo; usa um card desse modelo
   const dm = !origId && S.porZona[k] && S.porZona[k].el && S.porZona[k].el.getAttribute('data-modelo');
@@ -4692,6 +4854,17 @@ function voltarAoModelo() {
 `
     + 'Tamanhos e posições que você ajustou voltam ao do template. Nome, preço e fotos continuam. Dá pra desfazer (↶).')) return;
   marcar(...ps, ...txs);
+  // card criado no editor como cópia de outra zona (outro tamanho): refeito com o card do template da zona
+  // dele, com o mesmo conteúdo (nome, preço, fotos)
+  const lote = [], vistos = new Set();
+  for (const [i, p] of ps.entries()) {
+    const certo = p.novo && p.molde === 'normal' && !p.autoH && p.desenho !== 'horizontal' && p.zona && moldeDaZona(p.zona);
+    if (!certo || certo === p.moldeDe || certo === p.id) continue;
+    trocarMolde(p, 'normal', { moldeDe: certo, manterSpan: true, auto: true, lote, vistos });
+    const n = S.produtos[S.produtos.length - 1];
+    if (n && n !== p && !n.removido) ps[i] = n;
+  }
+  if (lote.length) S.desfazer.push(lote);
   for (const p of ps) {
     const e = estado(p);
     for (const k of AJUSTES_DO_CARD) delete e[k];
@@ -4717,7 +4890,7 @@ async function carregarEspeciais(tplId) {
   S.moldes = { normal: S.molde };
   const dentro = $$('g[id^="PRODUTO_ESPECIAL"]', S.svg)[0];
   if (dentro) { const m = dentro.cloneNode(true); S.moldes['tpl'] = m; S.moldes['tpl'].nome = 'Especial do template'; }
-  const lista = await apiJson(`/templates/${encodeURIComponent(tplId)}/especiais${ajQuery()}`).catch(() => []);
+  const lista = await apiJson(`/templates/${encodeURIComponent(tplId)}/especiais`, ajPedido()).catch(() => []);
   let defs = $('defs', S.svg); if (!defs) { defs = el('defs'); S.svg.insertBefore(defs, S.svg.firstChild); }
   let ne = 0, nh = 0;
   lista.forEach((esp, k) => {
@@ -4978,7 +5151,7 @@ function kNome(p) { return nomeNaTarja(p) ? fatorTarja(p) : 1; }
 function ptNome(p) { return p.base.nome ? p.base.nome.fonte * p.escNome * kNome(p) * (p.encolheu || 1) : 0; }
 // preço dividido: vale o tamanho do real
 function basePreco(p) { return p.base.preco || p.base.real || null; }
-function ptPreco(p) { const b = basePreco(p); return b ? b.fonte * p.escPreco * fatorTarja(p) : 0; }
+function ptPreco(p) { const b = basePreco(p); return b ? b.fonte * p.escPreco * fatorTarja(p) * fatorLarguraPreco(p) : 0; }
 function ptQtd(p) { return p.base.qtd ? p.base.qtd.fonte * (p.qtdEsc || 1) : 0; }
 function fmtPt(v) { return (Math.round(v * 10) / 10).toString().replace('.', ','); }
 function mostrarPt() {
@@ -4999,7 +5172,7 @@ function definirPt(tipo, valor) {
   marcar(...ps);
   for (const p of ps) {
     if (tipo === 'nome' && p.base.nome) p.escNome = v / (p.base.nome.fonte * kNome(p));
-    if (tipo === 'preco' && basePreco(p)) p.escPreco = v / (basePreco(p).fonte * fatorTarja(p));
+    if (tipo === 'preco' && basePreco(p)) p.escPreco = v / (basePreco(p).fonte * fatorTarja(p) * fatorLarguraPreco(p));
     if (tipo === 'qtd' && p.base.qtd) p.qtdEsc = v / p.base.qtd.fonte;
     render(p);
   }
@@ -5770,13 +5943,17 @@ async function preencherPagina(texto) {
     linhas = secoes.slice(0, zsPag.length).flatMap(sc => sc.linhas);
   }
   let ps = ativosDaPagina(i);
+  // página com zona composta (partes fixas e elásticas): a lista se divide entre os lugares fixos e as
+  // áreas elásticas (preencherComposta), em vez de criar/remover cards no fim
+  const compostaPag = !porZona && $('#li-qtd').checked && zsPag.some(z => parteDe(z));
   const fotos = $('#li-fotos').checked;
   if (fotos) await carregarIndice();
   // quantas cópias cada foto teve nesta edição (que nasce da semana anterior), lido ANTES de a grade
   // tirar cards: ovos com 1 continua com 1; foto que nunca apareceu usa o padrão (imagem.copias)
   const copiasPorFoto = new Map();
   for (const q of S.produtos) if (!q.removido) for (const im of q.fotos) copiasPorFoto.set(im.dataset.arq, q.fotos.filter(x => x.dataset.arq === im.dataset.arq).length);
-  if (!porZona && $('#li-qtd').checked && ps.length !== linhas.length) {
+  if (compostaPag) ps = preencherComposta(i, linhas.length);
+  else if (!porZona && $('#li-qtd').checked && ps.length !== linhas.length) {
     // monta a grade: cria ou remove cards no fim pra bater com a lista
     // (cards novos entram na zona do último; com várias zonas, a ordem é zona por zona)
     const zs = zonasDaPagina(i);
@@ -5837,6 +6014,88 @@ async function preencherPagina(texto) {
   mudou(); painel(); fecharSheets();
   aviso(`${n} produto(s) preenchidos` + (linhas.length > n ? ` · sobraram ${linhas.length - n} linhas` : '') +
     (semFoto.length ? ` · sem foto: ${semFoto.join(', ')}` : ''), semFoto.length ? 6000 : 2200);
+}
+
+// ---------------------------------------------------------------- zona composta (Matheus, 22/10/2026)
+// O construtor publica cada parte da zona composta como uma grid_area com data-parte (fixo|elastica),
+// data-grupo (a zona do construtor), data-prioridade (fixo: ordem do destaque) e data-max-linhas/-col
+// (elástica). Fixo = lugar que existe sempre; elástica = recebe a sobra e monta as linhas pela quantidade.
+function parteDe(z) {
+  const el = z && z.el, t = el && el.getAttribute('data-parte'); if (!t) return null;
+  const n = a => { const v = +el.getAttribute(a); return v > 0 ? v : null; };
+  return { tipo: t, grupo: el.getAttribute('data-grupo') || '', prio: n('data-prioridade'), maxL: n('data-max-linhas'), maxC: n('data-max-col') };
+}
+// parte elástica que pode ter mais de uma linha (máx. de linhas ≥ 2 ou sem máximo) aceita linha de 1 produto.
+// Sempre ligado, sem opção no construtor (Matheus, 26/10/2026): com máx. 1 linha não existe linha de 1 a evitar
+function aceitaLinhaDe1(z) { const pt = parteDe(z); return !!pt && pt.tipo === 'elastica' && pt.maxL !== 1; }
+// colunas da área elástica pra n cards: o arranjo com o maior card e mais perto do quadrado (o molde é ~240×250).
+// Conta as linhas como vão sair (incompleta em cima, linha de 1 pode) e vale o pior card do arranjo:
+// uma linha de 3 espremida perde pra 1/2 mesmo com o card de cima largo
+function colunasElastica(n, A, e, maxL, maxC) {
+  let melhor = null;
+  for (let R = 1; R <= n; R++) {
+    if (maxL && R > maxL) break;
+    const C = Math.ceil(n / R); if (maxC && C > maxC) continue;
+    const rows = distribuirLivre(n, C, false, maxL !== 1), h = (A.h - (rows.length - 1) * e) / rows.length;
+    let nota = Infinity;
+    for (const c of new Set(rows)) {
+      const w = (A.w - (c - 1) * e) / c; if (w <= 0 || h <= 0) { nota = -1; break; }
+      // card largo vira horizontal (2 casas) e pode transbordar: pesa menos
+      const q = w / h; nota = Math.min(nota, w * h * Math.min(q, 1 / q) * (q >= 1.35 ? 0.3 : 1));
+    }
+    if (nota > 0 && (!melhor || nota > melhor.nota)) melhor = { C, nota };
+  }
+  // nada cabe nos dois máximos: o de linhas manda (5 com 2×2 = 2/3, a linha passa do máx. por linha)
+  return melhor ? melhor.C : Math.max(1, maxL ? Math.ceil(n / maxL) : maxC || n);
+}
+// reparte a lista (nLista produtos) entre as zonas da página: lugares fixos e zonas normais ficam com o
+// número de cards que têm; a sobra vai pras elásticas pelo tamanho delas. Devolve os cards na ordem de
+// preenchimento: fixos com prioridade primeiro (1, 2, 3…), depois o resto na ordem de leitura
+function preencherComposta(i, nLista) {
+  const zs = zonasDaPagina(i), lote = S.produtos.filter(q => zs.some(z => z.chave === q.zona)).map(estado), novos = [];
+  const info = zs.map(z => ({ z, k: z.chave, pt: parteDe(z), g: S.grades[z.chave] })).filter(o => o.g);
+  const fixos = info.filter(o => !o.pt || o.pt.tipo === 'fixo'), elas = info.filter(o => o.pt && o.pt.tipo === 'elastica');
+  // quantos lugares cada fixo tem: o desenho do template (colunas), não o que sobrou da semana anterior
+  for (const o of fixos) o.n = o.pt ? Math.max(1, (S.gradesOrig[o.k] || o.g).colunas || 1) : ativosDaZona(o.k).length;
+  const F = fixos.reduce((t, o) => t + o.n, 0);
+  let sobra = Math.max(0, nLista - F);
+  // fixos quando a lista é menor que os lugares: os com prioridade ficam, os outros perdem do fim
+  if (nLista < F) {
+    let falta = F - nLista;
+    for (const o of [...fixos].sort((a, b) => ((a.pt && a.pt.prio) || 999) - ((b.pt && b.pt.prio) || 999)).reverse()) {
+      const tira = Math.min(falta, o.n); o.n -= tira; falta -= tira; if (!falta) break;
+    }
+  }
+  // elásticas: pela área (maior resto fica com o que sobra do arredondamento)
+  const areaDe = o => { const A = (S.gradesOrig[o.k] || o.g).area || o.z.ret; return A.w * A.h; };
+  const tot = elas.reduce((t, o) => t + areaDe(o), 0) || 1;
+  for (const o of elas) { o.q = sobra * areaDe(o) / tot; o.n = Math.floor(o.q); }
+  let resto = sobra - elas.reduce((t, o) => t + o.n, 0);
+  for (const o of [...elas].sort((a, b) => (b.q - b.n) - (a.q - a.n))) { if (resto <= 0) break; o.n++; resto--; }
+  for (const o of info) {
+    let qs = ativosDaZona(o.k);
+    while (qs.length < o.n) { const p = novoNaZona(o.k, qs[qs.length - 1]); novos.push({ tipo: 'novo', id: p.id }); qs = ativosDaZona(o.k); }
+    while (qs.length > o.n) { const p = qs.pop(); p.removido = true; render(p); }
+  }
+  // fixo cresce por cima das elásticas vazias do mesmo grupo (só com um fixo no grupo); senão volta pro desenho
+  const grupos = new Map();
+  for (const o of info) if (o.pt) { const l = grupos.get(o.pt.grupo) || []; l.push(o); grupos.set(o.pt.grupo, l); }
+  for (const l of grupos.values()) {
+    const fx = l.filter(o => o.pt.tipo === 'fixo'); if (fx.length !== 1) continue;
+    const f = fx[0], A0 = (S.gradesOrig[f.k] || f.g).area, vazias = l.filter(o => o.pt.tipo === 'elastica' && !o.n);
+    const rs = [A0, ...vazias.map(o => (S.gradesOrig[o.k] || o.g).area)];
+    const x0 = Math.min(...rs.map(r => r.x)), y0 = Math.min(...rs.map(r => r.y));
+    f.g.area = { x: x0, y: y0, w: Math.max(...rs.map(r => r.x + r.w)) - x0, h: Math.max(...rs.map(r => r.y + r.h)) - y0 };
+  }
+  for (const o of elas) if (o.n) {
+    const A = (S.gradesOrig[o.k] || o.g).area;
+    o.g.area = { ...A }; o.g.colunas = colunasElastica(o.n, A, o.g.espaco, o.pt.maxL, o.pt.maxC); o.g.linha1 = o.pt.maxL !== 1; delete o.g.linhas;
+  }
+  S.desfazer.push([...novos, ...lote]);
+  for (const o of info) montarGrade(o.k);
+  const todos = ativosDaPagina(i);
+  const prios = fixos.filter(o => o.pt && o.pt.prio).sort((a, b) => a.pt.prio - b.pt.prio).map(o => ativosDaZona(o.k)[0]).filter(Boolean);
+  return [...prios, ...todos.filter(p => !prios.includes(p))];
 }
 
 // ---------------------------------------------------------------- inspecionar

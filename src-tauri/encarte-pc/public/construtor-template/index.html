@@ -194,6 +194,19 @@
     #sidebar .sb-list { max-height: none; }
     #props-alca { display: none; }
 
+    /* ── embutido no editor de encarte (embutido.js): só o editor do modelo, em tela cheia ── */
+    body.embutido #toolbar, body.embutido #main { display: none; }
+    body.embutido #modal-overlay.open { background: var(--c-bg); }
+    body.embutido #modal { width: 100vw; height: 100vh; height: 100dvh; max-height: none; border: 0; border-radius: 0; box-shadow: none; }
+    body.embutido #modal-header { flex-wrap: wrap; row-gap: 6px; }
+    body.embutido #modal-header .btn:disabled { opacity: .5; cursor: default; }
+    /* ?painel: só as ferramentas, ao lado do encarte (o card é o de lá) */
+    body.embutido.painel #modal-canvas-wrap { display: none; }
+    body.embutido.painel #modal-body { flex-direction: column; }
+    body.embutido.painel #modal-props { width: 100%; max-width: none; flex: 1; border-left: 0; }
+    #emb-aviso { padding: 8px 16px; background: #4d3a00; color: #ffd76a; font-size: 12px; border-bottom: 1px solid #111; }
+    #emb-aviso.oculto { display: none; }
+
     /* ── celular ─────────────────────────────────────────────────────── */
     @media (max-width: 768px) {
       body { height: 100dvh; }
@@ -364,5 +377,6 @@
 <script src="../encarte/divisorias.js"></script>
 <script src="app.js"></script>
 <script src="biblioteca.js"></script>
+<script src="embutido.js"></script>
 </body>
 </html>

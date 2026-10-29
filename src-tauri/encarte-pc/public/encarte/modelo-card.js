@@ -132,10 +132,10 @@ function aplicarModeloAjPt(lista) {
     const g = S.svg.getElementById(id); if (g) aplicarAjusteNoCard(g, a.pecas);
   }
 }
-/** ?aj= da edição pro SVG do template do construtor (vazio sem ajuste). */
-function ajQuery() {
+/** Pedido do SVG do template do construtor com o ajuste da edição (POST: o modelo trocado inteiro não cabe na URL). */
+function ajPedido() {
   const a = S.edicao && S.edicao.modelosAj;
-  return Array.isArray(a) && a.length ? '?aj=' + encodeURIComponent(JSON.stringify(a)) : '';
+  return Array.isArray(a) && a.length ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ aj: a }) } : {};
 }
 
 const ISO = { on: false, pecas: {} };
@@ -154,8 +154,11 @@ function somarAjPt(a, b) {
 }
 
 function entrarModeloCard(p) {
-  if (!p || ISO.on || !S.carregado) return;
+  if (!p || ISO.on || MC.quadro || !S.carregado) return;
   const dm = p.g.getAttribute('data-modelo');
+  // template do construtor: o editor de modelo do construtor inteiro (abaixo); o modo isolado fica pro
+  // template do Illustrator, que não tem projeto
+  if (S.projetoTpl && dm) return abrirModeloCompleto(p, +dm);
   limparSelecao(); painel();
   // o card (uma cópia; o p.g sai da tela e volta igual) fica em cima de um véu cinza, num grupo com a
   // mesma transformação de onde ele mora
@@ -335,11 +338,15 @@ function abrirPainelIso() {
   });
 }
 function atualizarPainelIso(ps) {
-  const s = $('#iso-peca');
-  const ks = [...ps.keys()];
-  s.replaceChildren(new Option('— escolha a peça —', ''), ...ks.map(k => new Option(rotuloPeca(k) + (ISO.pecas[k] ? ' •' : ''), k)));
-  s.value = ISO.sel && ks.includes(ISO.sel) ? ISO.sel : '';
-  const k = s.value, els = k ? ps.get(k) : [];
+  // camadas: uma linha por peça, na ordem do card (as de cima primeiro, como no construtor)
+  const ks = [...ps.keys()], k = ISO.sel && ks.includes(ISO.sel) ? ISO.sel : '', els = k ? ps.get(k) : [];
+  $('#iso-peca').replaceChildren(...ks.slice().reverse().map(c => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'iso-camada' + (c === k ? ' ativa' : '') + (ehGrupoPeca(c) ? ' grupo' : '');
+    b.dataset.peca = c; b.setAttribute('role', 'option'); b.setAttribute('aria-selected', c === k);
+    b.textContent = rotuloPeca(c) + (ISO.pecas[c] ? ' •' : '');
+    return b;
+  }));
   $('#iso-mover').classList.toggle('desligado', !k || SO_COR.has(k) || nomeTravado(k));
   $('#iso-motivo').textContent = k && nomeTravado(k) ? motivoNomePreso() : '';
   $('#iso-motivo').classList.toggle('oculto', !(k && nomeTravado(k)));
@@ -359,8 +366,205 @@ function corHex(v) {
   return m ? '#' + [m[1], m[2], m[3]].map(x => (+x).toString(16).padStart(2, '0')).join('') : null;
 }
 
+// ---------------------------------------------------------------- modelo do card completo (construtor)
+// Template do construtor: o card é editado NA TELA do encarte e só o painel de ferramentas é o do
+// construtor (Matheus, 22/10/2026: "editar na tela, só que o painel de ferramenta ser o do template, não
+// ir para a página de template"). O painel é o editor de modelo do construtor num <iframe> ao lado
+// (/construtor-template/?embutido&painel, ver embutido.js), sem o card dele: camadas, propriedades de cada
+// peça, cor com degradê e transparência, regras, versões e formatos. O resto do encarte fica cinza e o
+// card tocado em destaque; cada mudança no painel redesenha o encarte com o modelo novo (prévia, sem
+// gravar), tocar numa peça do card seleciona ela no painel e arrastar move. No fim: "só neste encarte"
+// grava o modelo na ficha (modelosAj, o servidor gera o template com ele) e "salvar no template" troca no
+// projeto do construtor e republica. Fechar sem aplicar volta o encarte como estava.
+const MC = { quadro: null, fr: null, p: null, gid: '', modelo: 0, versao: '', ajOrig: [], previa: null, tPrevia: 0, sel: null, veu: null, wrap: null, ui: null, pai: null, prox: null, carregando: false };
+const clonarAj = a => JSON.parse(JSON.stringify(Array.isArray(a) ? a : []));
+const responderMC = m => MC.fr && MC.fr.contentWindow.postMessage({ smdModelo: true, ...m }, location.origin);
+async function abrirModeloCompleto(p, modelo) {
+  limparSelecao(); painel();
+  if (!(await salvar())) return; // o embutido lê os produtos da edição gravada
+  Object.assign(MC, { p, gid: p.g.id, modelo, versao: versaoDoCard(p), ajOrig: clonarAj(S.edicao.modelosAj), previa: null, sel: null });
+  const fr = document.createElement('iframe');
+  fr.src = '/construtor-template/index.html?embutido=1&painel=1';
+  fr.title = 'Modelo do card';
+  MC.fr = fr; MC.quadro = document.createElement('div');
+  MC.quadro.id = 'modelo-completo';
+  MC.quadro.append(fr); document.body.append(MC.quadro);
+  document.body.classList.add('mc-on');
+  // aproxima no card (o painel come a lateral): a vista volta como estava ao fechar
+  MC.vbAntes = S.vb && { ...S.vb };
+  const b = retSvgBBox(p.g), f = 1.8;
+  camera({ x: b.x + b.w / 2 - b.w * f / 2, y: b.y + b.h / 2 - b.h * f / 2, w: b.w * f, h: b.h * f });
+  destacarCard();
+}
+// fecha o painel; com prévia na tela e sem aplicar, o encarte volta como estava
+async function fecharModeloCompleto(aplicou) {
+  if (!MC.quadro) return;
+  clearTimeout(MC.tPrevia);
+  // prévia no meio do redesenho: S.carregado fica falso e salvar não grava; espera ela acabar
+  while (MC.carregando) await new Promise(r => setTimeout(r, 100));
+  if (!MC.quadro) return; // fechou por outro caminho enquanto esperava
+  MC.quadro.remove(); MC.quadro = MC.fr = null;
+  document.body.classList.remove('mc-on');
+  tirarDestaque();
+  if (MC.vbAntes) { camera(MC.vbAntes); MC.vbAntes = null; }
+  const tinhaPrevia = !!MC.previa || JSON.stringify(S.edicao.modelosAj || []) !== JSON.stringify(MC.ajOrig);
+  MC.previa = null;
+  if (!aplicou && tinhaPrevia) {
+    S.edicao.modelosAj = MC.ajOrig;
+    await recarregarPrevia();
+    salvar();
+  }
+}
+
+// o card tocado vai pra cima de um véu cinza (como o modo isolado), com a mesma matriz de onde mora
+function destacarCard() {
+  tirarDestaque();
+  const p = S.produtos.find(q => q.g && q.g.id === MC.gid);
+  if (!p || !p.g.parentNode) return;
+  MC.p = p;
+  const m = matrizAteRaiz(p.g.parentNode), vb = S.svg.viewBox.baseVal, mt = `matrix(${[m.a, m.b, m.c, m.d, m.e, m.f].join(' ')})`;
+  // véu bem maior que a vista: zoom e a largura do palco mudam com o painel aberto
+  MC.veu = el('rect', { x: vb.x - vb.width * 20, y: vb.y - vb.height * 20, width: vb.width * 41, height: vb.height * 41, fill: '#1b1d21', 'fill-opacity': 0.62, class: 'iso-veu' });
+  MC.wrap = el('g', { class: 'iso-card', transform: mt });
+  MC.ui = el('g', { class: 'iso-ui', 'pointer-events': 'none' }); // retUniao mede no espaço da raiz
+  MC.pai = p.g.parentNode; MC.prox = p.g.nextSibling;
+  S.svg.append(MC.veu, MC.wrap, MC.ui);
+  MC.wrap.appendChild(p.g);
+  marcarSelMC();
+}
+function tirarDestaque() {
+  if (MC.wrap && MC.p && MC.p.g.parentNode === MC.wrap) {
+    if (MC.prox && MC.prox.parentNode === MC.pai) MC.pai.insertBefore(MC.p.g, MC.prox); else if (MC.pai) MC.pai.appendChild(MC.p.g);
+  }
+  for (const k of ['veu', 'wrap', 'ui']) { if (MC[k]) MC[k].remove(); MC[k] = null; }
+}
+// chave da peça no SVG do encarte (chavePeca) ↔ seleção do construtor (M.sel)
+const SEL_DE_PECA = { grupo_preco: 'g:preco', grupo_de: 'g:de', grupo_selo: 'g:selo', grupo_nome: 'g:produto', fundo_card: null };
+const selDaPeca = k => k in SEL_DE_PECA ? SEL_DE_PECA[k] : k.startsWith('extras.') ? 'x' + k.slice(7) : k;
+const PECA_DE_SEL = { 'g:preco': 'grupo_preco', 'g:de': 'grupo_de', 'g:selo': 'grupo_selo', 'g:produto': 'grupo_nome' };
+const pecaDaSel = k => !k ? null : k.startsWith('g:') ? PECA_DE_SEL[k] || null : /^x\d+$/.test(k) ? 'extras.' + k.slice(1) : k;
+function marcarSelMC() {
+  if (!MC.ui || !MC.p) return;
+  MC.ui.replaceChildren();
+  const k = pecaDaSel(MC.sel), ps = pecasDoCard(MC.p.g);
+  const els = (k && ps.get(k)) || (k === 'grupo_nome' && ps.get('nome'));
+  const b = els && retUniao(els);
+  if (b) MC.ui.appendChild(el('rect', { x: b.x - 2, y: b.y - 2, width: b.w + 4, height: b.h + 4, fill: 'none', stroke: '#ffcc00', 'stroke-width': 2, 'stroke-dasharray': '6 4', 'vector-effect': 'non-scaling-stroke' }));
+}
+
+// prévia: o encarte é refeito com o modelo do painel (sem buscar a edição de novo e sem gravar)
+function agendarPrevia(modeloCard) {
+  MC.previa = modeloCard;
+  clearTimeout(MC.tPrevia);
+  MC.tPrevia = setTimeout(async () => {
+    if (!MC.quadro || !MC.previa) return;
+    if (MC.carregando) return agendarPrevia(MC.previa);
+    S.edicao.modelosAj = [...MC.ajOrig.filter(x => x.modelo !== MC.modelo), { modelo: MC.modelo, modeloCard: MC.previa }];
+    await recarregarPrevia();
+  }, 450);
+}
+async function recarregarPrevia() {
+  MC.carregando = true;
+  const vb = S.vb && { ...S.vb };
+  try {
+    tirarDestaque();
+    await abrirEdicao(S.edicao.id, { ed: S.edicao });
+    if (vb && S.svg) camera(vb);
+    if (MC.quadro) destacarCard();
+  } finally { MC.carregando = false; }
+}
+
+const ajusteDoModelo = (lista, modelo) => (Array.isArray(lista) ? lista : []).filter(x => x.modelo === modelo);
+window.addEventListener('message', async ev => {
+  const d = ev.data;
+  if (!MC.quadro || ev.origin !== location.origin || ev.source !== MC.fr.contentWindow || !d || !d.smdModelo) return;
+  const ed = S.edicao;
+  if (d.tipo === 'pronto') responderMC({
+    tipo: 'abrir', template: ed.template, projetoId: S.projetoTpl, aj: MC.ajOrig, modelo: MC.modelo, versao: MC.versao,
+    casa: { w: MC.p.cell.w, h: MC.p.cell.h }, edicao: ed.id, produto: String(MC.p.nome || '').replace(/\s+/g, ' ').trim(),
+    nomePreso: nomePresoPelaRegra(MC.p) ? motivoNomePreso().replace(' Cor, fonte e tamanho funcionam.', ' Cor, fonte e tamanho do nome funcionam; o lugar volta sozinho.') : '',
+    temAjuste: ajusteDoModelo(MC.ajOrig, MC.modelo).length > 0,
+  });
+  else if (d.tipo === 'sel') {
+    MC.sel = d.peca || null; marcarSelMC();
+    if (d.modeloCard) agendarPrevia(d.modeloCard);
+  }
+  else if (d.tipo === 'fechar') fecharModeloCompleto(false);
+  else if (d.tipo === 'so-aqui' || d.tipo === 'tirar') {
+    // a troca já saiu do modelo com o ajuste que a edição tinha: substitui tudo deste modelo
+    const resto = MC.ajOrig.filter(x => x.modelo !== MC.modelo);
+    await fecharModeloCompleto(true);
+    ed.modelosAj = d.tipo === 'tirar' ? resto : [...resto, { modelo: MC.modelo, modeloCard: d.modeloCard }];
+    await recarregarComModelo(d.tipo === 'tirar' ? 'O card voltou a seguir o template' : 'Modelo do card ajustado neste encarte');
+  } else if (d.tipo === 'salvar') {
+    if (!(await salvarModeloNoTemplate(d.modeloCard, false))) responderMC({ tipo: 'erro' });
+  }
+});
+
+// toque e arrasto no card em destaque: a peça é selecionada no painel e o arrasto vira 'mover'
+// (fração do card; o painel converte pro card dele e a prévia redesenha o encarte)
+function pecaDoAlvoMC(t) {
+  for (let n = t; n && n !== MC.wrap && n !== S.svg; n = n.parentNode) { const k = chavePeca(n); if (k) return k; }
+  return null;
+}
+document.addEventListener('pointerdown', e => {
+  if (!MC.quadro || !MC.wrap || !e.target.closest) return;
+  if (e.target === MC.veu) { e.stopPropagation(); e.preventDefault(); return; }
+  if (!MC.wrap.contains(e.target)) return;
+  e.stopPropagation(); e.preventDefault();
+  const k = pecaDoAlvoMC(e.target), sel = k ? selDaPeca(k) : null;
+  if (!sel) return;
+  if (sel !== MC.sel) { MC.sel = sel; marcarSelMC(); responderMC({ tipo: 'selecionar', peca: sel }); }
+  if (PECAS_DO_NOME.has(k) && nomePresoPelaRegra(MC.p)) return aviso(motivoNomePreso(), 6000);
+  const inv = matrizAteRaiz(MC.wrap).inverse(), p0 = pontoSvg(e.clientX, e.clientY).matrixTransform(inv);
+  const card = MC.p.cell, els = (pecasDoCard(MC.p.g).get(k) || []).map(n => [n, n.getAttribute('transform')]);
+  let dx = 0, dy = 0;
+  const mover = ev => {
+    const p1 = pontoSvg(ev.clientX, ev.clientY).matrixTransform(inv);
+    dx = p1.x - p0.x; dy = p1.y - p0.y;
+    // só a peça anda na tela até soltar (aí o encarte se refaz com o modelo novo)
+    for (const [n, t] of els) n.setAttribute('transform', `translate(${dx} ${dy})${t ? ' ' + t : ''}`);
+    MC.ui.setAttribute('visibility', 'hidden');
+  };
+  const soltar = () => {
+    document.removeEventListener('pointermove', mover, true); document.removeEventListener('pointerup', soltar, true);
+    if (MC.ui) MC.ui.removeAttribute('visibility');
+    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+    responderMC({ tipo: 'mover', peca: sel, fx: dx / card.w, fy: dy / card.h });
+  };
+  document.addEventListener('pointermove', mover, true);
+  document.addEventListener('pointerup', soltar, true);
+}, true);
+for (const tipo of ['click', 'dblclick', 'pointerup', 'pointermove']) document.addEventListener(tipo, e => {
+  if (!MC.quadro || !MC.wrap || !e.target.closest) return;
+  if (MC.wrap.contains(e.target) || e.target === MC.veu) e.stopPropagation();
+}, true);
+async function salvarModeloNoTemplate(modeloCard, forcar) {
+  if (!forcar && !confirm('Salvar no template? Vale pros próximos encartes e pros outros cards deste modelo. O template é republicado.')) return false;
+  aviso('Salvando no template…', 8000);
+  try {
+    const r = await api(`/projetos-template/${encodeURIComponent(S.projetoTpl)}/ajustar-modelo`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ajustes: [{ modelo: MC.modelo, modeloCard }], forcar: !!forcar }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.status === 409 && d.pendente) {
+      if (confirm('O construtor tem mudança neste template que ainda não foi publicada. Publicar junto com o modelo do card? (O que mudou neste modelo lá fica como está aqui.)')) return salvarModeloNoTemplate(modeloCard, true);
+      return false;
+    }
+    if (!r.ok) throw new Error(d.error || r.status);
+  } catch (e) {
+    alerta(e.message === 'sessao' ? 'Sessão expirou: entre de novo no Somado Tarefas.' : 'Não salvou no template: ' + e.message);
+    return false;
+  }
+  await fecharModeloCompleto(true);
+  S.edicao.modelosAj = MC.ajOrig.filter(x => x.modelo !== MC.modelo);
+  await recarregarComModelo('Salvo no template e republicado');
+  return true;
+}
+
 $('#iso-sair').onclick = () => sairModeloCard();
-$('#iso-peca').onchange = e => { ISO.sel = e.target.value || null; redesenharIso(); };
+$('#iso-peca').onclick = e => { const b = e.target.closest('[data-peca]'); if (b) { ISO.sel = b.dataset.peca; redesenharIso(); } };
 $('#iso-painel').addEventListener('click', e => {
   const mv = e.target.closest('[data-iso-mv]');
   if (mv) { const [x, y] = mv.dataset.isoMv.split(':').map(Number), k = e.shiftKey ? 10 : 1; mexerPeca({ dx: x * k, dy: y * k }); }
@@ -403,6 +607,7 @@ for (const tipo of ['click', 'dblclick', 'pointerup', 'pointermove']) document.a
   if (ISO.wrap.contains(e.target) || (tipo !== 'click' && e.target === ISO.veu)) e.stopPropagation();
 }, true);
 document.addEventListener('keydown', e => {
+  if (MC.quadro && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return fecharModeloCompleto(false); } // antes do embutido carregar
   if (!ISO.on || (e.target.closest && e.target.closest('input, textarea, select'))) return;
   if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return sairModeloCard(); }
   const k = e.shiftKey ? 10 : 1;

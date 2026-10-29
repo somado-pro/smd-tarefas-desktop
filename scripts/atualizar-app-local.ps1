@@ -6,6 +6,14 @@ param([string]$Gerencia = "D:\Claude Code Projetos Locais\smd-gerencia")
 $ErrorActionPreference = "Stop"
 Push-Location $Gerencia
 try {
+  # dependência nova no smd-gerencia (ex.: @modelcontextprotocol/sdk, 25/10) quebrava o
+  # build: o git pull traz o package-lock, mas ninguém instalava. Instala quando o lock
+  # é mais novo que o node_modules.
+  $lock = Get-Item "package-lock.json"
+  $instalado = Get-Item "node_modules\.package-lock.json" -ErrorAction SilentlyContinue
+  if (-not $instalado -or $lock.LastWriteTime -gt $instalado.LastWriteTime) {
+    npm install --no-audit --no-fund; if ($LASTEXITCODE -ne 0) { throw "npm install falhou" }
+  }
   npm run build:local; if ($LASTEXITCODE -ne 0) { throw "build:local falhou" }
   npm run build:encarte-pc; if ($LASTEXITCODE -ne 0) { throw "build:encarte-pc falhou" }
 } finally { Pop-Location }

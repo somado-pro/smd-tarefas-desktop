@@ -15097,6 +15097,8 @@ import path3 from "path";
 import { randomUUID } from "crypto";
 
 // lib/encarte/modelo-ajuste.ts
+var ehTroca = (a) => "modeloCard" in a;
+var MAX_MODELO = 3e5;
 var GRUPOS = {
   grupo_preco: ["preco_fundo", "moeda_fundo", "moeda", "preco", "centavos", "unidade"],
   grupo_de: ["de_fundo", "de_rotulo", "de_valor"],
@@ -15117,6 +15119,12 @@ function normalizarAjustes(entrada) {
   for (const a of entrada.slice(0, 40)) {
     if (!a || typeof a !== "object") continue;
     const o = a;
+    if (num(o.modelo) && o.modeloCard && typeof o.modeloCard === "object") {
+      const mc = o.modeloCard;
+      if (!mc.campos || typeof mc.campos !== "object" || JSON.stringify(mc).length > MAX_MODELO) continue;
+      out.push({ modelo: o.modelo, modeloCard: JSON.parse(JSON.stringify(mc)) });
+      continue;
+    }
     if (!num(o.modelo) || !VERSOES.includes(o.versao) || !o.pecas || typeof o.pecas !== "object") continue;
     const pecas = {};
     for (const [k, v] of Object.entries(o.pecas).slice(0, 60)) {
@@ -15132,6 +15140,14 @@ function normalizarAjustes(entrada) {
     if (Object.keys(pecas).length) out.push({ modelo: o.modelo, versao: o.versao, pecas });
   }
   return out;
+}
+async function ajustesDoPedido(req) {
+  try {
+    if (req.method === "POST") return normalizarAjustes((await req.json())?.aj);
+    return normalizarAjustes(JSON.parse(new URL(req.url).searchParams.get("aj") || "[]"));
+  } catch {
+    return [];
+  }
 }
 function uniao(bs) {
   const x0 = Math.min(...bs.map((b) => b.x)), y0 = Math.min(...bs.map((b) => b.y));
@@ -15188,8 +15204,12 @@ function aplicarFundoCard(m, campos, aj) {
 function aplicarAjustesNoProjeto(projeto, ajustes) {
   const p = JSON.parse(JSON.stringify(projeto));
   for (const a of ajustes) {
-    const m = p.modelos_card.find((x) => x.indice === a.modelo);
+    const i = p.modelos_card.findIndex((x) => x.indice === a.modelo), m = p.modelos_card[i];
     if (!m) continue;
+    if (ehTroca(a)) {
+      p.modelos_card[i] = { ...JSON.parse(JSON.stringify(a.modeloCard)), id: m.id, indice: m.indice };
+      continue;
+    }
     const alvos = [];
     if (m[a.versao]) alvos.push(m[a.versao]);
     for (const [k, f] of Object.entries(m.formatos || {})) if (k.startsWith(a.versao + ":")) alvos.push(f);
@@ -23947,6 +23967,7 @@ var TIPOS = {
 };
 var tipoPorExt = (arq) => TIPOS[path2.extname(arq).toLowerCase()] || "application/octet-stream";
 async function storage() {
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) return createAdminClient().storage.from(BUCKET);
   return (await createClient2()).storage.from(BUCKET);
 }
 async function subirMidia(chave, dados, tipo) {
@@ -24072,6 +24093,18 @@ function divisoriasDaZona(cells, o = {}) {
   return res;
 }
 
+// lib/encarte/tipos-template.ts
+function regrasValidas(r) {
+  if (!r || typeof r !== "object") return null;
+  const o = {};
+  for (const k of ["nome_acima_do_preco", "nome_embaixo_fica", "linha_incompleta_embaixo", "encolhe_card_baixo", "logo_auto", "preco_proporcional"])
+    if (typeof r[k] === "boolean") o[k] = r[k];
+  for (const k of ["primeira_linha_max", "titulo_min_pt", "preco_ajustar_largura"])
+    if (typeof r[k] === "number" && isFinite(r[k]) && r[k] >= 0) o[k] = r[k];
+  if (r.moeda_anda === true || r.moeda_anda === false || r.moeda_anda === "fundo") o.moeda_anda = r.moeda_anda;
+  return Object.keys(o).length ? o : null;
+}
+
 // lib/encarte/gerador-template.ts
 function dadosTrava(b, trava) {
   const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
@@ -24157,14 +24190,27 @@ function pinta(attr, cor) {
   if (!m) return `${attr}="${esc(cor || "none")}"`;
   return `${attr}="#${m[1]}" ${attr}-opacity="${+(parseInt(m[2], 16) / 255).toFixed(3)}"`;
 }
+function svgFiltroSombra(id, o) {
+  const m = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(o.sombra_cor || "#000000") || ["", "000000", "80"];
+  const op = m[2] ? +(parseInt(m[2], 16) / 255).toFixed(3) : 1;
+  const sx = +(o.sombra_largura || 0), sy = +(o.sombra_altura || 0);
+  const morf = sx || sy ? `<feMorphology in="SourceAlpha" operator="${sx + sy < 0 ? "erode" : "dilate"}" radius="${n2(Math.abs(sx))} ${n2(Math.abs(sy))}" result="sa"/>` : "";
+  return `<filter id="${id}" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">${morf}<feOffset in="${morf ? "sa" : "SourceAlpha"}" dx="${n2(+(o.sombra_x || 0))}" dy="${n2(+(o.sombra_y || 0))}" result="so"/><feGaussianBlur in="so" stdDeviation="${n2(Math.max(0, +(o.sombra_blur || 0)) / 2)}" result="sb"/><feFlood flood-color="#${m[1]}" flood-opacity="${op}"/><feComposite in2="sb" operator="in" result="sc"/><feMerge><feMergeNode in="sc"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+}
+function sombra(o) {
+  if (!o || !o.sombra) return "";
+  const id = `sombra_${DEFS.length + 1}`;
+  DEFS.push(svgFiltroSombra(id, o));
+  return ` filter="url(#${id})"`;
+}
 function borda(o, texto = false) {
   if (!o.borda || !o.borda_cor) return "";
   return ` ${pinta("stroke", o.borda_cor)} stroke-width="${o.borda}"${texto ? ' paint-order="stroke" stroke-linejoin="round"' : ""}`;
 }
 function svgForma(id, b, f) {
   const geo = `x="${n2(b.x)}" y="${n2(b.y)}" width="${n2(b.w)}" height="${n2(b.h)}"`;
-  if (f.imagem_url) return `<image id="${esc(id)}" ${geo} preserveAspectRatio="none" ${href(f.imagem_url)}/>`;
-  const fill = `${pinta("fill", f.cor || "none")}${borda(f)}`;
+  if (f.imagem_url) return `<image id="${esc(id)}" ${geo} preserveAspectRatio="none"${sombra(f)} ${href(f.imagem_url)}/>`;
+  const fill = `${pinta("fill", f.cor || "none")}${borda(f)}${sombra(f)}`;
   const r = Math.min(f.raio || 0, b.w / 2, b.h / 2);
   const c = f.cantos && f.cantos.length === 4 ? f.cantos : [true, true, true, true];
   if (!r || c.every(Boolean)) return `<rect id="${esc(id)}" ${geo} ${fill}${r ? ` rx="${n2(r)}" ry="${n2(r)}"` : ""}/>`;
@@ -24181,7 +24227,7 @@ function estiloTexto(c, tachar = false) {
 }
 function svgTexto(id, c, b, conteudo, ancoraFixa, tachar = false, dados = "") {
   const al = ancoraFixa || c.alinhamento;
-  return `<text id="${esc(id)}"${dados} ${fontStr(c.fonte, c.tamanho)} ${pinta("fill", c.cor)}${borda(c, true)}${estiloTexto(c, tachar)} transform="translate(${xTexto(b, al)} ${/_nome(_texto)?$/.test(id) ? baseline(b.y, b.h) : baselineTexto(b, c)})" ${anchor(al)}>${esc(conteudo)}</text>`;
+  return `<text id="${esc(id)}"${dados} ${fontStr(c.fonte, c.tamanho)} ${pinta("fill", c.cor)}${borda(c, true)}${sombra(c)}${estiloTexto(c, tachar)} transform="translate(${xTexto(b, al)} ${/_nome(_texto)?$/.test(id) ? baseline(b.y, b.h) : baselineTexto(b, c)})" ${anchor(al)}>${esc(conteudo)}</text>`;
 }
 var margensNome = (f) => ({ t: f?.margem_t ?? 6, r: f?.margem_r ?? 6, b: f?.margem_b ?? 6, l: f?.margem_l ?? 6 });
 function caixaDoNome(campos, card) {
@@ -24221,12 +24267,14 @@ function precoProporcional(campos, ref, casa) {
   const x0 = Math.min(...pecas.map((b) => b.x)) / 100 * ref.w, x1 = Math.max(...pecas.map((b) => b.x + b.w)) / 100 * ref.w;
   const y0 = Math.min(...pecas.map((b) => b.y)) / 100 * ref.h, y1 = Math.max(...pecas.map((b) => b.y + b.h)) / 100 * ref.h;
   const cx = (x0 + x1) / 2 / ref.w, cy = (y0 + y1) / 2 / ref.h;
-  const s = Math.min(
+  const s0 = Math.min(
     casa.w / ref.w,
     casa.h / ref.h,
     cx > 0.6 || cx < 0.4 ? Math.max(0.05, (casa.w - (cx > 0.6 ? ref.w - x1 : x0)) / (x1 - x0)) : Infinity,
     Math.max(0.05, (casa.h - (cy > 0.5 ? ref.h - y1 : y0)) / (y1 - y0))
   );
+  const minH = campos.min_preco_h;
+  const s = typeof minH === "number" && minH > 0 ? Math.max(s0, Math.min(minH / (y1 - y0), casa.w / (x1 - x0), casa.h / (y1 - y0))) : s0;
   const X0 = cx > 0.6 ? casa.w - (ref.w - x1) - (x1 - x0) * s : cx < 0.4 ? x0 : cx * casa.w - (x1 - x0) * s / 2;
   const Y0 = cy > 0.5 ? casa.h - (ref.h - y1) - (y1 - y0) * s : y0;
   const ptX = (x) => X0 + (x / 100 * ref.w - x0) * s, ptY = (y) => Y0 + (y / 100 * ref.h - y0) * s;
@@ -24352,14 +24400,43 @@ var r1 = (v) => Math.round(v * 10) / 10;
 var chaveFormato = (v, w, h) => `${v}:${r1(w)}x${r1(h)}`;
 function versaoNaCasa(m, v, casa, refLegado) {
   const f = m.formatos && m.formatos[chaveFormato(v, casa.w, casa.h)];
-  if (f) return precoNaCasa(f, casa, casa);
-  return precoNaCasa(m[v], refLegado, casa);
+  const min = (c) => m.min_preco_h ? { ...c, min_preco_h: m.min_preco_h } : c;
+  if (f) return precoNaCasa(min(comTravas(m, f)), casa, casa);
+  return precoNaCasa(min(comTravas(m, m[v])), refLegado, casa);
+}
+function comTravas(m, c) {
+  if (!m.travas || !m.travas.length || !c || c === m.campos) return c;
+  const base = m.campos;
+  const out = { ...c };
+  for (const t of m.travas) {
+    const [k, prop] = String(t).split(".");
+    const b = base[k], o = out[k];
+    if (!b || !o || !prop || !(prop in b)) continue;
+    out[k] = { ...o, [prop]: JSON.parse(JSON.stringify(b[prop])) };
+  }
+  return out;
 }
 function precoNaCasa(campos, ref, casa) {
   const r = campos.preco_ref && campos.preco_ref.w > 0 && campos.preco_ref.h > 0 ? campos.preco_ref : ref;
   return r ? camposNaCasa(campos, r, casa) : campos;
 }
-function svgCampos(campos, num2, card) {
+function precoNaBorda(campos) {
+  const f = campos.preco_fundo, lado = f && f.na_borda;
+  if (!f || lado !== "esq" && lado !== "dir") return campos;
+  const ms = [campos.moeda, campos.moeda_fundo].filter(Boolean);
+  if (!ms.length) return campos;
+  const x0 = Math.min(...ms.map((b) => b.x)), x1 = Math.max(...ms.map((b) => b.x + b.w));
+  const dx = (lado === "esq" ? f.x : f.x + f.w) - (x0 + x1) / 2;
+  if (Math.abs(dx) < 0.01) return campos;
+  const out = { ...campos };
+  for (const k of ["moeda", "moeda_fundo"]) {
+    const o = out[k];
+    if (o) out[k] = { ...o, x: +(o.x + dx).toFixed(3) };
+  }
+  return out;
+}
+function svgCampos(campos0, num2, card) {
+  const campos = precoNaBorda(campos0);
   const out = [];
   const { foto, area, nome, preco_fundo, moeda_fundo, moeda, preco, centavos, unidade } = campos;
   const porRegra = areaPorRegra(campos, card);
@@ -24402,12 +24479,14 @@ function svgCampos(campos, num2, card) {
     const b = caixaDoNome(campos, card);
     const v = nome.alinha_v === "centro" || nome.alinha_v === "baixo" ? ` data-alinha-v="${nome.alinha_v}"` : "";
     const ml = [1, 2, 3].includes(Number(nome.max_linhas)) ? ` data-linhas="${Number(nome.max_linhas)}"` : "";
-    const dadosTxt = ` data-largura="${n2(b.w)}" data-altura="${n2(b.h)}"${v}${ml}`;
     const nf = campos.nome_fundo;
-    if (!nf) out.push("  " + svgTexto(`produto_${num2}_nome`, nome, b, nome.texto_exemplo || "PRODUTO", void 0, false, dadosTxt));
+    const lim = (v2) => typeof v2 === "number" && isFinite(v2) ? n2(v2) : "-";
+    const preso = (o) => o && o.preso_preco ? ` data-preso="${n2(o.preso_gap ?? 6)} ${lim(o.preso_esq)} ${lim(o.preso_dir)}"` : "";
+    const dadosTxt = ` data-largura="${n2(b.w)}" data-altura="${n2(b.h)}"${v}${ml}`;
+    if (!nf) out.push("  " + svgTexto(`produto_${num2}_nome`, nome, b, nome.texto_exemplo || "PRODUTO", void 0, false, dadosTxt + preso(nome)));
     else {
       const m = margensNome(nf);
-      const dados = ` data-regra="${nf.regra || "fixo"}" data-margem="${[m.t, m.r, m.b, m.l].join(" ")}"`;
+      const dados = ` data-regra="${nf.regra || "fixo"}" data-margem="${[m.t, m.r, m.b, m.l].join(" ")}"` + preso(nf);
       out.push(`  <g id="produto_${num2}_nome">`);
       out.push("    " + svgForma(`fundo_nome_${num2}`, caixa(nf, card), nf).replace(/^<(\w+) /, `<$1${dados} `));
       out.push("    " + svgTexto(`produto_${num2}_nome_texto`, nome, b, nome.texto_exemplo || "PRODUTO", void 0, false, dadosTxt));
@@ -24449,11 +24528,14 @@ function svgCampos(campos, num2, card) {
     if (preco_fundo) {
       const b = caixa(preco_fundo, card);
       let f = svgForma(`fundo_preco_${num2}`, b, preco_fundo);
-      if (preco_fundo.regra && preco_fundo.regra !== "fixo") {
+      const naBorda = preco_fundo.na_borda === "esq" || preco_fundo.na_borda === "dir" ? preco_fundo.na_borda : "";
+      if (preco_fundo.regra && preco_fundo.regra !== "fixo" || naBorda) {
         const c = preco_fundo.cantos && preco_fundo.cantos.length === 4 ? preco_fundo.cantos : [true, true, true, true];
+        const regra = preco_fundo.regra && preco_fundo.regra !== "fixo" ? preco_fundo.regra : "estica";
         const dados = [
-          `data-regra="${preco_fundo.regra}"`,
+          `data-regra="${regra}"`,
           `data-lado="${preco_fundo.regra_lado || "ambos"}"`,
+          ...naBorda ? [`data-borda="${naBorda}"`] : [],
           `data-respiro="${preco_fundo.respiro ?? 12}"`,
           `data-encolhe="${preco_fundo.encolhe ? 1 : 0}"`,
           ...preco_fundo.largura_max ? [`data-max="${n2(preco_fundo.largura_max)}"`] : [],
@@ -24506,7 +24588,7 @@ function svgCard(gId, num2, modelo, campos, card, horizontal = false) {
   const r = modelo.raio ? ` rx="${modelo.raio}" ry="${modelo.raio}"` : "";
   return [
     `<g id="${gId}" data-modelo="${modelo.indice}"${horizontal ? ' data-formato="horizontal"' : ""}>`,
-    `  <rect id="MARGEM_GRID_${nn}" x="${n2(card.x)}" y="${n2(card.y)}" width="${n2(card.w)}" height="${n2(card.h)}" ${pinta("fill", modelo.fundo_cor || "none")}${borda(modelo)}${r}/>`,
+    `  <rect id="MARGEM_GRID_${nn}" x="${n2(card.x)}" y="${n2(card.y)}" width="${n2(card.w)}" height="${n2(card.h)}" ${pinta("fill", modelo.fundo_cor || "none")}${borda(modelo)}${sombra(modelo)}${r}/>`,
     ...svgCampos(campos, nn, card),
     `</g>`
   ].join("\n");
@@ -24516,10 +24598,32 @@ function usaHorizontal(m, z, w, h) {
   return z.formato === "horizontal" || w / h >= PROPORCAO_HORIZONTAL;
 }
 var itensDaLinha = (z, r) => Math.max(1, Math.round(z.por_linha?.[r] || z.colunas));
+function dadosParte(z) {
+  const p = z.parte;
+  if (!p) return "";
+  const n = (k, v) => typeof v === "number" && v > 0 ? ` ${k}="${Math.round(v)}"` : "";
+  return ` data-parte="${p.tipo === "fixo" ? "fixo" : "elastica"}" data-grupo="${esc(p.grupo)}"` + n("data-prioridade", p.prioridade) + n("data-max-linhas", p.max_linhas) + n("data-max-col", p.max_por_linha);
+}
+function expandirZona(z, espacoPadrao) {
+  if (z.tipo !== "composta" || !z.partes || !z.partes.length) return [z];
+  const e = z.espaco ?? espacoPadrao, v = z.direcao !== "h", ps = z.partes;
+  const pesos = ps.map((p) => p.tam && p.tam > 0 ? p.tam : 1), soma = pesos.reduce((a, b) => a + b, 0);
+  const livre = (v ? z.h : z.w) - (ps.length - 1) * e;
+  let pos = v ? z.y : z.x;
+  return ps.map((p, i) => {
+    const t = livre * pesos[i] / soma;
+    const r = v ? { x: z.x, y: pos, w: z.w, h: t } : { x: pos, y: z.y, w: t, h: z.h };
+    pos += t + e;
+    const col = p.tipo === "fixo" ? Math.max(1, Math.round(p.n || 1)) : Math.max(1, Math.round(p.colunas || 2));
+    const { tipo: _t, partes: _p, direcao: _d, por_linha: _pl, divisorias: _dv, ...base } = z;
+    return { ...base, ...r, id: `${z.id}_p${i + 1}`, linhas: 1, colunas: col, parte: { ...p, grupo: z.id, i } };
+  });
+}
+var zonasAbertas = (pr, e) => pr.zonas.flatMap((z) => expandirZona(z, e));
 function casasNormaisPorModelo(projeto) {
   const ref = /* @__PURE__ */ new Map(), primeira = /* @__PURE__ */ new Map();
   const modelos = new Map(projeto.modelos_card.map((m) => [m.id, m]));
-  for (const pr of projeto.pranchetas) for (const z of pr.zonas) {
+  for (const pr of projeto.pranchetas) for (const z of zonasAbertas(pr, projeto.espaco_padrao)) {
     const m = modelos.get(z.modelo_card_id);
     if (!m) continue;
     const c = casaDaZona(z, projeto.espaco_padrao);
@@ -24578,7 +24682,7 @@ function gerarSvgTemplate(projeto, opcoes = {}) {
       const s = svgElemento(el, ox);
       if (s) corpo.push(s);
     }
-    for (const z of pr.zonas) {
+    for (const z of zonasAbertas(pr, projeto.espaco_padrao)) {
       const m = modelos.get(z.modelo_card_id);
       if (!m) continue;
       const c = casaDaZona(z, projeto.espaco_padrao);
@@ -24586,7 +24690,7 @@ function gerarSvgTemplate(projeto, opcoes = {}) {
       ga++;
       const gaId = ga === 1 ? "grid_area" : `grid_area_${String(ga).padStart(2, "0")}`;
       const dv = divisoriasValidas(z.divisorias);
-      corpo.push(`<rect id="${gaId}" data-modelo="${m.indice}" data-zona="${esc(z.id)}" data-linhas-tpl="${z.linhas}"${dv ? ` data-divisorias="${esc(JSON.stringify(dv))}"` : ""} x="${n2(z.x + ox)}" y="${n2(z.y)}" width="${n2(z.w)}" height="${n2(z.h)}" fill="none" stroke="none"/>`);
+      corpo.push(`<rect id="${gaId}" data-modelo="${m.indice}" data-zona="${esc(z.id)}" data-linhas-tpl="${z.linhas}"${dadosParte(z)}${dv ? ` data-divisorias="${esc(JSON.stringify(dv))}"` : ""} x="${n2(z.x + ox)}" y="${n2(z.y)}" width="${n2(z.w)}" height="${n2(z.h)}" fill="none" stroke="none"/>`);
       const casas = [], cards = [];
       for (let r = 0; r < z.linhas; r++) for (let n = itensDaLinha(z, r), cw = (z.w - (n - 1) * c.e) / n, k = 0; k < n; k++) {
         const card = { x: z.x + ox + k * (cw + c.e), y: z.y + r * (c.h + c.e), w: cw, h: c.h };
@@ -24602,7 +24706,8 @@ function gerarSvgTemplate(projeto, opcoes = {}) {
   });
   const svg = [
     // data-projeto: o editor de encarte mostra "Editar template" e abre o construtor nesse projeto
-    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${totalW} ${H}" width="${totalW}" height="${H}"${projeto.id && /^[\w-]{1,64}$/.test(projeto.id) ? ` data-projeto="${projeto.id}"` : ""}${projeto.tipo === "catalogo" ? ' data-tipo="catalogo"' : ""}>`,
+    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${totalW} ${H}" width="${totalW}" height="${H}"${projeto.id && /^[\w-]{1,64}$/.test(projeto.id) ? ` data-projeto="${projeto.id}"` : ""}${projeto.tipo === "catalogo" ? ' data-tipo="catalogo"' : ""}${// regras ligadas/desligadas no construtor: o editor lê daqui antes do padroes_mercado.json
+    ((r) => r ? ` data-regras="${esc(JSON.stringify(r))}"` : "")(regrasValidas(projeto.regras))}>`,
     defsSvg(),
     ...corpo,
     `</svg>`
@@ -24667,8 +24772,15 @@ function proximoModelo(destino) {
   const indice = Math.max(0, ...destino.modelos_card.map((m) => m.indice || 0)) + 1;
   return { id: `mc${n}`, indice };
 }
-function colarModelo(destino, modelo) {
+function colarModelo(destino, modelo, sobre) {
   const p = clone(destino);
+  const alvo = sobre ? p.modelos_card.find((m2) => m2.id === sobre) : null;
+  if (sobre && !alvo) throw new Error("Modelo de destino n\xE3o encontrado: " + sobre);
+  if (alvo) {
+    const m2 = { ...clone(modelo), id: alvo.id, indice: alvo.indice, nome: alvo.nome };
+    p.modelos_card = p.modelos_card.map((x) => x.id === alvo.id ? m2 : x);
+    return { projeto: p, modelo: m2, imagens: imagensUsadas(m2) };
+  }
   const { id, indice } = proximoModelo(p);
   const nomes = new Set(p.modelos_card.map((m2) => m2.nome));
   let nome = modelo.nome;
@@ -25107,7 +25219,7 @@ async function copiarModelo(client, d) {
   if (!de || !para) throw new Error("Projeto n\xE3o encontrado");
   const m = de.modelos_card.find((x) => x.id === d.modeloId);
   if (!m) throw new Error("Modelo n\xE3o encontrado: " + d.modeloId);
-  const r = colarModelo(para, m);
+  const r = colarModelo(para, m, d.sobre);
   await copiarImagens(de.id, para.id, r.imagens);
   const s = await salvarProjeto(client, { workspaceId: d.workspaceId, userId: d.userId, id: para.id, projeto: r.projeto });
   return { projeto: s.projeto, modelo: r.modelo };
@@ -25219,13 +25331,17 @@ async function publicarTemplate(projetoOrig, blocosCliente = []) {
 async function marcarPublicado(client, workspaceId, id) {
   await client.from(TABELA).update({ publicado_em: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", id).eq("workspace_id", workspaceId);
 }
-async function svgsComAjuste(tpl, ajustes) {
+async function projetoPublicadoComAjuste(tpl, ajustes) {
   if (!tpl.projeto) return null;
   const c = resolver(caminhoProjeto(tpl.svg));
   const arq = c && await acharArquivo(c.local);
   if (!arq) return null;
   const publicado = JSON.parse(await fs3.readFile(arq, "utf8"));
-  const projeto = aplicarAjustesNoProjeto(publicado, ajustes);
+  return aplicarAjustesNoProjeto(publicado, ajustes);
+}
+async function svgsComAjuste(tpl, ajustes) {
+  const projeto = await projetoPublicadoComAjuste(tpl, ajustes);
+  if (!projeto) return null;
   const { nome, imagem } = imagensDaPublicacao(projeto);
   const r = gerarSvgTemplate(projeto, { imagem });
   return {
@@ -25689,11 +25805,15 @@ var getCurrentWorkspaceId = (0, import_react.cache)(async () => {
   const cookieStore = await cookies2();
   const cookieWs = cookieStore.get("smd_ws")?.value;
   const supabase = await createClient2();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) return null;
   if (cookieWs) {
-    const { data: data2 } = await supabase.from("workspace_members").select("workspace_id").eq("workspace_id", cookieWs).maybeSingle();
+    const { data: data2 } = await supabase.from("workspace_members").select("workspace_id").eq("workspace_id", cookieWs).eq("user_id", user.id).maybeSingle();
     if (data2?.workspace_id) return data2.workspace_id;
   }
-  const { data } = await supabase.from("workspace_members").select("workspace_id").limit(1).maybeSingle();
+  const { data } = await supabase.from("workspace_members").select("workspace_id").eq("user_id", user.id).limit(1).maybeSingle();
   return data?.workspace_id ?? null;
 });
 var SELECT_TRILHA_BASE = "*, lists!inner(name, folder_id, space_id, folders(name, origem), spaces!inner(name, workspace_id, custom_statuses))";
@@ -27298,7 +27418,7 @@ async function POST10(req, ctx) {
   try {
     const b = await req.json();
     if (!b.modeloId) return NextResponse.json({ error: "Faltou modeloId" }, { status: 400 });
-    const r = await copiarModelo(c.client, { workspaceId: c.workspaceId, userId: c.userId, deId: b.de || id, modeloId: b.modeloId, paraId: id });
+    const r = await copiarModelo(c.client, { workspaceId: c.workspaceId, userId: c.userId, deId: b.de || id, modeloId: b.modeloId, paraId: id, sobre: b.sobre || void 0 });
     return NextResponse.json(r);
   } catch (e) {
     return erroJson(e, 400);
@@ -27560,6 +27680,7 @@ async function GET23(req) {
 var route_exports33 = {};
 __export(route_exports33, {
   GET: () => GET24,
+  POST: () => POST16,
   dynamic: () => dynamic26,
   runtime: () => runtime26
 });
@@ -27570,11 +27691,7 @@ async function GET24(req, context) {
   if (negado) return negado;
   const { id } = await context.params;
   const tpl = await acharTemplate(id);
-  let aj = [];
-  try {
-    aj = normalizarAjustes(JSON.parse(new URL(req.url).searchParams.get("aj") || "[]"));
-  } catch {
-  }
+  const aj = await ajustesDoPedido(req);
   const comAjuste = tpl && aj.length ? await svgsComAjuste(tpl, aj).catch(() => null) : null;
   if (comAjuste) return NextResponse.json(comAjuste.especiais);
   const out = [];
@@ -27586,6 +27703,7 @@ async function GET24(req, context) {
   }
   return NextResponse.json(out);
 }
+var POST16 = GET24;
 
 // app/api/encarte/templates/[id]/estilo/route.ts
 var route_exports34 = {};
@@ -27713,21 +27831,41 @@ async function GET27(_req, context) {
   return NextResponse.json(conteudo ?? { pranchetas: null });
 }
 
-// app/api/encarte/templates/[id]/svg/route.ts
+// app/api/encarte/templates/[id]/projeto/route.ts
 var route_exports37 = {};
 __export(route_exports37, {
-  GET: () => GET28,
+  POST: () => POST17,
   dynamic: () => dynamic30,
   runtime: () => runtime30
 });
 var runtime30 = "nodejs";
 var dynamic30 = "force-dynamic";
+async function POST17(req, context) {
+  const negado = await exigirUsuario();
+  if (negado) return negado;
+  const { id } = await context.params;
+  const tpl = await acharTemplate(id);
+  const projeto = tpl && await projetoPublicadoComAjuste(tpl, await ajustesDoPedido(req)).catch(() => null);
+  if (!projeto) return NextResponse.json({ error: "Template sem projeto do construtor" }, { status: 404 });
+  return NextResponse.json(projeto, { headers: { "Cache-Control": "no-cache" } });
+}
+
+// app/api/encarte/templates/[id]/svg/route.ts
+var route_exports38 = {};
+__export(route_exports38, {
+  GET: () => GET28,
+  POST: () => POST18,
+  dynamic: () => dynamic31,
+  runtime: () => runtime31
+});
+var runtime31 = "nodejs";
+var dynamic31 = "force-dynamic";
 async function GET28(req, context) {
   const negado = await exigirUsuario();
   if (negado) return negado;
   const { id } = await context.params;
   const tpl = await acharTemplate(id);
-  const aj = ajustesDaUrl(req);
+  const aj = await ajustesDoPedido(req);
   const svg = tpl && (aj.length && (await svgsComAjuste(tpl, aj).catch(() => null))?.svg || await lerSvgPreparado(tpl.svg));
   if (!svg) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return new Response(svg, {
@@ -27737,25 +27875,17 @@ async function GET28(req, context) {
     }
   });
 }
-function ajustesDaUrl(req) {
-  const t = new URL(req.url).searchParams.get("aj");
-  if (!t) return [];
-  try {
-    return normalizarAjustes(JSON.parse(t));
-  } catch {
-    return [];
-  }
-}
+var POST18 = GET28;
 
 // app/api/encarte/templates/route.ts
-var route_exports38 = {};
-__export(route_exports38, {
+var route_exports39 = {};
+__export(route_exports39, {
   GET: () => GET29,
-  dynamic: () => dynamic31,
-  runtime: () => runtime31
+  dynamic: () => dynamic32,
+  runtime: () => runtime32
 });
-var runtime31 = "nodejs";
-var dynamic31 = "force-dynamic";
+var runtime32 = "nodejs";
+var dynamic32 = "force-dynamic";
 async function GET29(req) {
   const negado = await exigirUsuario();
   if (negado) return negado;
@@ -27764,12 +27894,12 @@ async function GET29(req) {
 }
 
 // app/api/v1/encarte/recorte/[id]/route.ts
-var route_exports39 = {};
-__export(route_exports39, {
+var route_exports40 = {};
+__export(route_exports40, {
   GET: () => GET30,
   PUT: () => PUT8,
-  dynamic: () => dynamic32,
-  runtime: () => runtime32
+  dynamic: () => dynamic33,
+  runtime: () => runtime33
 });
 import { promises as fs11 } from "node:fs";
 
@@ -27784,8 +27914,8 @@ async function withApiAuth(_req, fn) {
 }
 
 // app/api/v1/encarte/recorte/[id]/route.ts
-var runtime32 = "nodejs";
-var dynamic32 = "force-dynamic";
+var runtime33 = "nodejs";
+var dynamic33 = "force-dynamic";
 async function GET30(req, context) {
   return withApiAuth(req, async () => {
     const { id } = await context.params;
@@ -27814,17 +27944,17 @@ async function PUT8(req, context) {
 }
 
 // app/api/v1/encarte/recorte/proximo/route.ts
-var route_exports40 = {};
-__export(route_exports40, {
-  POST: () => POST16,
-  dynamic: () => dynamic33,
-  runtime: () => runtime33
+var route_exports41 = {};
+__export(route_exports41, {
+  POST: () => POST19,
+  dynamic: () => dynamic34,
+  runtime: () => runtime34
 });
-var runtime33 = "nodejs";
-var dynamic33 = "force-dynamic";
+var runtime34 = "nodejs";
+var dynamic34 = "force-dynamic";
 var ESPERA_MS = 2e4;
 var PASSO_MS = 400;
-async function POST16(req) {
+async function POST19(req) {
   return withApiAuth(req, async () => {
     const corpo = await req.json().catch(() => ({}));
     const fim = Date.now() + ESPERA_MS;
@@ -27876,10 +28006,11 @@ var ROTAS_API = [
   { caminho: "/api/encarte/templates/[id]/estilo", modulo: route_exports34 },
   { caminho: "/api/encarte/templates/[id]/padrao", modulo: route_exports35 },
   { caminho: "/api/encarte/templates/[id]/pranchetas", modulo: route_exports36 },
-  { caminho: "/api/encarte/templates/[id]/svg", modulo: route_exports37 },
-  { caminho: "/api/encarte/templates", modulo: route_exports38 },
-  { caminho: "/api/v1/encarte/recorte/[id]", modulo: route_exports39 },
-  { caminho: "/api/v1/encarte/recorte/proximo", modulo: route_exports40 }
+  { caminho: "/api/encarte/templates/[id]/projeto", modulo: route_exports37 },
+  { caminho: "/api/encarte/templates/[id]/svg", modulo: route_exports38 },
+  { caminho: "/api/encarte/templates", modulo: route_exports39 },
+  { caminho: "/api/v1/encarte/recorte/[id]", modulo: route_exports40 },
+  { caminho: "/api/v1/encarte/recorte/proximo", modulo: route_exports41 }
 ];
 
 // local/encarte-pc/servidor.ts

@@ -13,6 +13,9 @@ const clone = o => JSON.parse(JSON.stringify(o));
 const TAMANHOS = [['1080x1350', '1080 × 1350 px (feed)'], ['1080x1920', '1080 × 1920 px (stories)']];
 
 const S = { proj: null, pi: 0, tool: 'selecionar', sel: null, fontes: ['sans-serif'], clientes: [], sujo: false, blocos: [] };
+// ?embutido: só o editor do modelo do card, dentro do editor de encarte (embutido.js). Nada é gravado
+// daqui: o encarte é que aplica "só neste encarte" ou "salvar no template"
+const EMB = { on: new URLSearchParams(location.search).has('embutido'), antesDeDesenhar: null };
 
 function el(tag, at = {}, pai) {
   const e = document.createElementNS(NS, tag);
@@ -150,7 +153,7 @@ const modeloPadrao = () => { const c = camposPadrao(); for (const k of OPCIONAIS
 function casaDoModelo(mid, normal = false) {
   const m = S.proj.modelos_card.find(x => x.id === mid);
   let prim = null;
-  for (const pr of S.proj.pranchetas) for (const z of pr.zonas) if (z.modelo_card_id === mid) {
+  for (const pr of S.proj.pranchetas) for (const z of zonasAbertas(pr)) if (z.modelo_card_id === mid) {
     const e = z.espaco ?? S.proj.espaco_padrao;
     // todas as linhas: a 1ª pode ter outro número de cards e sair horizontal (Rigoni, por_linha 2,4,4)
     for (let r = 0; r < (normal ? z.linhas : 1); r++) {
@@ -169,6 +172,22 @@ function usaHorizontal(m, z, w, h) {
   return z.formato === 'horizontal' || w / h >= PROPORCAO_HORIZONTAL;
 }
 const itensDaLinha = (z, r) =>Math.max(1, Math.round((z.por_linha && z.por_linha[r]) || z.colunas));
+// zona composta: uma zona normal por parte (mesma conta do expandirZona do gerador)
+function expandirZona(z, espacoPadrao = S.proj.espaco_padrao) {
+  if (z.tipo !== 'composta' || !z.partes || !z.partes.length) return [z];
+  const e = z.espaco ?? espacoPadrao, v = z.direcao !== 'h', ps = z.partes;
+  const pesos = ps.map(p => (p.tam > 0 ? p.tam : 1)), soma = pesos.reduce((a, b) => a + b, 0);
+  const livre = (v ? z.h : z.w) - (ps.length - 1) * e;
+  let pos = v ? z.y : z.x;
+  return ps.map((p, i) => {
+    const t = livre * pesos[i] / soma, r = v ? { x: z.x, y: pos, w: z.w, h: t } : { x: pos, y: z.y, w: t, h: z.h };
+    pos += t + e;
+    const col = p.tipo === 'fixo' ? Math.max(1, Math.round(p.n || 1)) : Math.max(1, Math.round(p.colunas || 2));
+    const { tipo, partes, direcao, por_linha, divisorias, ...base } = z;
+    return { ...base, ...r, id: `${z.id}_p${i + 1}`, linhas: 1, colunas: col, parte: { ...p, grupo: z.id, i } };
+  });
+}
+const zonasAbertas = pr => pr.zonas.flatMap(z => expandirZona(z));
 
 // ---------------------------------------------------------------- desenho (mesma conta do gerador)
 function xTexto(b, a) { return a === 'middle' ? b.x + b.w / 2 : a === 'end' ? b.x + b.w : b.x; }
@@ -180,8 +199,34 @@ function caminhoCantos(b, r, c) {
   const arco = (k, ex, ey) => k ? ` A${k} ${k} 0 0 1 ${ex} ${ey}` : ` L${ex} ${ey}`;
   return `M${x + tl} ${y} H${x + w - tr}${arco(tr, x + w, y + tr)} V${y + hh - br}${arco(br, x + w - br, y + hh)} H${x + bl}${arco(bl, x, y + hh - bl)} V${y + tl}${arco(tl, x + tl, y)} Z`;
 }
+// sombra (mesmo filtro do gerador, svgFiltroSombra): os filtros moram num <svg> escondido da página,
+// um por combinação de valores
+const SOMBRAS = new Map();
+function filtroSombra(o) {
+  if (!o || !o.sombra) return null;
+  const k = ['sombra_x', 'sombra_y', 'sombra_blur', 'sombra_largura', 'sombra_altura', 'sombra_cor'].map(c => o[c] ?? '').join('|');
+  if (SOMBRAS.has(k)) return SOMBRAS.get(k);
+  let defs = document.getElementById('defs-sombras');
+  if (!defs) {
+    const sv = el('svg', { width: 0, height: 0, style: 'position:absolute;width:0;height:0' }); document.body.append(sv);
+    defs = el('defs', { id: 'defs-sombras' }, sv);
+  }
+  const id = 'sombra_c' + (SOMBRAS.size + 1), n = v => +(+v || 0).toFixed(2);
+  const m = (typeof o.sombra_cor === 'string' ? o.sombra_cor : '#000000').match(/^#([0-9a-f]{6})([0-9a-f]{2})?$/i) || ['', '000000'];
+  const sx = n(o.sombra_largura), sy = n(o.sombra_altura);
+  const f = el('filter', { id, x: '-100%', y: '-100%', width: '300%', height: '300%', 'color-interpolation-filters': 'sRGB' }, defs);
+  if (sx || sy) el('feMorphology', { in: 'SourceAlpha', operator: sx + sy < 0 ? 'erode' : 'dilate', radius: `${Math.abs(sx)} ${Math.abs(sy)}`, result: 'sa' }, f);
+  el('feOffset', { in: sx || sy ? 'sa' : 'SourceAlpha', dx: n(o.sombra_x), dy: n(o.sombra_y), result: 'so' }, f);
+  el('feGaussianBlur', { in: 'so', stdDeviation: Math.max(0, n(o.sombra_blur)) / 2, result: 'sb' }, f);
+  el('feFlood', { 'flood-color': '#' + m[1], 'flood-opacity': m[2] ? (parseInt(m[2], 16) / 255).toFixed(3) : 1 }, f);
+  el('feComposite', { in2: 'sb', operator: 'in', result: 'sc' }, f);
+  const mg = el('feMerge', {}, f); el('feMergeNode', { in: 'sc' }, mg); el('feMergeNode', { in: 'SourceGraphic' }, mg);
+  const url = `url(#${id})`; SOMBRAS.set(k, url); return url;
+}
+const pegaSombra = o => Object.fromEntries(Object.entries(o || {}).filter(([k]) => k.startsWith('sombra')));
 // forma: retângulo, com só alguns cantos redondos, ou imagem no lugar
 function forma(pai, b, f, at = {}) {
+  at = { ...at, filter: filtroSombra(f) };
   if (f.imagem_url && srcImg(f.imagem_url)) return el('image', { ...at, href: srcImg(f.imagem_url), x: b.x, y: b.y, width: b.w, height: b.h, preserveAspectRatio: 'none' }, pai);
   const st = { ...at, fill: tinta(f.cor), ...contorno(f), 'pointer-events': at['data-id'] ? 'all' : null };
   const r = Math.min(f.raio || 0, b.w / 2, b.h / 2), c = f.cantos && f.cantos.length === 4 ? f.cantos : [true, true, true, true];
@@ -202,7 +247,7 @@ function texto(pai, c, b, conteudo, anc) {
   // linha de base: mesma conta do baselineTexto do gerador (Na altura: em cima / no meio / embaixo)
   const yb = c.alinha_v === 'centro' ? b.y + b.h / 2 + (c.tamanho || 0) * 0.36 : c.alinha_v === 'baixo' ? b.y + b.h : b.y + b.h * 0.78;
   const t = el('text', { x: xTexto(b, a), y: yb, 'text-anchor': ancora(a), 'font-family': c.fonte, 'font-size': c.tamanho, fill: tinta(c.cor), 'pointer-events': 'none',
-    ...contorno(c), 'paint-order': 'stroke', 'stroke-linejoin': 'round',
+    ...contorno(c), 'paint-order': 'stroke', 'stroke-linejoin': 'round', filter: filtroSombra(c),
     'font-style': c.italico ? 'italic' : null, 'letter-spacing': c.espacamento ? (c.espacamento / 1000) * c.tamanho : null,
     'text-decoration': [c.sublinhado && 'underline', c.tachado && 'line-through'].filter(Boolean).join(' ') || null }, pai);
   const eixos = eixosDaFonte(c.fonte);
@@ -251,23 +296,40 @@ function abracarFundoNome(f, cfg, t, alinhamento) {
   const x = an === 'end' ? tb.x + tb.width + m.r - w : an === 'middle' ? tb.x + tb.width / 2 - w / 2 : tb.x - m.l;
   f.setAttribute('x', x); f.setAttribute('y', tb.y + tb.height / 2 - h / 2); f.setAttribute('width', w); f.setAttribute('height', h);
 }
+// R$ "na borda" do fundo do preço (mesma conta do precoNaBorda do gerador): o R$ e o círculo andam até o
+// meio deles ficar na borda lateral do fundo
+function precoNaBorda(campos) {
+  const f = campos.preco_fundo, lado = f && f.na_borda;
+  if (!f || (lado !== 'esq' && lado !== 'dir')) return campos;
+  const ms = [campos.moeda, campos.moeda_fundo].filter(Boolean);
+  if (!ms.length) return campos;
+  const x0 = Math.min(...ms.map(b => b.x)), x1 = Math.max(...ms.map(b => b.x + b.w));
+  const dx = (lado === 'esq' ? f.x : f.x + f.w) - (x0 + x1) / 2;
+  if (Math.abs(dx) < 0.01) return campos;
+  const out = { ...campos };
+  for (const k of ['moeda', 'moeda_fundo']) if (out[k]) out[k] = { ...out[k], x: out[k].x + dx };
+  return out;
+}
 // Prévia da regra do fundo do preço no construtor (a mesma ideia do aplicarRegraFundo do editor): R$ encosta
 // no começo do valor, o fundo cresce pro lado da regra com o respiro, e passou da largura máxima o grupo
 // inteiro diminui por igual.
 function previaRegraPreco(gp, cfg, pc) {
+  const borda = cfg.na_borda === 'esq' || cfg.na_borda === 'dir' ? cfg.na_borda : '';
+  if (borda && (!cfg.regra || cfg.regra === 'fixo')) cfg = { ...cfg, regra: 'estica' };
   if (!cfg.regra || cfg.regra === 'fixo' || pc.fundo.tagName === 'image') return;
   const bb = e => e.getBBox(), val = [pc.valor, pc.cent, pc.un].filter(Boolean).map(bb).filter(b => b.width);
   if (!val.length) return;
   const uni = rs => { const x0 = Math.min(...rs.map(r => r.x)), y0 = Math.min(...rs.map(r => r.y)); return { x: x0, y: y0, w: Math.max(...rs.map(r => r.x + r.width)) - x0, h: Math.max(...rs.map(r => r.y + r.height)) - y0 }; };
   const v0 = bb(pc.valor), moedas = [pc.moeda, pc.moedaFundo].filter(Boolean);
-  if (pc.moeda) {
+  if (pc.moeda && !borda) {
     const rm = bb(pc.moeda), dx = v0.x - Math.max(2, v0.height * 0.12) - (rm.x + rm.width);
     for (const m of moedas) m.setAttribute('transform', `translate(${dx} 0) ${m.getAttribute('transform') || ''}`.trim());
   }
-  const bloco = uni([...val, ...moedas.map(m => { const b = bb(m), t = (m.getAttribute('transform') || '').match(/translate\(([-\d.]+)/); return { ...b, x: b.x + (t ? +t[1] : 0), y: b.y, width: b.width, height: b.height }; })]);
+  const bloco = borda ? uni(val) : uni([...val, ...moedas.map(m => { const b = bb(m), t = (m.getAttribute('transform') || '').match(/translate\(([-\d.]+)/); return { ...b, x: b.x + (t ? +t[1] : 0), y: b.y, width: b.width, height: b.height }; })]);
   const f = pc.fundo, F = pc.fundoB;
   const r = cfg.respiro ?? 12;
-  let W = bloco.w + 2 * r;
+  const M = borda && moedas.length ? uni(moedas.map(bb)) : null, meiaM = M ? M.w / 2 : 0;
+  let W = bloco.w + 2 * r + meiaM;
   if (!cfg.encolhe) W = Math.max(W, F.w);
   if (cfg.regra === 'estica_encolhe' && !cfg.largura_max) W = Math.min(W, F.w);
   const lado = cfg.regra_lado || 'ambos';
@@ -276,7 +338,12 @@ function previaRegraPreco(gp, cfg, pc) {
   else { const c = cfg.cantos && cfg.cantos.length === 4 ? cfg.cantos : [true, true, true, true]; f.setAttribute('d', caminhoCantos({ x, y: F.y, w: W, h: F.h }, Math.min(cfg.raio || 0, W / 2, F.h / 2), c)); }
   const alvo = lado === 'ambos' ? x + (W - bloco.w) / 2 : lado === 'esq' ? Math.min(bloco.x, x + W - r - bloco.w) : Math.max(bloco.x, x + r);
   const dx = Math.max(x + r, Math.min(alvo, x + W - r - bloco.w)) - bloco.x;
-  if (Math.abs(dx) > 0.01) for (const n of [pc.valor, pc.cent, pc.un, ...moedas].filter(Boolean)) n.setAttribute('transform', `translate(${dx} 0) ${n.getAttribute('transform') || ''}`.trim());
+  if (borda) {
+    // R$ na borda: valor no meio do que o R$ não cobre, R$ e círculo com o meio na borda lateral
+    const ix = x + (borda === 'esq' ? meiaM : 0), dv = ix + (W - meiaM - bloco.w) / 2 - bloco.x;
+    for (const n of [pc.valor, pc.cent, pc.un].filter(Boolean)) n.setAttribute('transform', `translate(${dv} 0) ${n.getAttribute('transform') || ''}`.trim());
+    if (M) { const dm = (borda === 'esq' ? x : x + W) - (M.x + M.w / 2); for (const n of moedas) n.setAttribute('transform', `translate(${dm} 0) ${n.getAttribute('transform') || ''}`.trim()); }
+  } else if (Math.abs(dx) > 0.01) for (const n of [pc.valor, pc.cent, pc.un, ...moedas].filter(Boolean)) n.setAttribute('transform', `translate(${dx} 0) ${n.getAttribute('transform') || ''}`.trim());
   // largura máxima: o grupo inteiro diminui por igual, preso no lado que não cresce (pé do fundo)
   if (cfg.largura_max && W > cfg.largura_max * 1.01) {
     const s = cfg.largura_max / W, ax = lado === 'esq' ? x + W : lado === 'dir' ? x : x + W / 2, ay = F.y + F.h;
@@ -349,9 +416,12 @@ function precoProporcional(campos, ref, casa) {
   // cresce e encolhe por igual com o card: a menor das proporções de largura e altura (nada estica)
   const cx = (x0 + x1) / 2 / ref.w, cy = (y0 + y1) / 2 / ref.h;
   // distância até as bordas em pt (o movimento), tamanho proporcional; se com as margens em pt não couber, encolhe mais
-  const s = Math.min(casa.w / ref.w, casa.h / ref.h,
+  const s0 = Math.min(casa.w / ref.w, casa.h / ref.h,
     cx > 0.6 || cx < 0.4 ? Math.max(0.05, (casa.w - (cx > 0.6 ? ref.w - x1 : x0)) / (x1 - x0)) : Infinity,
     Math.max(0.05, (casa.h - (cy > 0.5 ? ref.h - y1 : y0)) / (y1 - y0)));
+  // altura mínima do grupo do preço (pt, no modelo): não encolhe abaixo dela, desde que o grupo caiba no card
+  const minH = campos.min_preco_h ?? (typeof M !== 'undefined' && M.m ? M.m.min_preco_h : null);
+  const s = typeof minH === 'number' && minH > 0 ? Math.max(s0, Math.min(minH / (y1 - y0), casa.w / (x1 - x0), casa.h / (y1 - y0))) : s0;
   const X0 = cx > 0.6 ? casa.w - (ref.w - x1) - (x1 - x0) * s : cx < 0.4 ? x0 : cx * casa.w - (x1 - x0) * s / 2;
   const Y0 = cy > 0.5 ? casa.h - (ref.h - y1) - (y1 - y0) * s : y0;
   const ptX = x => X0 + (x / 100 * ref.w - x0) * s, ptY = y => Y0 + (y / 100 * ref.h - y0) * s, r = v => +v.toFixed(3);
@@ -372,6 +442,16 @@ function precoProporcional(campos, ref, casa) {
   });
   return out;
 }
+// nome (ou o fundo dele) preso ao grupo do preço, com espaço e limites até a borda do card (Matheus, 22/10/2026)
+function linhasPreso(c) {
+  return [{ dica: '— Posição: preso ao preço —' },
+    { rot: 'Preso ao preço', k: 'preso_preco', tipo: 'check' },
+    ...(c.preso_preco ? [
+      { rot: 'Espaço até o preço', k: 'preso_gap', tipo: 'number', ph: '6', un: 'pt' },
+      { rot: 'Limite esquerdo', k: 'preso_esq', tipo: 'number', ph: 'livre', un: 'pt' },
+      { rot: 'Limite direito', k: 'preso_dir', tipo: 'number', ph: 'livre', un: 'pt' },
+      { dica: 'No editor, o pé do nome (ou do fundo dele) fica a esse espaço acima do grupo do preço, em qualquer tamanho de card. Limite = distância da borda do card; vazio = livre (cresce pra esse lado com o título). Os dois vazios: centrado no preço.' }] : [])];
+}
 // card numa casa de outro tamanho que a do desenho: tudo por distância em pt (mesma conta do camposNaCasa do gerador)
 function camposNaCasa(campos, ref, casa) {
   if (!(ref.w > 0 && ref.h > 0 && casa.w > 0 && casa.h > 0)) return campos;
@@ -390,8 +470,24 @@ function camposNaCasa(campos, ref, casa) {
     out[k] = { ...c[k], ...pct(N) };
     if (!dNome || k === 'nome') dNome = { dx: (N.x + N.w / 2) - (B.x + B.w / 2), dy: (N.y + N.h) - (B.y + B.h) };
   }
+  // fundo do nome preso ao preço: prévia da conta do editor (nomePresoAoPreco), com o fundo do tamanho desenhado
+  const nf = c.nome_fundo || (c.nome && c.nome.preso_preco ? c.nome : null);
+  if (nf && nf.preso_preco) {
+    const pp = PRECO_KS.filter(k => out[k]).map(k => pt({ ...out[k], x: out[k].x / 100 * casa.w / ref.w * 100, y: out[k].y / 100 * casa.h / ref.h * 100, w: out[k].w / 100 * casa.w / ref.w * 100, h: out[k].h / 100 * casa.h / ref.h * 100 }));
+    if (pp.length) {
+      const fy = Math.min(...pp.map(b => b.y)), fx0 = Math.min(...pp.map(b => b.x)), fx1 = Math.max(...pp.map(b => b.x + b.w));
+      const B = pt(nf), lim = v => (typeof v === 'number' && isFinite(v) ? v : null), e = lim(nf.preso_esq), d = lim(nf.preso_dir);
+      const w = Math.min(B.w, casa.w - (e || 0) - (d || 0));
+      const x = d != null ? casa.w - d - w : e != null ? e : (fx0 + fx1) / 2 - w / 2;
+      const N = { x, y: fy - (nf.preso_gap ?? 6) - B.h, w, h: B.h };
+      const dx = N.x - B.x, dy = N.y - B.y;
+      if (c.nome_fundo) out.nome_fundo = { ...nf, ...pct(N) };
+      if (c.nome) { const T = pt(c.nome); out.nome = { ...c.nome, ...pct({ x: T.x + dx, y: T.y + dy, w: Math.min(T.w, w), h: T.h }) }; }
+      dNome = { dx: dx + B.w / 2 - w / 2, dy };
+    }
+  }
   const A0 = c.area ? pt(c.area) : null, A1 = A0 ? estica(A0) : null;
-  const sB = Math.min(casa.w / ref.w, casa.h / ref.h);
+  const sB =Math.min(casa.w / ref.w, casa.h / ref.h);
   const bloco = (U, trava) => {
     let ax = 0.5, ay = 0.5, PX, PY;
     if (trava === 'nome' && dNome) { ay = 1; PX = U.x + U.w / 2 + dNome.dx; PY = U.y + U.h + dNome.dy; }
@@ -460,8 +556,9 @@ const chaveFormato = (v, w, h) => `${v}:${rf1(w)}x${rf1(h)}`;
 function tamDaChave(k) { const m = String(k).match(/^(\w+):([\d.]+)x([\d.]+)$/); return m ? { v: m[1], w: +m[2], h: +m[3] } : null; }
 function versaoNaCasa(m, v, casa, refLegado) {
   const f = m.formatos && m.formatos[chaveFormato(v, casa.w, casa.h)];
-  if (f) return precoNaCasa(f, casa, casa);
-  return precoNaCasa(m[v], refLegado, casa);
+  const min = c => (m.min_preco_h ? { ...c, min_preco_h: m.min_preco_h } : c);
+  if (f) return precoNaCasa(min(comTravas(m, f)), casa, casa);
+  return precoNaCasa(min(comTravas(m, m[v])), refLegado, casa);
 }
 // formatos deste modelo no template: cada linha de cada zona (normal ou horizontal, pela casa) e os moldes de
 // especial e horizontal que a publicação gera (mesma conta do gerador: casa da 1ª zona, pelas colunas)
@@ -471,7 +568,7 @@ function formatosDoModelo(m) {
     if (!f.onde.includes(onde)) f.onde.push(onde); f.n += n; lista.set(k, f);
   };
   let primeira = null;
-  S.proj.pranchetas.forEach((pr, pi) => pr.zonas.forEach((z, zi) => {
+  S.proj.pranchetas.forEach((pr, pi) => zonasAbertas(pr).forEach((z, zi) => {
     if (z.modelo_card_id !== m.id) return;
     const e = z.espaco ?? S.proj.espaco_padrao, h = (z.h - (z.linhas - 1) * e) / z.linhas;
     if (!primeira) primeira = { w: (z.w - (z.colunas - 1) * e) / z.colunas, h, e };
@@ -658,11 +755,12 @@ async function dialogoExemplo() {
 function desenharCard(pai, modelo, campos, card, marcar, prod, comSelo, comDe) {
   // sem dizer: o produto de exemplo manda (com selo / com DE se ele tem); sem produto, o template mostra os dois
   campos = vistaSelo(campos, card, comSelo ?? (prod ? !!prod.selo : false), comDe ?? (prod ? !!prod.de : false));
+  campos = precoNaBorda(campos);
   const g = el('g', {}, pai);
   const id = k => marcar ? { 'data-id': k } : {};
   const fc = campos.fundo_card; // fundo só desta versão (especial vermelho de um card branco)
-  forma(g, card, fc ? { cor: fc.cor, raio: fc.raio ?? modelo.raio, borda: fc.borda ?? modelo.borda, borda_cor: fc.borda_cor ?? modelo.borda_cor }
-    : { cor: modelo.fundo_cor, raio: modelo.raio, borda: modelo.borda, borda_cor: modelo.borda_cor });
+  forma(g, card, fc ? { ...pegaSombra(modelo), cor: fc.cor, raio: fc.raio ?? modelo.raio, borda: fc.borda ?? modelo.borda, borda_cor: fc.borda_cor ?? modelo.borda_cor }
+    : { ...pegaSombra(modelo), cor: modelo.fundo_cor, raio: modelo.raio, borda: modelo.borda, borda_cor: modelo.borda_cor });
   const porRegra = areaPorRegra(campos, card);
   if (campos.area) { const b = porRegra || pctCaixa(campos.area, card); el('rect', { ...id('area'), x: b.x, y: b.y, width: b.w, height: b.h, fill: 'transparent', stroke: '#00a0ff', 'stroke-dasharray': '3 3', 'stroke-width': marcar ? 1 : 0.6 }, g); }
   // extras: atrás da foto, na frente dela com `frente` (tarja do nome) ou na frente do preço com `topo`, como o gerador
@@ -1233,10 +1331,17 @@ document.head.append(h('style', {}, `
 
 // ---------------------------------------------------------------- formulário de propriedades
 // tipos: text, number, color, select, textarea, corT (cor ou transparente), cantos, imagem, botao
-function form(alvo, titulo, linhas, obj, aoMudar) {
+// trava (opcional, peças do modelo de card): { campo, m } — cadeado em cada propriedade (ver cadeado)
+function form(alvo, titulo, linhas, obj, aoMudar, trava) {
   const sec = h('div', { class: 'prop-section' }, h('h3', {}, titulo));
   for (const l of linhas) {
-    if (l.caractere) { caractere(obj, aoMudar, sec); continue; }
+    if (l.caractere) {
+      caractere(obj, aoMudar, sec);
+      if (trava) sec.append(h('div', { class: 'prop-row trava-car' }, h('label', {}, 'Travar'),
+        h('div', { style: 'display:flex;gap:4px;flex-wrap:wrap;flex:1' }, ...[['fonte', 'Fonte'], ['tamanho', 'Tamanho'], ['cor', 'Cor'], ['borda', 'Borda'], ['borda_cor', 'Cor da borda'], ['alinhamento', 'Alinhamento']]
+          .map(([k, r]) => cadeado(trava, k, r, true)))));
+      continue;
+    }
     if (l.botao) { sec.append(h('div', { class: 'prop-row' }, h('button', { class: 'btn', style: 'flex:1', on: { click: l.botao } }, l.rot))); continue; }
     if (l.dica) { sec.append(h('div', { style: 'font-size:11px;color:var(--c-text2);margin:-2px 0 6px' }, l.dica)); continue; }
     let inp;
@@ -1283,9 +1388,114 @@ function form(alvo, titulo, linhas, obj, aoMudar) {
     const rot = h('label', { title: l.rot });
     if (ic) rot.append(icone(MEIA[l.k])); else rot.textContent = l.rot;
     const un = l.tipo === 'number' && (l.un ?? (UN_PT.includes(l.k) ? 'pt' : ''));
-    sec.append(h('div', { class: 'prop-row' + (meia ? ' meia' : '') + (ic ? ' ic' : '') }, rot, inp, ...(un ? [h('span', { class: 'un' }, un)] : [])));
+    const cad = trava && l.k ? cadeado(trava, l.k) : null;
+    if (cad && travada(trava, l.k) && !trava.base) { inp.style.pointerEvents = 'none'; inp.style.opacity = '.45'; }
+    sec.append(h('div', { class: 'prop-row' + (meia ? ' meia' : '') + (ic ? ' ic' : '') }, rot, inp, ...(un ? [h('span', { class: 'un' }, un)] : []), ...(cad ? [cad] : [])));
   }
   alvo.append(sec);
+}
+// Travas do modelo (Matheus, 22/10/2026): "campo.prop" trancado vale o do card Normal padrão em toda versão e
+// formato (comTravas, aqui e no gerador). Só se tranca/destranca no Normal padrão; nos outros fica bloqueado.
+const travada = (t, k) => !!(t.m.travas && t.m.travas.includes(t.campo + '.' + k));
+function cadeado(t, k, rot, comTexto) {
+  const on = travada(t, k);
+  return h('button', { type: 'button', class: 'cadeado' + (on ? ' on' : ''), disabled: t.base ? null : true,
+    title: (on ? 'Trancado: vale em todo formato e versão' : 'Trancar: todo formato e versão usam o valor do Normal padrão') + (t.base ? '' : ' (tranque no Normal padrão)'),
+    on: { click: ev => {
+      ev.stopPropagation();
+      const id = t.campo + '.' + k, l = t.m.travas || [];
+      t.m.travas = on ? l.filter(x => x !== id) : [...l, id];
+      if (!t.m.travas.length) delete t.m.travas;
+      renderModelo();
+    } } }, (on ? '🔒' : '🔓') + (comTexto ? ' ' + rot : ''));
+}
+document.head.append(h('style', {}, `
+.cadeado{border:0;background:none;cursor:pointer;font-size:12px;opacity:.45;padding:0 2px;flex-shrink:0}
+.cadeado.on{opacity:1}
+.cadeado:disabled{cursor:default}
+.trava-car .cadeado{border:1px solid var(--c-campo-borda);border-radius:4px;padding:2px 6px;font-size:11px;color:var(--c-text)}
+`));
+// a versão com as travas do modelo aplicadas (mesma conta do comTravas do gerador)
+function comTravas(m, c) {
+  if (!m.travas || !m.travas.length || !c || c === m.campos) return c;
+  const out = { ...c };
+  for (const t of m.travas) {
+    const [k, prop] = String(t).split('.'), b = m.campos[k];
+    if (!b || !out[k] || !prop || !(prop in b)) continue;
+    out[k] = { ...out[k], [prop]: JSON.parse(JSON.stringify(b[prop])) };
+  }
+  return out;
+}
+// prancheta duplicada/colada: tudo copiado, com ids novos (elementos e zonas)
+function comIdsNovos(pr) {
+  const n = clone(pr);
+  n.elementos = (n.elementos || []).map(e => ({ ...e, id: uid('e') }));
+  n.zonas = (n.zonas || []).map(z => ({ ...z, id: uid('z') }));
+  return n;
+}
+function duplicarPrancheta(i) {
+  const n = comIdsNovos(S.proj.pranchetas[i]); n.id = uid('pr'); n.nome = `${S.proj.pranchetas[i].nome} (cópia)`;
+  S.proj.pranchetas.splice(i + 1, 0, n); S.pi = i + 1; S.sel = null; S.sujo = true; tudo();
+}
+function colarPrancheta(i) {
+  const pr = S.proj.pranchetas[i], c = S.clipPrancheta; if (!c) return;
+  if (!confirm(`Colar "${c.nome}" por cima de "${pr.nome}"? Fundo, elementos e zonas desta prancheta são trocados.`)) return;
+  const n = comIdsNovos(c);
+  Object.assign(pr, { fundo: n.fundo, elementos: n.elementos, zonas: n.zonas });
+  S.pi = i; S.sel = null; S.sujo = true; tudo();
+}
+// zona: duplicar e copiar/colar o estilo (tudo menos id, lugar e tamanho)
+const ESTILO_FORA = ['id', 'x', 'y', 'w', 'h'];
+function duplicarZona(z) {
+  const n = { ...clone(z), id: uid('z'), x: z.x + 20, y: z.y + 20 };
+  S.proj.pranchetas[S.pi].zonas.push(n); S.sel = n.id; S.sujo = true; render(); props();
+}
+function copiarEstiloZona(z) {
+  S.clipZona = Object.fromEntries(Object.entries(clone(z)).filter(([k]) => !ESTILO_FORA.includes(k)));
+  try { localStorage.setItem('construtor-estilo-zona', JSON.stringify(S.clipZona)); } catch { /* fica só nesta aba */ }
+  props();
+}
+function estiloZonaCopiado() {
+  if (S.clipZona) return S.clipZona;
+  try { return JSON.parse(localStorage.getItem('construtor-estilo-zona') || 'null'); } catch { return null; }
+}
+function colarEstiloZona(z) {
+  const c = estiloZonaCopiado(); if (!c) return;
+  for (const k of Object.keys(z)) if (!ESTILO_FORA.includes(k)) delete z[k];
+  Object.assign(z, clone(c));
+  // modelo que não existe neste projeto: fica o primeiro
+  if (!S.proj.modelos_card.some(m => m.id === z.modelo_card_id)) z.modelo_card_id = S.proj.modelos_card[0] && S.proj.modelos_card[0].id;
+  S.sujo = true; render(); props();
+}
+// partes da zona composta, na ordem (de cima pra baixo, ou da esquerda pra direita)
+function formPartes(alvo, z) {
+  form(alvo, 'Partes da zona', [
+    { rot: 'Divide', k: 'direcao', tipo: 'select', opcoes: [['', 'De cima pra baixo'], ['h', 'Da esquerda pra direita']] },
+    { dica: 'Tamanho = peso de cada parte (1 e 1 = metade cada; 2 e 1 = dois terços e um terço).' },
+  ], z, () => { if (!z.direcao) delete z.direcao; S.sujo = true; props(); });
+  z.partes.forEach((p, i) => {
+    const fx = p.tipo === 'fixo';
+    form(alvo, `Parte ${i + 1} · ${fx ? 'fixo' : 'elástica'}`, [
+      { rot: 'Tipo', k: 'tipo', tipo: 'select', opcoes: [['fixo', 'Fixo'], ['elastica', 'Elástica']] },
+      { rot: 'Tamanho', k: 'tam', tipo: 'number', ph: '1' },
+      ...(fx ? [
+        { rot: 'Lugares lado a lado', k: 'n', tipo: 'number', ph: '1' },
+        { rot: 'Prioridade do destaque', k: 'prioridade', tipo: 'number', ph: 'sem' },
+        { dica: '1 = recebe o 1º produto da lista; 2 = o 2º… Sem número: entra na ordem de leitura.' },
+      ] : [
+        { rot: 'Colunas no desenho', k: 'colunas', tipo: 'number', ph: '2' },
+        { rot: 'Máximo de linhas', k: 'max_linhas', tipo: 'number', ph: 'automático' },
+        { rot: 'Máximo por linha', k: 'max_por_linha', tipo: 'number', ph: 'automático' },
+        { dica: 'No editor ela monta as linhas pela quantidade que cair nela. Vazia, o fixo da zona cresce e ocupa o lugar.' },
+      ]),
+      { rot: '↑ Subir', botao: () => { if (i) { [z.partes[i - 1], z.partes[i]] = [z.partes[i], z.partes[i - 1]]; S.sujo = true; props(); } } },
+      { rot: '× Tirar esta parte', botao: () => { if (z.partes.length > 1) { z.partes.splice(i, 1); S.sujo = true; props(); } } },
+    ], p, () => { S.sujo = true; props(); });
+  });
+  form(alvo, 'Nova parte', [
+    { rot: '+ Fixo', botao: () => { z.partes.push({ tipo: 'fixo', tam: 1, n: 1 }); S.sujo = true; props(); } },
+    { rot: '+ Elástica', botao: () => { z.partes.push({ tipo: 'elastica', tam: 1, colunas: 2 }); S.sujo = true; props(); } },
+  ], {}, () => {});
 }
 const linhasCaixa = [{ rot: 'X', k: 'x', tipo: 'number' }, { rot: 'Y', k: 'y', tipo: 'number' }, { rot: 'Largura', k: 'w', tipo: 'number' }, { rot: 'Altura', k: 'h', tipo: 'number' }];
 const linhasBorda = [{ rot: 'Borda', k: 'borda', tipo: 'number', ph: '0 = sem' }, { rot: 'Cor da borda', k: 'borda_cor', tipo: 'color' }];
@@ -1297,6 +1507,8 @@ const linhasForma = (comImagem = true) => [
 ];
 // regra do fundo do preço: como ele acompanha o tamanho do valor no editor
 const linhasRegra = c => [
+  { rot: 'R$ na borda', k: 'na_borda', tipo: 'select', opcoes: [['', 'Não'], ['esq', 'Na borda esquerda do fundo'], ['dir', 'Na borda direita do fundo']] },
+  ...(c.na_borda ? [{ dica: 'O R$ e o círculo dele ficam com o meio em cima da borda lateral do fundo do preço. Quando o preço cresce, o fundo estica, o valor fica no meio e o R$ acompanha a borda.' }] : []),
   { dica: '— Quando o preço crescer —' },
   { rot: 'Regra', k: 'regra', tipo: 'select', opcoes: [['fixo', 'Fundo fixo, valor encolhe'], ['estica', 'Fundo estica'], ['estica_encolhe', 'Estica até o limite, depois encolhe o valor']] },
   ...(c.regra && c.regra !== 'fixo' ? [
@@ -1308,6 +1520,17 @@ const linhasRegra = c => [
     { dica: 'Margem limite: distância mínima, em pt, entre o fundo e cada borda do card quando ele estica.' },
     { rot: 'Cima', k: 'margem_t', tipo: 'number', ph: '8' }, { rot: 'Direita', k: 'margem_r', tipo: 'number', ph: '8' },
     { rot: 'Baixo', k: 'margem_b', tipo: 'number', ph: '8' }, { rot: 'Esquerda', k: 'margem_l', tipo: 'number', ph: '8' },
+  ] : []),
+];
+// sombra: liga e aparecem deslocamento, desfoque, quanto passa da forma e a cor
+const linhasSombra = c => [
+  { rot: 'Sombra', k: 'sombra', tipo: 'check', padrao: false },
+  ...(c && c.sombra ? [
+    { rot: 'Desloc. X', k: 'sombra_x', tipo: 'number', ph: '0', un: 'pt' }, { rot: 'Desloc. Y', k: 'sombra_y', tipo: 'number', ph: '0', un: 'pt' },
+    { rot: 'Desfoque', k: 'sombra_blur', tipo: 'number', ph: '0', un: 'pt' },
+    { rot: 'Largura +', k: 'sombra_largura', tipo: 'number', ph: '0', un: 'pt' }, { rot: 'Altura +', k: 'sombra_altura', tipo: 'number', ph: '0', un: 'pt' },
+    { rot: 'Cor da sombra', k: 'sombra_cor', tipo: 'color' },
+    { dica: 'Largura + / Altura +: quanto a sombra passa da forma em cada lado (pt). Desfoque 0 = sombra dura.' },
   ] : []),
 ];
 // a borda só aparece com cor: ao pôr a espessura, já vem preta
@@ -1410,8 +1633,8 @@ function render() {
   }
   const modelos = new Map(S.proj.modelos_card.map(m => [m.id, m]));
   // produtos de exemplo continuam de uma prancheta pra outra (card 1 da prancheta 2 = depois da 1)
-  let nCard = S.proj.pranchetas.slice(0, S.pi).reduce((t, p) => t + p.zonas.reduce((u, z) => u + Array.from({ length: z.linhas }, (_, r) => itensDaLinha(z, r)).reduce((a, b) => a + b, 0), 0), 0);
-  for (const z of pr.zonas) {
+  let nCard = S.proj.pranchetas.slice(0, S.pi).reduce((t, p) => t + zonasAbertas(p).reduce((u, z) => u + Array.from({ length: z.linhas }, (_, r) => itensDaLinha(z, r)).reduce((a, b) => a + b, 0), 0), 0);
+  for (const z0 of pr.zonas) for (const z of expandirZona(z0)) {
     const m = modelos.get(z.modelo_card_id), e = z.espaco ?? S.proj.espaco_padrao;
     const ch = (z.h - (z.linhas - 1) * e) / z.linhas;
     const casas = [];
@@ -1428,9 +1651,23 @@ function render() {
           'stroke-linecap': dv.estilo === 'pontilhada' ? 'round' : 'butt', 'pointer-events': 'none' }, svg);
     }
     for (const b of casas) desenharCard(svg, m, usaHorizontal(m, z, b.w, b.h) ? versaoNaCasa(m, 'horizontal', b, null) : versaoNaCasa(m, 'campos', b, casaDoModelo(m.id, true)), b, false, produtoExemplo(nCard++));
+    if (z.parte) {
+      // parte da zona composta: fixo laranja cheio, elástica verde tracejada (não seleciona: a zona é que seleciona)
+      const fx = z.parte.tipo === 'fixo', cor = fx ? '#D85A30' : '#1D9E75';
+      el('rect', { x: z.x, y: z.y, width: z.w, height: z.h, fill: fx ? '#D85A3014' : '#1D9E7514', stroke: cor, 'stroke-width': 1.5 / escala,
+        'stroke-dasharray': fx ? null : `${4 / escala} ${3 / escala}`, 'pointer-events': 'none' }, svg);
+      const tp = el('text', { x: z.x + 4 / escala, y: z.y + 13 / escala, 'font-size': 11 / escala, fill: cor, 'font-family': 'system-ui', 'font-weight': 600, 'pointer-events': 'none' }, svg);
+      tp.textContent = fx ? `Fixo${z.parte.prioridade ? ' · destaque ' + z.parte.prioridade : ''}` : 'Elástica';
+      continue;
+    }
+    rotuloZona(z, m, `${Array.from({ length: z.linhas }, (_, r) => itensDaLinha(z, r)).join('/')} por linha`);
+  }
+  for (const z of pr.zonas) if (z.tipo === 'composta' && z.partes && z.partes.length)
+    rotuloZona(z, modelos.get(z.modelo_card_id), `composta · ${z.partes.map(p => (p.tipo === 'fixo' ? 'F' : 'E')).join(z.direcao === 'h' ? ' | ' : ' / ')}`);
+  function rotuloZona(z, m, txt) {
     el('rect', { 'data-id': z.id, x: z.x, y: z.y, width: z.w, height: z.h, fill: 'transparent', stroke: '#7b2ff7', 'stroke-width': 2 / escala, 'stroke-dasharray': `${6 / escala} ${4 / escala}` }, svg);
     const t = el('text', { x: z.x + 4 / escala, y: z.y - 4 / escala, 'font-size': 11 / escala, fill: '#7b2ff7', 'font-family': 'system-ui', 'pointer-events': 'none' }, svg);
-    t.textContent = `Zona · ${m ? m.nome : 'sem modelo'} · ${Array.from({ length: z.linhas }, (_, r) => itensDaLinha(z, r)).join('/')} por linha`;
+    t.textContent = `Zona · ${m ? m.nome : 'sem modelo'} · ${txt}`;
   }
   el('g', { id: 'fantasma' }, svg);
   const s = S.sel && itemPorId(S.sel);
@@ -1444,11 +1681,17 @@ function render() {
 function listas() {
   const lp = $('#lista-pranchetas'); lp.replaceChildren();
   S.proj.pranchetas.forEach((pr, i) => lp.append(h('div', { class: 'sb-item' + (i === S.pi ? ' active' : ''), on: { click: () => { S.pi = i; S.sel = null; tudo(); } } },
-    `${i + 1}. ${pr.nome}`, h('span', { class: 'del', title: 'Apagar', on: { click: ev => { ev.stopPropagation(); apagarPrancheta(i); } } }, '×'))));
+    `${i + 1}. ${pr.nome}`,
+    h('span', { class: 'del', title: 'Duplicar a prancheta (a cópia entra logo depois)', style: 'margin-left:auto', on: { click: ev => { ev.stopPropagation(); duplicarPrancheta(i); } } }, '⧉'),
+    h('span', { class: 'del', title: 'Copiar a prancheta (depois cole por cima de outra)', style: 'margin-left:4px', on: { click: ev => { ev.stopPropagation(); S.clipPrancheta = clone(pr); listas(); } } }, '⎘'),
+    ...(S.clipPrancheta ? [h('span', { class: 'del', title: `Colar por cima desta a prancheta copiada ("${S.clipPrancheta.nome}"): fundo, elementos e zonas; o nome fica`, style: 'margin-left:4px', on: { click: ev => { ev.stopPropagation(); colarPrancheta(i); } } }, '⇣')] : []),
+    h('span', { class: 'del', title: 'Apagar', style: 'margin-left:4px', on: { click: ev => { ev.stopPropagation(); apagarPrancheta(i); } } }, '×'))));
   const lm = $('#lista-modelos'); lm.replaceChildren();
+  const clipM = lerClipModelo();
   for (const m of S.proj.modelos_card) lm.append(h('div', { class: 'sb-item', title: [m.especial && 'Tem versão especial (2×2)', m.horizontal && 'Tem versão horizontal'].filter(Boolean).join(' · '), on: { click: () => abrirModelo(m.id) } },
     h('span', { class: 'campo-color', style: `background:${cssCor(m.fundo_cor)};border:1px solid var(--c-border)` }), `${m.nome}${m.especial ? ' ★' : ''}${m.horizontal ? ' ▭' : ''}`,
     h('span', { class: 'del', title: 'Copiar o modelo (cola em qualquer projeto, inclusive neste)', style: 'margin-left:auto', on: { click: ev => { ev.stopPropagation(); copiarModeloClip(m); } } }, '⧉'),
+    ...(clipM && !(clipM.projetoId === S.proj.id && clipM.modeloId === m.id) ? [h('span', { class: 'del', title: `Colar o estilo de "${clipM.nome}" neste modelo (o nome e as zonas dele ficam)`, style: 'margin-left:4px', on: { click: ev => { ev.stopPropagation(); if (confirm(`Trocar o desenho de "${m.nome}" pelo de "${clipM.nome}"?`)) colarModeloClip(m.id); } } }, '⇣')] : []),
     h('span', { class: 'del', title: 'Apagar', style: 'margin-left:4px', on: { click: ev => { ev.stopPropagation(); apagarModelo(m.id); } } }, '×')));
   const clip = lerClipModelo();
   $('#btn-colar-modelo').style.display = clip ? '' : 'none';
@@ -1461,6 +1704,42 @@ function linhaTamanho(alvo) {
   sel.value = TAMANHOS.some(([v]) => v === `${S.proj.tamanho.w}x${S.proj.tamanho.h}`) ? `${S.proj.tamanho.w}x${S.proj.tamanho.h}` : '';
   sel.addEventListener('input', () => { if (!sel.value) return; const [w, hh] = sel.value.split('x').map(Number); S.proj.tamanho = { w, h: hh }; S.sujo = true; render(); props(); });
   alvo.querySelector('.prop-section:last-child h3').after(h('div', { class: 'prop-row' }, h('label', {}, 'Tamanho'), sel));
+}
+
+// regras que o editor de encarte aplica sozinho (Matheus, 22/10/2026: liga/desliga aqui em vez de
+// pedir por prompt). Vão no SVG como data-regras; "Padrão" = sem a chave, o editor segue o
+// padroes_mercado.json do cliente e, sem ele, o comportamento de sempre
+const REGRAS = [
+  { k: 'nome_acima_do_preco', rot: 'Nome acima do preço', dica: 'sobe o nome que ficaria atrás do preço', tipo: 'liga', padrao: 'ligado' },
+  { k: 'nome_embaixo_fica', rot: 'Nome embaixo fica embaixo', dica: 'nome que o molde pôs embaixo do preço não sobe', tipo: 'liga', padrao: 'ligado' },
+  { k: 'linha_incompleta_embaixo', rot: 'Linha incompleta embaixo', dica: 'linhas cheias em cima, nenhuma com 1 item só', tipo: 'liga', padrao: 'ligado' },
+  { k: 'encolhe_card_baixo', rot: 'Encolhe card baixo', dica: 'card mais baixo que o molde diminui nome e preço junto', tipo: 'liga', padrao: 'do cliente' },
+  { k: 'logo_auto', rot: 'Logo automático', dica: 'desligado tira a troca de logo do padrão do cliente', tipo: 'liga', padrao: 'do cliente' },
+  { k: 'moeda_anda', rot: 'R$ anda', dica: 'o R$ vai pra esquerda quando o valor não cabe', tipo: 'moeda', padrao: 'do cliente' },
+  { k: 'titulo_min_pt', rot: 'Nome mínimo (pt)', dica: 'menor tamanho do nome que encolheu sozinho', tipo: 'num', ph: '14' },
+  { k: 'primeira_linha_max', rot: 'Máx. na 1ª linha', dica: '0 = sem limite', tipo: 'num', ph: 'do cliente' },
+  { k: 'preco_proporcional', rot: 'Preço acompanha a largura', dica: 'card mais estreito encolhe o preço, mais largo aumenta', tipo: 'liga', padrao: 'ligado' },
+  { k: 'preco_ajustar_largura', rot: 'Tarja na largura da casa', dica: 'fração da largura (ex. 0.94); 0 = desligado', tipo: 'num', ph: 'do cliente', step: 0.01 },
+];
+function formRegras(alvo, mudou) {
+  const R = S.proj.regras || {};
+  const deTela = r => { const v = R[r.k]; if (v === undefined) return ''; if (r.tipo === 'num') return v; return v === true ? 'sim' : v === false ? 'nao' : v; };
+  const tela = Object.fromEntries(REGRAS.map(r => [r.k, deTela(r)]));
+  form(alvo, 'Regras do editor', [
+    { dica: 'O editor aplica essas correções sozinho em toda edição deste template. "Padrão" segue o cliente.' },
+    ...REGRAS.map(r => r.tipo === 'num'
+      ? { rot: r.rot, k: r.k, tipo: 'number', un: '', ph: r.ph, step: r.step }
+      : { rot: r.rot, k: r.k, tipo: 'select', opcoes: [['', `Padrão (${r.padrao})`], ['sim', 'Ligado'], ['nao', 'Desligado'], ...(r.tipo === 'moeda' ? [['fundo', 'Ligado, fundo estica junto']] : [])] }),
+  ], tela, k => {
+    const v = tela[k];
+    const r = REGRAS.find(x => x.k === k);
+    const regras = { ...(S.proj.regras || {}) };
+    if (v === '' || v === undefined) delete regras[k];
+    else regras[k] = r.tipo === 'num' ? v : v === 'sim' ? true : v === 'nao' ? false : v;
+    if (Object.keys(regras).length) S.proj.regras = regras; else delete S.proj.regras;
+    mudou();
+  });
+  alvo.lastElementChild.querySelectorAll('.prop-row').forEach((row, i) => { const r = REGRAS[i]; if (r) row.title = r.dica; });
 }
 
 function props() {
@@ -1486,6 +1765,7 @@ function props() {
       if (k === 'cliente') { const c = S.clientes.find(x => x.nome === S.proj.cliente); S.proj.folderId = c ? c.folderId : null; carregarBlocos().then(render); }
       mudou();
     });
+    formRegras(alvo, mudou);
     form(alvo, 'Tamanho da prancheta', [{ rot: 'Largura', k: 'w', tipo: 'number', un: 'px' }, { rot: 'Altura', k: 'h', tipo: 'number', un: 'px' }], S.proj.tamanho, () => { mudou(); props(); });
     linhaTamanho(alvo);
     form(alvo, 'Cliente e biblioteca', [
@@ -1518,12 +1798,25 @@ function props() {
       ...(S.proj.modelos_card.find(m => m.id === it.modelo_card_id) || {}).horizontal ? [] : [{ dica: 'Esse modelo ainda não tem a versão horizontal (abra o modelo e crie em "+ Horizontal").' }],
       ...linhasCaixa,
       { rot: '☆ Salvar o card desta zona na biblioteca…', botao: () => dialogoSalvar({ tipo: 'card', modelo: it.modelo_card_id }) },
+      { rot: '⧉ Duplicar a zona', botao: () => duplicarZona(it) },
+      { rot: '⎘ Copiar o estilo da zona', botao: () => copiarEstiloZona(it) },
+      ...(estiloZonaCopiado() ? [{ rot: '⇣ Colar o estilo copiado nesta zona', botao: () => colarEstiloZona(it) },
+        { dica: 'Estilo = modelo, espaço, formato, linhas/itens por linha, divisórias e partes (zona composta). O lugar e o tamanho da zona ficam.' }] : []),
       remover,
     ], it, mudou);
     alvo.querySelector('.prop-section:last-child').append(linhaAlinhar('na prancheta', onde => {
       const { w: W, h: H } = S.proj.tamanho, n = alinhar(it, { x: 0, y: 0, w: W, h: H }, onde);
       it.x = +n.x.toFixed(1); it.y = +n.y.toFixed(1); S.sujo = true; render(); props();
     }));
+    form(alvo, 'Tipo de zona', [
+      { rot: 'Tipo', k: 'tipo', tipo: 'select', opcoes: [['', 'Normal (linhas e itens por linha)'], ['composta', 'Composta (partes fixas e elásticas)']] },
+      { dica: 'Composta: a zona é dividida em partes. Fixo = lugar que existe sempre (o destaque pela prioridade). Elástica = recebe quantos produtos sobrarem e monta as linhas sozinha no editor.' },
+    ], it, () => {
+      if (it.tipo === 'composta' && !(it.partes && it.partes.length)) it.partes = [{ tipo: 'fixo', tam: 1, n: 1, prioridade: 1 }, { tipo: 'elastica', tam: 1, colunas: 2 }];
+      if (!it.tipo) delete it.tipo;
+      mudou(); props();
+    });
+    if (it.tipo === 'composta') { formPartes(alvo, it); return; }
     form(alvo, 'Itens por linha', [
       { rot: 'Por linha', k: 'por', ph: '3, 2, 4' },
       { dica: 'Um número por linha, de cima pra baixo (ex.: 3, 2, 4). Cada linha ocupa a largura toda da zona.' },
@@ -1557,9 +1850,9 @@ function props() {
     // papel: o editor de encarte marca esse texto até ele ser atualizado na edição da semana
     { rot: 'Papel', k: 'papel', tipo: 'select', opcoes: PAPEIS },
     ...(it.papel ? [{ dica: 'No editor de encarte esse texto fica marcado em laranja até ser atualizado na edição da semana (e o Hermes/Claude sabem que precisam trocar).' }] : []),
-    { rot: 'Texto', k: 'texto', tipo: 'textarea' }, ...linhasTexto(), ...linhasCaixa, ...ordem, guardar, remover,
-  ], it, k => { if (k === 'papel' && !it.papel) delete it.papel; mudou(k); if (k === 'borda' || k === 'papel') props(); });
-  if (it.tipo === 'retangulo') form(alvo, 'Forma', [...linhasForma(), ...linhasCaixa, ...ordem, guardar, remover], it, k => { mudou(k); props(); });
+    { rot: 'Texto', k: 'texto', tipo: 'textarea' }, ...linhasTexto(), ...linhasSombra(it), ...linhasCaixa, ...ordem, guardar, remover,
+  ], it, k => { if (k === 'papel' && !it.papel) delete it.papel; mudou(k); if (k === 'borda' || k === 'papel' || k === 'sombra') props(); });
+  if (it.tipo === 'retangulo') form(alvo, 'Forma', [...linhasForma(), ...linhasSombra(it), ...linhasCaixa, ...ordem, guardar, remover], it, k => { mudou(k); props(); });
   if (it.tipo === 'imagem') form(alvo, 'Imagem', [{ rot: 'Imagem', k: 'url', tipo: 'imagem' }, { rot: 'Ajuste', k: 'ajuste', tipo: 'select', opcoes: [['contain', 'Caber'], ['cover', 'Cobrir']] }, ...linhasCaixa, ...ordem, guardar, remover], it, k => { mudou(k); props(); });
   // texto, forma e imagem soltos: alinhar na prancheta
   const sec = alvo.querySelector('.prop-section:last-child');
@@ -1656,7 +1949,7 @@ function pecasMulti() {
 // todas as zonas que usam o modelo desenham a versão horizontal (formato "horizontal" ou casa larga):
 // o modal abre nela, senão a mudança vai pro normal e não aparece na prancheta
 function zonasSoHorizontal(m) {
-  const zs = S.proj.pranchetas.flatMap(pr => pr.zonas.filter(z => z.modelo_card_id === m.id));
+  const zs = S.proj.pranchetas.flatMap(pr => zonasAbertas(pr).filter(z => z.modelo_card_id === m.id));
   return zs.length > 0 && zs.every(z => {
     const e = z.espaco ?? S.proj.espaco_padrao, n = itensDaLinha(z, 0);
     return usaHorizontal(m, z, (z.w - (n - 1) * e) / n, (z.h - (z.linhas - 1) * e) / z.linhas);
@@ -1724,6 +2017,12 @@ function renderModelo() {
   }
 }
 function renderModeloCorpo() {
+  if (EMB.antesDeDesenhar) EMB.antesDeDesenhar();
+  // versão/formato aberto mostra (e guarda) o valor trancado do Normal padrão
+  if (M.m && M.aba !== 'campos' && M.m[M.aba] && M.m.travas) {
+    const t = comTravas(M.m, M.m[M.aba]);
+    if (JSON.stringify(t) !== JSON.stringify(M.m[M.aba])) M.m[M.aba] = t;
+  }
   caractere(null);
   pilhaAgenda(HM, modeloAtual);
   const svg = $('#modal-canvas'), card = caixaCardModal(), campos = M.m[M.aba];
@@ -1746,8 +2045,11 @@ function renderModeloCorpo() {
   else if (M.sel && campoM(M.sel)) desenharSelecao(svg, caixaCampoAbs(M.sel), escalaModal);
   const lista = $('#modal-campos-lista'); lista.replaceChildren();
   const topo = h('div', {});
-  form(topo, 'Modelo', [{ rot: 'Nome', k: 'nome' }, { rot: 'Fundo', k: 'fundo_cor', tipo: 'corT' }, { rot: 'Canto', k: 'raio', tipo: 'number' }, ...linhasBorda,
+  form(topo, 'Modelo', [{ rot: 'Nome', k: 'nome' }, { rot: 'Fundo', k: 'fundo_cor', tipo: 'corT' }, { rot: 'Canto', k: 'raio', tipo: 'number' }, ...linhasBorda, ...linhasSombra(M.m),
     { dica: 'O canto do card é sempre nos 4 juntos (o editor estica o card).' },
+    { rot: 'Altura mínima do preço', k: 'min_preco_h', tipo: 'number', ph: 'sem', un: 'pt' },
+    { dica: 'Em card pequeno, o grupo do preço não fica mais baixo que isso (se couber no card). Formato ajustado à mão fica como você desenhou. O mínimo do título é a regra "Nome mínimo (pt)" do projeto.' },
+    ...(M.m.travas && M.m.travas.length ? [{ dica: '🔒 Trancado em todo formato e versão: ' + M.m.travas.join(', ') }] : []),
     { rot: '☆ Salvar o card na biblioteca…', botao: () => dialogoSalvar({ tipo: 'card', modelo: M.m.id }) }], M.m, k => { bordaPadrao(M.m, k); if (k !== 'nome') renderModelo(); });
   const abas = h('div', { class: 'prop-row' },
     h('button', { class: 'btn' + (M.aba === 'campos' ? ' active' : ''), on: { click: () => { M.aba = 'campos'; M.sel = null; renderModelo(); } } }, 'Normal'),
@@ -1974,15 +2276,18 @@ function renderModeloCorpo() {
       ...(M.sel === 'nome' ? [
         { rot: 'Quebra até', k: 'max_linhas', tipo: 'select', num: true, padrao: '2', opcoes: [['1', '1 linha'], ['2', '2 linhas'], ['3', '3 linhas']] },
         { dica: 'O nome quebra na largura da caixa até esse número de linhas; se ainda não couber, a fonte diminui (nunca abaixo de 15 pt). Enter no nome, no editor, continua mandando na quebra.' }] : []),
-      ...(M.sel === 'de_valor' ? [{ rot: 'Riscado', k: 'riscar', tipo: 'check' }] : [])]
-      : tipo === 'ret' || tipo === 'retangulo' ? [...linhasForma(), ...(M.sel === 'preco_fundo' ? linhasRegra(c) : [])]
+      ...(M.sel === 'de_valor' ? [{ rot: 'Riscado', k: 'riscar', tipo: 'check' }] : []), ...linhasSombra(c)]
+      : tipo === 'ret' || tipo === 'retangulo' ? [...linhasForma(), ...linhasSombra(c), ...(M.sel === 'preco_fundo' ? linhasRegra(c) : [])]
       : tipo === 'imagem' ? [{ rot: 'Imagem', k: 'url', tipo: 'imagem' }] : [];
     if (M.sel === 'nome_fundo') linhas.push(
       { dica: '— Fundo do nome (tarja atrás do título) —' },
       { rot: 'Regra', k: 'regra', tipo: 'select', opcoes: [['fixo', 'Fixo: o texto se ajusta dentro'], ['estica_encolhe', 'Abraça o texto (até o tamanho desenhado)'], ['estica', 'Abraça e pode crescer até a borda do card']] },
       { dica: 'Margens entre o fundo e o texto (pt). A caixa do nome passa a ser o fundo menos essas margens.' },
       { rot: 'Cima', k: 'margem_t', tipo: 'number', ph: '6', un: 'pt' }, { rot: 'Direita', k: 'margem_r', tipo: 'number', ph: '6', un: 'pt' },
-      { rot: 'Baixo', k: 'margem_b', tipo: 'number', ph: '6', un: 'pt' }, { rot: 'Esquerda', k: 'margem_l', tipo: 'number', ph: '6', un: 'pt' });
+      { rot: 'Baixo', k: 'margem_b', tipo: 'number', ph: '6', un: 'pt' }, { rot: 'Esquerda', k: 'margem_l', tipo: 'number', ph: '6', un: 'pt' },
+      ...linhasPreso(c));
+    if (M.sel === 'nome' && !campos.nome_fundo) linhas.push(...linhasPreso(c));
+    if (M.sel === 'nome' && campos.nome_fundo) linhas.push({ rot: 'Mover o fundo do nome', botao: () => { M.sel = 'nome_fundo'; renderModelo(); } });
     if (M.sel === 'nome' && campos.nome_fundo) linhas.push({ dica: 'Com Fundo do nome ligado, a caixa do nome é o fundo menos as margens: mova ou estique o fundo.' });
     if (M.sel === 'gatilho') linhas.push({ dica: 'Exemplo: "//" quebra a linha (até 2). No editor o texto fica sempre centralizado no card, troca em cada produto e só encolhe se não couber.' });
     if (M.sel === 'moeda_fundo') linhas.push({ dica: 'Forma atrás do R$ (o círculo). No editor ela anda junto com o R$ quando o preço cresce.' });
@@ -2012,7 +2317,8 @@ function renderModeloCorpo() {
       linhas.unshift({ dica: 'Preço com selo: cor, cor da borda e lugar desta peça valem só pro produto com selo. Fonte e tamanho valem pros dois.' },
         ...(temAj ? [{ rot: 'Igual ao sem selo', botao: () => { delete cs.pecas[M.sel]; renderModelo(); } }] : []));
     }
-    form(pp, titulo, linhas, c, k => { if (k === 'trava' && c.trava === 'auto') delete c.trava; bordaPadrao(c, k); renderModelo(); });
+    form(pp, titulo, linhas, c, k => { if (k === 'trava' && c.trava === 'auto') delete c.trava; bordaPadrao(c, k); renderModelo(); },
+      extra ? null : { campo: M.sel, m: M.m, base: M.aba === 'campos' });
     if ((M.sel === 'area' || M.sel === 'foto') && campos.area) pp.lastChild.append(seletorFotoAlinha(campos.area, renderModelo));
     if (GATILHO_KS.includes(M.sel)) {
       const o = { ancora: campos.gatilho_ancora || 'auto' };
@@ -2170,7 +2476,8 @@ function caixaCampoAbs(k) {
   if (rg) return rg; // por regras: mostra a área calculada
   return { x: c.x / 100 * card.w, y: c.y / 100 * card.h, w: c.w / 100 * card.w, h: c.h / 100 * card.h };
 }
-function salvarModelo() {
+// o modelo como ele é gravado (formatos que só seguem o padrão saem). Muda o M.m
+function modeloFinal() {
   devolverPrecoOrig();
   const formatos = {};
   for (const a of Object.keys(M.m)) if (a.startsWith('f:')) {
@@ -2179,6 +2486,10 @@ function salvarModelo() {
     formatos[k] = c;
   }
   if (Object.keys(formatos).length) M.m.formatos = formatos; else delete M.m.formatos;
+  return M.m;
+}
+function salvarModelo() {
+  modeloFinal();
   const i = S.proj.modelos_card.findIndex(m => m.id === M.m.id);
   S.proj.modelos_card[i] = M.m; S.sujo = true;
   $('#modal-overlay').classList.remove('open'); caractere(null); tudo();
@@ -2286,23 +2597,25 @@ async function copiarModeloClip(m) {
   try { localStorage.setItem(CLIP, JSON.stringify({ projetoId: S.proj.id, projetoNome: S.proj.nome, modeloId: m.id, nome: m.nome })); } catch { return alert('O navegador não deixou guardar a cópia.'); }
   listas();
 }
-async function colarModeloClip() {
+// sobre = id do modelo deste projeto que recebe o estilo copiado (sem ele, entra um modelo novo)
+async function colarModeloClip(sobre) {
   const c = lerClipModelo(); if (!c || !S.proj) return;
+  if (typeof sobre !== 'string') sobre = undefined;
   if (S.sujo) await salvar();
   carregando(true);
   try {
-    const r = await api('/' + S.proj.id + '/copiar-modelo', { method: 'POST', body: JSON.stringify({ de: c.projetoId, modeloId: c.modeloId }) });
+    const r = await api('/' + S.proj.id + '/copiar-modelo', { method: 'POST', body: JSON.stringify({ de: c.projetoId, modeloId: c.modeloId, sobre }) });
     S.proj = r.projeto; S.sujo = false; tudo();
   } catch (e) { alert('Não colou: ' + e.message); } finally { carregando(false); }
 }
 async function salvar() {
-  if (!S.proj) return;
+  if (!S.proj || EMB.on) return; // embutido: o projeto aberto é o publicado + o ajuste da edição
   carregando(true);
   try { S.proj = await api('/' + S.proj.id, { method: 'PUT', body: JSON.stringify(S.proj) }); S.sujo = false; render(); }
   finally { carregando(false); }
 }
 async function publicar() {
-  if (!S.proj) return;
+  if (!S.proj || EMB.on) return;
   if (S.proj.pranchetas.every(p => !p.zonas.length)) return alert('Coloque pelo menos uma zona de grade antes de publicar.');
   await salvar();
   carregando(true);
@@ -2549,7 +2862,8 @@ async function iniciar() {
     },
     selecionado: () => M.sel, ferramenta: () => 'selecionar',
     // com um grupo selecionado, pegar qualquer peça dele arrasta o grupo todo
-    pegar: alvo => { const id = pegar(alvo); if (precoEmGrupo(id)) return M.sel === id ? id : 'g:preco'; return (ehGrupo(M.sel) && pecasDoGrupo(M.sel).includes(id)) || (ehMulti(M.sel) && M.mult.includes(id)) ? M.sel : id; },
+    // fundo do nome selecionado: arrastar em cima do texto (que fica por cima dele) move o fundo
+    pegar: alvo => { const id = pegar(alvo); if (M.sel === 'nome_fundo' && id === 'nome') return 'nome_fundo'; if (precoEmGrupo(id)) return M.sel === id ? id : 'g:preco'; return (ehGrupo(M.sel) && pecasDoGrupo(M.sel).includes(id)) || (ehMulti(M.sel) && M.mult.includes(id)) ? M.sel : id; },
     setCaixa: (k, b) => {
       if (ehMulti(k)) {
         // mover todos a mesma distância, a partir de onde estavam no começo do arraste
@@ -2603,6 +2917,7 @@ async function iniciar() {
   $('#btn-colar-modelo').onclick = ev => { ev.stopPropagation(); colarModeloClip(); };
   iniciarBiblioteca(); // biblioteca.js
   carregando(false);
+  if (EMB.on) return iniciarEmbutido(); // embutido.js
   // link direto pro projeto (o MCP devolve .../construtor-template/index.html#<id>)
   const doLink = decodeURIComponent(location.hash.slice(1));
   if (doLink) { try { await abrirProjeto(doLink); return; } catch { /* id que não existe: cai na lista */ } }
