@@ -1,6 +1,6 @@
 [package]
 name = "smd-tarefas-desktop"
-version = "0.3.12"
+version = "0.3.13"
 description = "Somado Tarefas na bandeja do Windows"
 edition = "2021"
 

@@ -23924,8 +23924,8 @@ var BUCKETS = {
 
 // local/encarte-pc/supabase.ts
 init_contexto();
-var URL_SB = "https://aoanmcleymptjghwvlvx.supabase.co";
-var ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvYW5tY2xleW1wdGpnaHd2bHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxOTY1MTAsImV4cCI6MjA5NTc3MjUxMH0.dxzDC6DlwxLUg80hXWGknuTw1GQISf6104HC2Z2Vw3E";
+var URL_SB = "https://banco-tarefas.yifpah.easypanel.host";
+var ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzkzMjMzMDAzLCJleHAiOjE5NTA5MTMwMDN9.dOD_xFMOcBYX_8SvChxWjQluJm6_XjBMDy8Tl-zvzM8";
 function novoCliente() {
   return createClient(URL_SB, ANON, {
     db: { schema: DB_SCHEMA },
