@@ -452,10 +452,33 @@ function linhasPreso(c) {
       { rot: 'Limite direito', k: 'preso_dir', tipo: 'number', ph: 'livre', un: 'pt' },
       { dica: 'No editor, o pé do nome (ou do fundo dele) fica a esse espaço acima do grupo do preço, em qualquer tamanho de card. Limite = distância da borda do card; vazio = livre (cresce pra esse lado com o título). Os dois vazios: centrado no preço.' }] : [])];
 }
+// nome (ou o fundo dele) preso ao preço: prévia da conta do editor (nomePresoAoPreco), com o fundo do tamanho
+// desenhado. out já está na casa (% dela); mexe em out e devolve o deslocamento do pé do nome (pras travas no nome).
+// Vale em toda casa, inclusive a do tamanho do desenho (Matheus, 30/10/2026: o título mudava de lugar ao mexer no card)
+function prenderNomeAoPreco(c, out, ref, casa) {
+  const nf = c.nome_fundo || (c.nome && c.nome.preso_preco ? c.nome : null);
+  if (!nf || !nf.preso_preco) return null;
+  const r = v => +v.toFixed(3);
+  const pt = b => ({ x: b.x / 100 * ref.w, y: b.y / 100 * ref.h, w: b.w / 100 * ref.w, h: b.h / 100 * ref.h });
+  const pct = b => ({ x: r(b.x / casa.w * 100), y: r(b.y / casa.h * 100), w: r(b.w / casa.w * 100), h: r(b.h / casa.h * 100) });
+  const pp = PRECO_KS.filter(k => out[k]).map(k => ({ x: out[k].x / 100 * casa.w, y: out[k].y / 100 * casa.h, w: out[k].w / 100 * casa.w, h: out[k].h / 100 * casa.h }));
+  if (!pp.length) return null;
+  const fy = Math.min(...pp.map(b => b.y)), fx0 = Math.min(...pp.map(b => b.x)), fx1 = Math.max(...pp.map(b => b.x + b.w));
+  const B = pt(nf), lim = v => (typeof v === 'number' && isFinite(v) ? v : null), e = lim(nf.preso_esq), d = lim(nf.preso_dir);
+  const w = Math.min(B.w, casa.w - (e || 0) - (d || 0));
+  const x = d != null ? casa.w - d - w : e != null ? e : (fx0 + fx1) / 2 - w / 2;
+  const N = { x, y: fy - (nf.preso_gap ?? 6) - B.h, w, h: B.h };
+  const dx = N.x - B.x, dy = N.y - B.y;
+  if (c.nome_fundo) out.nome_fundo = { ...nf, ...pct(N) };
+  if (c.nome) { const T = pt(c.nome); out.nome = { ...c.nome, ...pct({ x: T.x + dx, y: T.y + dy, w: Math.min(T.w, w), h: T.h }) }; }
+  return { dx: dx + B.w / 2 - w / 2, dy };
+}
 // card numa casa de outro tamanho que a do desenho: tudo por distância em pt (mesma conta do camposNaCasa do gerador)
 function camposNaCasa(campos, ref, casa) {
   if (!(ref.w > 0 && ref.h > 0 && casa.w > 0 && casa.h > 0)) return campos;
-  if (Math.abs(ref.w - casa.w) < 0.01 && Math.abs(ref.h - casa.h) < 0.01) return campos;
+  // casa do tamanho do desenho: só o nome preso ao preço (sem ele, o título ficava onde foi desenhado aqui e
+  // pulava pro preço quando a casa mudava um nada de tamanho)
+  if (Math.abs(ref.w - casa.w) < 0.01 && Math.abs(ref.h - casa.h) < 0.01) { const out = { ...campos }; return prenderNomeAoPreco(campos, out, ref, casa) ? out : campos; }
   const r = v => +v.toFixed(3);
   const pt = b => ({ x: b.x / 100 * ref.w, y: b.y / 100 * ref.h, w: b.w / 100 * ref.w, h: b.h / 100 * ref.h });
   const pct = b => ({ x: r(b.x / casa.w * 100), y: r(b.y / casa.h * 100), w: r(b.w / casa.w * 100), h: r(b.h / casa.h * 100) });
@@ -470,22 +493,8 @@ function camposNaCasa(campos, ref, casa) {
     out[k] = { ...c[k], ...pct(N) };
     if (!dNome || k === 'nome') dNome = { dx: (N.x + N.w / 2) - (B.x + B.w / 2), dy: (N.y + N.h) - (B.y + B.h) };
   }
-  // fundo do nome preso ao preço: prévia da conta do editor (nomePresoAoPreco), com o fundo do tamanho desenhado
-  const nf = c.nome_fundo || (c.nome && c.nome.preso_preco ? c.nome : null);
-  if (nf && nf.preso_preco) {
-    const pp = PRECO_KS.filter(k => out[k]).map(k => pt({ ...out[k], x: out[k].x / 100 * casa.w / ref.w * 100, y: out[k].y / 100 * casa.h / ref.h * 100, w: out[k].w / 100 * casa.w / ref.w * 100, h: out[k].h / 100 * casa.h / ref.h * 100 }));
-    if (pp.length) {
-      const fy = Math.min(...pp.map(b => b.y)), fx0 = Math.min(...pp.map(b => b.x)), fx1 = Math.max(...pp.map(b => b.x + b.w));
-      const B = pt(nf), lim = v => (typeof v === 'number' && isFinite(v) ? v : null), e = lim(nf.preso_esq), d = lim(nf.preso_dir);
-      const w = Math.min(B.w, casa.w - (e || 0) - (d || 0));
-      const x = d != null ? casa.w - d - w : e != null ? e : (fx0 + fx1) / 2 - w / 2;
-      const N = { x, y: fy - (nf.preso_gap ?? 6) - B.h, w, h: B.h };
-      const dx = N.x - B.x, dy = N.y - B.y;
-      if (c.nome_fundo) out.nome_fundo = { ...nf, ...pct(N) };
-      if (c.nome) { const T = pt(c.nome); out.nome = { ...c.nome, ...pct({ x: T.x + dx, y: T.y + dy, w: Math.min(T.w, w), h: T.h }) }; }
-      dNome = { dx: dx + B.w / 2 - w / 2, dy };
-    }
-  }
+  const dPreso = prenderNomeAoPreco(c, out, ref, casa);
+  if (dPreso) dNome = dPreso;
   const A0 = c.area ? pt(c.area) : null, A1 = A0 ? estica(A0) : null;
   const sB =Math.min(casa.w / ref.w, casa.h / ref.h);
   const bloco = (U, trava) => {
@@ -820,11 +829,14 @@ function desenharCard(pai, modelo, campos, card, marcar, prod, comSelo, comDe) {
     abracarFundoNome(fundoNome, campos.nome_fundo, t, campos.nome.alinhamento);
   }
   // grupo do preço: as peças entram num <g> próprio pra prévia da regra do fundo (estica / largura máxima)
-  // limite do produto (campo Limite do editor): fora do grupo do preço
-  txt('limite', campos.limite && (campos.limite.texto_exemplo || 'LIMITE 3 UN'));
+  // limite do produto (campo Limite do editor): fora do grupo do preço, ou dentro dele na frente do fundo (no_preco)
+  const limiteTxt = () => txt('limite', campos.limite && (campos.limite.texto_exemplo || 'LIMITE 3 UN'));
+  const limiteNoPreco = !!(campos.limite && campos.limite.no_preco);
+  if (!limiteNoPreco) limiteTxt();
   const n0 = g.childNodes.length, pega = {};
   if (campos.preco_fundo) { pega.fundoB = pctCaixa(campos.preco_fundo, card); pega.fundo = forma(g, pega.fundoB, campos.preco_fundo, id('preco_fundo')); }
   if (campos.moeda_fundo) pega.moedaFundo = forma(g, pctCaixa(campos.moeda_fundo, card), campos.moeda_fundo, id('moeda_fundo'));
+  if (limiteNoPreco) limiteTxt();
   const ultimo = () => g.lastChild;
   txt('moeda', 'R$'); if (campos.moeda) pega.moeda = ultimo();
   const precoVer = (marcar && M.precoTeste) || (prod && prod.preco) || null;
@@ -2276,7 +2288,10 @@ function renderModeloCorpo() {
       ...(M.sel === 'nome' ? [
         { rot: 'Quebra até', k: 'max_linhas', tipo: 'select', num: true, padrao: '2', opcoes: [['1', '1 linha'], ['2', '2 linhas'], ['3', '3 linhas']] },
         { dica: 'O nome quebra na largura da caixa até esse número de linhas; se ainda não couber, a fonte diminui (nunca abaixo de 15 pt). Enter no nome, no editor, continua mandando na quebra.' }] : []),
-      ...(M.sel === 'de_valor' ? [{ rot: 'Riscado', k: 'riscar', tipo: 'check' }] : []), ...linhasSombra(c)]
+      ...(M.sel === 'de_valor' ? [{ rot: 'Riscado', k: 'riscar', tipo: 'check' }] : []),
+      ...(M.sel === 'limite' ? [{ rot: 'Dentro do preço', k: 'no_preco', tipo: 'check' },
+        { dica: 'O limite entra no grupo do preço, na frente do fundo dele: anda e cresce junto. Suba o fundo do preço pra caber o texto em cima do valor.' }] : []),
+      ...linhasSombra(c)]
       : tipo === 'ret' || tipo === 'retangulo' ? [...linhasForma(), ...linhasSombra(c), ...(M.sel === 'preco_fundo' ? linhasRegra(c) : [])]
       : tipo === 'imagem' ? [{ rot: 'Imagem', k: 'url', tipo: 'imagem' }] : [];
     if (M.sel === 'nome_fundo') linhas.push(

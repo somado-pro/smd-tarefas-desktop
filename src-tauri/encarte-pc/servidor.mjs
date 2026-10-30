@@ -24313,9 +24313,36 @@ function precoProporcional(campos, ref, casa) {
   });
   return out;
 }
+var PRECO_KS = ["preco_fundo", "moeda_fundo", "moeda", "preco", "centavos", "unidade"];
+function prenderNomeAoPreco(c, out, ref, casa) {
+  const nome = c.nome, fundo = c.nome_fundo;
+  const nf = fundo || (nome && nome.preso_preco ? nome : null);
+  if (!nf || !nf.preso_preco) return null;
+  const r = (v) => +v.toFixed(3);
+  const pt = (b) => ({ x: b.x / 100 * ref.w, y: b.y / 100 * ref.h, w: b.w / 100 * ref.w, h: b.h / 100 * ref.h });
+  const pct = (b) => ({ x: r(b.x / casa.w * 100), y: r(b.y / casa.h * 100), w: r(b.w / casa.w * 100), h: r(b.h / casa.h * 100) });
+  const pp = PRECO_KS.map((k) => out[k]).filter((b) => !!b).map((b) => ({ x: b.x / 100 * casa.w, y: b.y / 100 * casa.h, w: b.w / 100 * casa.w, h: b.h / 100 * casa.h }));
+  if (!pp.length) return null;
+  const fy = Math.min(...pp.map((b) => b.y)), fx0 = Math.min(...pp.map((b) => b.x)), fx1 = Math.max(...pp.map((b) => b.x + b.w));
+  const lim = (v) => typeof v === "number" && isFinite(v) ? v : null;
+  const B = pt(nf), e = lim(nf.preso_esq), d = lim(nf.preso_dir);
+  const w = Math.min(B.w, casa.w - (e || 0) - (d || 0));
+  const x = d != null ? casa.w - d - w : e != null ? e : (fx0 + fx1) / 2 - w / 2;
+  const N = { x, y: fy - (nf.preso_gap ?? 6) - B.h, w, h: B.h };
+  const dx = N.x - B.x, dy = N.y - B.y;
+  if (fundo) out.nome_fundo = { ...fundo, ...pct(N) };
+  if (nome) {
+    const T = pt(nome);
+    out.nome = { ...nome, ...pct({ x: T.x + dx, y: T.y + dy, w: Math.min(T.w, w), h: T.h }) };
+  }
+  return { dx: dx + B.w / 2 - w / 2, dy };
+}
 function camposNaCasa(campos, ref, casa) {
   if (!(ref.w > 0 && ref.h > 0 && casa.w > 0 && casa.h > 0)) return campos;
-  if (Math.abs(ref.w - casa.w) < 0.01 && Math.abs(ref.h - casa.h) < 0.01) return campos;
+  if (Math.abs(ref.w - casa.w) < 0.01 && Math.abs(ref.h - casa.h) < 0.01) {
+    const out2 = { ...campos };
+    return prenderNomeAoPreco(campos, out2, ref, casa) ? out2 : campos;
+  }
   const r = (v) => +v.toFixed(3);
   const pt = (b) => ({ x: b.x / 100 * ref.w, y: b.y / 100 * ref.h, w: b.w / 100 * ref.w, h: b.h / 100 * ref.h });
   const pct = (b) => ({ x: r(b.x / casa.w * 100), y: r(b.y / casa.h * 100), w: r(b.w / casa.w * 100), h: r(b.h / casa.h * 100) });
@@ -24342,6 +24369,8 @@ function camposNaCasa(campos, ref, casa) {
     out[k] = { ...o, ...pct(N) };
     if (!dNome || k === "nome") dNome = { dx: N.x + N.w / 2 - (B.x + B.w / 2), dy: N.y + N.h - (B.y + B.h) };
   }
+  const dPreso = prenderNomeAoPreco(c, out, ref, casa);
+  if (dPreso) dNome = dPreso;
   const A0 = c.area ? pt(c.area) : null, A1 = A0 ? estica(A0) : null;
   const sB = Math.min(casa.w / ref.w, casa.h / ref.h);
   const bloco = (U, trava) => {
@@ -24493,10 +24522,9 @@ function svgCampos(campos0, num2, card) {
       out.push("  </g>");
     }
   }
-  if (campos.limite) {
-    const l = campos.limite;
-    out.push("  " + svgTexto(`produto_${num2}_qtd_max`, l, caixa(l, card), l.texto_exemplo || "LIMITE 3 UN", void 0, false, ' data-exemplo="1"'));
-  }
+  const limiteSvg = campos.limite ? svgTexto(`produto_${num2}_qtd_max`, campos.limite, caixa(campos.limite, card), campos.limite.texto_exemplo || "LIMITE 3 UN", void 0, false, ' data-exemplo="1"') : "";
+  const limiteNoPreco = !!(campos.limite && campos.limite.no_preco && (preco_fundo || moeda_fundo || moeda || preco || unidade));
+  if (limiteSvg && !limiteNoPreco) out.push("  " + limiteSvg);
   if (preco_fundo || moeda_fundo || moeda || preco || unidade) {
     let comSelo = "";
     const cs = campos.selo_valor && campos.com_selo, seloPeca = {};
@@ -24549,6 +24577,7 @@ function svgCampos(campos0, num2, card) {
       out.push("    " + ps("preco_fundo", f));
     }
     if (moeda_fundo) out.push("    " + ps("moeda_fundo", svgForma(`fundo_moeda_${num2}`, caixa(moeda_fundo, card), moeda_fundo)));
+    if (limiteNoPreco) out.push("    " + limiteSvg);
     if (moeda) out.push("    " + ps("moeda", svgTexto(`moeda_${num2}`, moeda, caixa(moeda, card), "R$")));
     if (preco && centavos) {
       out.push("    " + ps("preco", svgTexto(`produto_${num2}_preco_real`, preco, caixa(preco, card), "0", "end")));

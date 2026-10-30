@@ -2290,7 +2290,16 @@ function posQtd(p) {
   if (!p.qtd) return;
   renderSimples(p, 'qtd', p.qtd, p.qtdTxt, 0, p.qtdEsc || 1);
   const w = p.qtdWrap; if (!w) return;
-  if (p.qtdDx || p.qtdDy) w.setAttribute('transform', `translate(${p.qtdDx || 0} ${p.qtdDy || 0})`); else w.removeAttribute('transform');
+  const partes = [];
+  if (p.qtdDx || p.qtdDy) partes.push(`translate(${p.qtdDx || 0} ${p.qtdDy || 0})`);
+  // o gerador desenha o limite fora do grupo do preço: anda e escala junto com o preço, senão fica onde
+  // o template pôs quando a grade muda (Dia D do Marcelino, SMD-1517, 29/10/2026)
+  if (p.precoG && p.base.precoG && p.precoG !== p.g && !p.precoG.contains(w)) {
+    const { a, s, tx, ty } = deslocPreco(p);
+    if (tx || ty) partes.push(`translate(${arred(tx)} ${arred(ty)})`);
+    if (s !== 1) partes.push(`translate(${a.x} ${a.y}) scale(${s}) translate(${-a.x} ${-a.y})`);
+  }
+  if (partes.length) w.setAttribute('transform', partes.join(' ')); else w.removeAttribute('transform');
   const pai = w.parentNode, filhos = pai ? [...pai.children] : [];
   if (p.qtdZ != null && filhos.indexOf(w) !== p.qtdZ) {
     const resto = filhos.filter(n => n !== w), i = Math.max(0, Math.min(resto.length, p.qtdZ));
@@ -2684,9 +2693,9 @@ function render(p) {
     f.el.style.display = p.formatoTxt ? '' : 'none';
     escreverCampo(f.el, [p.formatoTxt || ''], f.base.dir, 'end', f.base.fonte, 0);
   }
-  posQtd(p);
   renderTarja(p);
   renderGrupoPreco(p);
+  posQtd(p); // depois do preço: o limite segue o grupo dele
   if (rf) { try { aplicarRegraFundo(p, rf); } catch (e) { console.warn('regra do fundo', p.id, e); } }
   seloPecas(p);
   // largura máxima do fundo: o grupo do preço inteiro diminui por igual (p.regraS) e é desenhado de novo
@@ -3601,7 +3610,12 @@ function elBloco(q, t) {
   return q.nomeG;
 }
 function ehApoio(t) { return /^apoio\d*$/.test(t); }
-function posBloco(q, t) { if (t === 'preco') renderGrupoPreco(q); else if (t === 'logo') posLogo(q); else if (t === 'qtd') posQtd(q); else if (ehApoio(t)) posApoio(q); else posNome(q); }
+// nome preso ao preço: arrastar só o nome ou só o preço refaz a trava (senão o título voltava pro lugar do
+// molde, ou ficava parado com o preço andando; Matheus, 30/10/2026)
+function posBloco(q, t) {
+  if (t === 'preco') renderGrupoPreco(q); else if (t === 'logo') posLogo(q); else if (t === 'qtd') posQtd(q); else if (ehApoio(t)) posApoio(q); else posNome(q);
+  if (t !== 'logo' && t !== 'qtd' && !ehApoio(t)) nomePresoAoPreco(q);
+}
 // "Aplicar em" do painel do nome/preço (S.alvo): este (o que foi tocado) | destaque | normal | todos.
 // Vale pra tamanho, posição, arrastar e borda; os grupos pegam o encarte inteiro.
 function blocoPs() {
