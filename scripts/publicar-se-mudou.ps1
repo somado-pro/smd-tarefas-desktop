@@ -6,8 +6,12 @@
 # se mudou algo que vai no app (app/, components/, lib/, local/, public/, types/), roda o
 # atualizar-app-local.ps1, sobe a versão (patch), faz o commit, a tag e o push. O GitHub
 # Actions gera a Release e os programas instalados se atualizam sozinhos.
+#
+# Desde 30/10/2026 usa um clone SÓ DELE do smd-gerencia ($Gerencia, sempre a master do GitHub,
+# com node_modules próprio). Antes usava o clone de trabalho: quando ele estava num branch de PR,
+# a publicação desistia calada e o programa ficava dias com o front velho (v0.3.14 → v0.3.15).
 param(
-  [string]$Gerencia = "D:\Claude Code Projetos Locais\smd-gerencia",
+  [string]$Gerencia = "D:\Claude Code Projetos Locais\smd-gerencia-publicar",
   [string]$Log = ""
 )
 $ErrorActionPreference = "Stop"
@@ -27,8 +31,17 @@ if (-not (Test-Path $marca)) { return }
 $dentro = ((Get-Content $marca -Raw) -split '\s+')[1]
 if (-not $dentro) { return }
 
-# clone do smd-gerencia precisa estar na master, em dia (o atualiza-somado-tarefas cuida)
-if ((GitX -C $Gerencia rev-parse --abbrev-ref HEAD).Trim() -ne 'master') { return }
+# clone só da publicação: nasce na 1ª vez e fica sempre igual à master do GitHub (ninguém
+# trabalha nele, então pode descartar o que tiver)
+if (-not (Test-Path (Join-Path $Gerencia ".git"))) {
+  Escrever "criando o clone da publicação em $Gerencia"
+  GitX clone -q --branch master https://github.com/somado-pro/smd-gerencia.git $Gerencia
+  if ($LASTEXITCODE -ne 0) { Escrever "ERRO: clone do smd-gerencia falhou"; return }
+}
+GitX -C $Gerencia fetch -q origin master
+if ($LASTEXITCODE -ne 0) { Escrever "AVISO: fetch do smd-gerencia falhou (sem rede?)"; return }
+GitX -C $Gerencia checkout -q -B master origin/master
+GitX -C $Gerencia reset -q --hard origin/master
 $agora = (GitX -C $Gerencia rev-parse --short HEAD).Trim()
 if ($agora -eq $dentro) { return }
 $mudou = @(GitX -C $Gerencia diff --name-only $dentro HEAD -- app components lib local public types package.json)
@@ -42,7 +55,14 @@ if ($LASTEXITCODE -ne 0) { Escrever "PULANDO: pull do programa falhou"; return }
 
 Escrever "front mudou ($dentro → $agora, $($mudou.Count) arquivo(s)): gerando versão nova"
 try {
-  & (Join-Path $PSScriptRoot "atualizar-app-local.ps1") -Gerencia $Gerencia *> $null
+  # processo próprio pelo Start-Process: com ErrorActionPreference Stop, qualquer aviso no stderr
+  # (chunk > 500 kB do Vite, "npm warn deprecated") virava "ERRO no build" e a versão nunca saía,
+  # até com `& powershell ... *> log`. Aqui só vale o código de saída.
+  $build = Join-Path $env:TEMP "smd-publicar-build.log"
+  $p = Start-Process powershell.exe -Wait -PassThru -NoNewWindow `
+    -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$(Join-Path $PSScriptRoot 'atualizar-app-local.ps1')`"", "-Gerencia", "`"$Gerencia`"") `
+    -RedirectStandardOutput $build -RedirectStandardError "$build.err"
+  if ($p.ExitCode -ne 0) { Escrever "ERRO no build (log em $build e $build.err)"; return }
 } catch {
   Escrever "ERRO no build: $_"
   return
