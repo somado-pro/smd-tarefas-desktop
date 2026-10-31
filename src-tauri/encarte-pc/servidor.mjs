@@ -14533,32 +14533,11 @@ import { promises as fs12 } from "node:fs";
 import path10 from "node:path";
 import { fileURLToPath } from "node:url";
 
-// app/api/encarte/biblioteca/[id]/[acao]/route.ts
-var route_exports = {};
-__export(route_exports, {
-  GET: () => GET,
-  POST: () => POST,
-  dynamic: () => dynamic,
-  runtime: () => runtime
-});
-
-// local/shims/next-server.ts
-var NextResponse = class extends Response {
-  static json(corpo, init) {
-    return Response.json(corpo, init);
-  }
-  static redirect(url, status = 307) {
-    return new Response(null, { status, headers: { Location: String(url) } });
-  }
-  static next() {
-    return new Response(null);
-  }
-};
-
-// lib/encarte/biblioteca.ts
-import fs5 from "fs/promises";
-import path5 from "path";
-import { createHash as createHash2, randomUUID as randomUUID2 } from "crypto";
+// lib/encarte/internet.ts
+init_sharp();
+import { randomUUID } from "node:crypto";
+import { promises as fs2 } from "node:fs";
+import path2 from "node:path";
 
 // lib/encarte/arquivos.ts
 import { createHash } from "node:crypto";
@@ -15091,139 +15070,427 @@ async function lerCorpo(req) {
   return buf.length > MAX_UPLOAD ? null : buf;
 }
 
-// lib/encarte/projetos-template.ts
-import fs3 from "fs/promises";
-import path3 from "path";
-import { randomUUID } from "crypto";
-
-// lib/encarte/modelo-ajuste.ts
-var ehTroca = (a) => "modeloCard" in a;
-var MAX_MODELO = 3e5;
-var GRUPOS = {
-  grupo_preco: ["preco_fundo", "moeda_fundo", "moeda", "preco", "centavos", "unidade"],
-  grupo_de: ["de_fundo", "de_rotulo", "de_valor"],
-  grupo_selo: ["selo_fundo", "selo_rotulo", "selo_moeda", "selo_valor"],
-  grupo_nome: ["nome_fundo", "nome"],
-  grupo_gatilho: ["gatilho_fundo", "gatilho"]
-};
-var JUNTOS = { area: ["area", "foto"] };
-var TEXTOS = /* @__PURE__ */ new Set(["nome", "moeda", "preco", "centavos", "unidade", "limite", "de_rotulo", "de_valor", "selo_rotulo", "selo_moeda", "selo_valor", "gatilho"]);
-var VERSOES = ["campos", "horizontal", "especial"];
-var num = (v) => typeof v === "number" && Number.isFinite(v);
-var r2 = (v) => Math.round(v * 100) / 100;
-var ehCor = (v) => typeof v === "string" && /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(v);
-var ehFonte = (v) => typeof v === "string" && /^[\w .,'-]{1,80}$/.test(v);
-function normalizarAjustes(entrada) {
-  if (!Array.isArray(entrada)) return [];
-  const out = [];
-  for (const a of entrada.slice(0, 40)) {
-    if (!a || typeof a !== "object") continue;
-    const o = a;
-    if (num(o.modelo) && o.modeloCard && typeof o.modeloCard === "object") {
-      const mc = o.modeloCard;
-      if (!mc.campos || typeof mc.campos !== "object" || JSON.stringify(mc).length > MAX_MODELO) continue;
-      out.push({ modelo: o.modelo, modeloCard: JSON.parse(JSON.stringify(mc)) });
+// lib/encarte/baixar-externo.ts
+import { lookup as dnsLookup } from "node:dns";
+import http from "node:http";
+import https from "node:https";
+import { BlockList, isIP } from "node:net";
+import zlib from "node:zlib";
+var BLOQUEADOS = new BlockList();
+for (const [rede, pref] of [
+  ["0.0.0.0", 8],
+  ["10.0.0.0", 8],
+  ["100.64.0.0", 10],
+  ["127.0.0.0", 8],
+  ["169.254.0.0", 16],
+  ["172.16.0.0", 12],
+  ["192.0.0.0", 24],
+  ["192.168.0.0", 16],
+  ["198.18.0.0", 15],
+  ["224.0.0.0", 4],
+  ["240.0.0.0", 4]
+]) BLOQUEADOS.addSubnet(rede, pref, "ipv4");
+for (const [rede, pref] of [
+  ["::", 128],
+  ["::1", 128],
+  ["fc00::", 7],
+  ["fe80::", 10],
+  ["ff00::", 8],
+  ["64:ff9b::", 96],
+  ["2001:db8::", 32]
+]) BLOQUEADOS.addSubnet(rede, pref, "ipv6");
+function ipBloqueado(ip) {
+  const mapeado = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
+  if (mapeado) return ipBloqueado(mapeado[1]);
+  const v = isIP(ip);
+  if (v === 4) return BLOQUEADOS.check(ip, "ipv4");
+  if (v === 6) return BLOQUEADOS.check(ip, "ipv6");
+  return true;
+}
+function urlExternaValida(u) {
+  let url;
+  try {
+    url = new URL(u);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+  if (url.port && url.port !== "80" && url.port !== "443") return null;
+  if (url.username || url.password) return null;
+  const host = url.hostname.replace(/^\[|\]$/g, "");
+  if (!host || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal")) return null;
+  if (isIP(host) && ipBloqueado(host)) return null;
+  return url;
+}
+var lookupSeguro = ((host, opts, cb) => {
+  const callback = typeof opts === "function" ? opts : cb;
+  const o = typeof opts === "object" && opts ? opts : {};
+  dnsLookup(host, { all: true }, (err, enderecos) => {
+    if (err) return callback(err, "");
+    const ruim = enderecos.find((a) => ipBloqueado(a.address));
+    if (ruim || !enderecos.length) {
+      return callback(Object.assign(new Error("Endere\xE7o interno bloqueado"), { code: "EBLOQUEADO" }), "");
+    }
+    if (o.all) return callback(null, enderecos);
+    callback(null, enderecos[0].address, enderecos[0].family);
+  });
+});
+function pedir(url, maxBytes, timeoutMs) {
+  const mod = url.protocol === "https:" ? https : http;
+  return new Promise((ok, falha) => {
+    const req = mod.get(
+      url,
+      {
+        lookup: lookupSeguro,
+        timeout: timeoutMs,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
+          Accept: "image/avif,image/webp,image/png,image/jpeg,image/*,text/html;q=0.8,*/*;q=0.5",
+          "Accept-Encoding": "gzip, deflate, br",
+          "Accept-Language": "pt-BR,pt;q=0.9",
+          // muito site recusa foto sem Referer do próprio domínio (proteção de hotlink)
+          Referer: url.origin + "/"
+        }
+      },
+      (res) => {
+        const status = res.statusCode || 0;
+        const tipo = String(res.headers["content-type"] || "").toLowerCase();
+        if (status >= 300 && status < 400) {
+          res.resume();
+          return ok({ status, tipo, corpo: Buffer.alloc(0), local: String(res.headers.location || "") });
+        }
+        const declarado = Number(res.headers["content-length"] || 0);
+        if (declarado > maxBytes) {
+          res.destroy();
+          return falha(new Error("Arquivo grande demais"));
+        }
+        const partes = [];
+        let total = 0;
+        res.on("data", (c) => {
+          total += c.length;
+          if (total > maxBytes) {
+            res.destroy();
+            falha(new Error("Arquivo grande demais"));
+            return;
+          }
+          partes.push(c);
+        });
+        res.on("end", () => {
+          const cod = String(res.headers["content-encoding"] || "").toLowerCase();
+          const bruto = Buffer.concat(partes);
+          try {
+            const o = { maxOutputLength: maxBytes };
+            const corpo = cod === "gzip" || cod === "x-gzip" ? zlib.gunzipSync(bruto, o) : cod === "br" ? zlib.brotliDecompressSync(bruto, o) : cod === "deflate" ? zlib.inflateSync(bruto, o) : bruto;
+            ok({ status, tipo, corpo });
+          } catch {
+            falha(new Error("N\xE3o consegui ler a resposta do site"));
+          }
+        });
+        res.on("error", falha);
+      }
+    );
+    req.on("timeout", () => req.destroy(new Error("O site demorou demais pra responder")));
+    req.on(
+      "error",
+      (e) => falha(e.code === "EBLOQUEADO" ? new Error("Esse endere\xE7o n\xE3o \xE9 permitido") : e)
+    );
+  });
+}
+async function baixarExterno(u, { maxBytes = 25 * 1024 * 1024, timeoutMs = 2e4 } = {}) {
+  let url = urlExternaValida(u);
+  for (let salto = 0; salto <= 4; salto++) {
+    if (!url) throw new Error("Link inv\xE1lido ou n\xE3o permitido");
+    const r = await pedir(url, maxBytes, timeoutMs);
+    if (r.local !== void 0) {
+      url = urlExternaValida(new URL(r.local, url).toString());
       continue;
     }
-    if (!num(o.modelo) || !VERSOES.includes(o.versao) || !o.pecas || typeof o.pecas !== "object") continue;
-    const pecas = {};
-    for (const [k, v] of Object.entries(o.pecas).slice(0, 60)) {
-      if (!/^(grupo_[a-z]+|[a-z_]+|extras\.\d{1,2})$/.test(k) || !v || typeof v !== "object") continue;
-      const p = v, aj = {};
-      if (num(p.dx) && Math.abs(p.dx) <= 200) aj.dx = r2(p.dx);
-      if (num(p.dy) && Math.abs(p.dy) <= 200) aj.dy = r2(p.dy);
-      if (num(p.esc) && p.esc >= 0.2 && p.esc <= 5 && Math.abs(p.esc - 1) > 1e-3) aj.esc = Math.round(p.esc * 1e3) / 1e3;
-      if (ehCor(p.cor)) aj.cor = p.cor;
-      if (ehFonte(p.fonte)) aj.fonte = p.fonte;
-      if (Object.keys(aj).length) pecas[k] = aj;
+    if (r.status < 200 || r.status >= 300) throw new Error(`O site devolveu erro (${r.status})`);
+    return { url: url.toString(), tipo: r.tipo, corpo: r.corpo };
+  }
+  throw new Error("Redirecionamentos demais");
+}
+var decodificar = (s) => s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+function atributo(tag, nome) {
+  const m = tag.match(new RegExp(`\\b${nome}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, "i"));
+  return m ? decodificar(m[2] ?? m[3] ?? m[4] ?? "") : null;
+}
+function imagemDaPagina(html, base) {
+  const metas = html.match(/<meta\b[^>]*>/gi) ?? [];
+  const meta = (chaves) => {
+    for (const k of chaves) {
+      for (const t of metas) {
+        const p = (atributo(t, "property") || atributo(t, "name") || "").toLowerCase();
+        const c = atributo(t, "content");
+        if (p === k && c) return c.trim();
+      }
     }
-    if (Object.keys(pecas).length) out.push({ modelo: o.modelo, versao: o.versao, pecas });
+    return null;
+  };
+  let img = meta(["og:image:secure_url", "og:image", "og:image:url", "twitter:image", "twitter:image:src"]);
+  if (!img) {
+    const link = (html.match(/<link\b[^>]*>/gi) ?? []).find((t) => (atributo(t, "rel") || "").toLowerCase() === "image_src");
+    img = link ? atributo(link, "href") : null;
+  }
+  const titulo = meta(["og:title", "twitter:title"]) || decodificar((html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] ?? "").trim());
+  let abs = null;
+  if (img) {
+    try {
+      abs = new URL(img, base).toString();
+    } catch {
+      abs = null;
+    }
+  }
+  return { img: abs, titulo: titulo.slice(0, 200) };
+}
+
+// lib/encarte/internet.ts
+var LOJAS = [
+  { host: "www.savegnago.com.br", nome: "Savegnago" },
+  { host: "www.zonasul.com.br", nome: "Zona Sul" },
+  { host: "www.bistek.com.br", nome: "Bistek" },
+  { host: "www.covabra.com.br", nome: "Covabra" }
+];
+var PIFPAF = { host: "www.pifpaf.com.br", nome: "Pif Paf" };
+function urlPermitida(u) {
+  try {
+    const url = new URL(u);
+    return url.protocol === "https:" && (url.hostname.endsWith(".vteximg.com.br") || url.hostname.endsWith(".vtexassets.com") || url.hostname === PIFPAF.host && url.pathname.startsWith("/wp-content/uploads/"));
+  } catch {
+    return false;
+  }
+}
+function urlMiniatura(img, lado = 300) {
+  return img.replace(/\/ids\/(\d+)(?:-\d+-\d+)?\//, `/ids/$1-${lado}-${lado}/`);
+}
+function itensDoCatalogo(loja, produtos, maxFotos = 2) {
+  const out = [];
+  for (const p of produtos) {
+    const it = p.items?.[0];
+    const imgs = (it?.images ?? []).map((i) => i.imageUrl).filter((u) => !!u);
+    for (const img of imgs.slice(0, maxFotos)) {
+      if (!urlPermitida(img)) continue;
+      out.push({ loja, nome: p.productName || it?.name || "", img, thumb: urlMiniatura(img) });
+    }
   }
   return out;
 }
-async function ajustesDoPedido(req) {
+async function buscarLoja(loja, q) {
+  const url = `https://${loja.host}/api/catalog_system/pub/products/search?ft=${encodeURIComponent(q)}&_from=0&_to=7`;
   try {
-    if (req.method === "POST") return normalizarAjustes((await req.json())?.aj);
-    return normalizarAjustes(JSON.parse(new URL(req.url).searchParams.get("aj") || "[]"));
+    const r = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" },
+      signal: AbortSignal.timeout(8e3),
+      cache: "no-store"
+    });
+    if (!r.ok) return [];
+    const d = await r.json();
+    return Array.isArray(d) ? itensDoCatalogo(loja.nome, d) : [];
   } catch {
     return [];
   }
 }
-function uniao(bs) {
-  const x0 = Math.min(...bs.map((b) => b.x)), y0 = Math.min(...bs.map((b) => b.y));
-  return { x: x0, y: y0, w: Math.max(...bs.map((b) => b.x + b.w)) - x0, h: Math.max(...bs.map((b) => b.y + b.h)) - y0 };
-}
-var caixaDe = (o) => {
-  const c = o;
-  return c && num(c.x) && num(c.y) && num(c.w) && num(c.h) ? { x: c.x, y: c.y, w: c.w, h: c.h } : null;
-};
-function alvosDaPeca(campos, peca) {
-  const c = campos;
-  const m = peca.match(/^extras\.(\d+)$/);
-  if (m) {
-    const i = Number(m[1]), ex = campos.extras;
-    return ex && ex[i] ? [{ chave: peca, pega: () => ex[i], poe: (v) => {
-      ex[i] = v;
-    } }] : [];
+var textoHtml = (s) => s.replace(/<[^>]+>/g, "").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n))).replace(/&amp;/g, "&").trim();
+function itensPifPaf(produtos) {
+  const out = [];
+  for (const p of produtos) {
+    const m = p._embedded?.["wp:featuredmedia"]?.[0];
+    const img = m?.source_url;
+    if (!img || !urlPermitida(img)) continue;
+    const thumb = m?.media_details?.sizes?.medium?.source_url || img;
+    out.push({ loja: PIFPAF.nome, nome: textoHtml(p.title?.rendered || ""), img, thumb: urlPermitida(thumb) ? thumb : img });
   }
-  const ks = GRUPOS[peca] || JUNTOS[peca] || [peca];
-  return ks.filter((k) => c[k] && typeof c[k] === "object").map((k) => ({ chave: k, pega: () => c[k], poe: (v) => {
-    c[k] = v;
-  } }));
+  return out;
 }
-function aplicarPeca(campos, peca, aj) {
-  const alvos = alvosDaPeca(campos, peca);
-  if (!alvos.length) return;
-  const caixas = alvos.map((a) => caixaDe(a.pega())).filter((b) => !!b);
-  const U = caixas.length ? uniao(caixas) : null;
-  const s = aj.esc || 1;
-  const ox = U ? peca === "grupo_preco" ? U.x + U.w : U.x + U.w / 2 : 0;
-  const oy = U ? peca === "grupo_preco" ? U.y + U.h : U.y + U.h / 2 : 0;
-  for (const a of alvos) {
-    const o = { ...a.pega() }, b = caixaDe(o);
-    if (b && U) {
-      o.x = r2(ox + (b.x - ox) * s + (aj.dx || 0));
-      o.y = r2(oy + (b.y - oy) * s + (aj.dy || 0));
-      o.w = r2(b.w * s);
-      o.h = r2(b.h * s);
-    }
-    if (s !== 1) {
-      for (const k of ["tamanho", "borda", "raio", "largura_max"]) if (num(o[k])) o[k] = r2(o[k] * s);
-    }
-    const texto = TEXTOS.has(a.chave) || a.chave.startsWith("extras.") && o.tipo === "texto";
-    if (aj.cor && (texto || "cor" in o)) o.cor = aj.cor;
-    if (aj.fonte && texto) o.fonte = aj.fonte;
-    a.poe(o);
+async function buscarPifPaf(q) {
+  const termo = q.replace(/\bpif\s*paf\b/gi, " ").replace(/\s+/g, " ").trim();
+  if (termo.length < 3) return [];
+  const url = `https://${PIFPAF.host}/wp-json/wp/v2/tipo-produto?search=${encodeURIComponent(termo)}&per_page=10&_embed=wp:featuredmedia`;
+  try {
+    const r = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" },
+      signal: AbortSignal.timeout(8e3),
+      cache: "no-store"
+    });
+    if (!r.ok) return [];
+    const d = JSON.parse((await r.text()).replace(/^﻿/, ""));
+    return Array.isArray(d) ? itensPifPaf(d) : [];
+  } catch {
+    return [];
   }
 }
-function aplicarFundoCard(m, campos, aj) {
-  if (!aj.cor) return;
-  if (campos.fundo_card) campos.fundo_card = { ...campos.fundo_card, cor: aj.cor };
-  else m.fundo_cor = aj.cor;
-}
-function aplicarAjustesNoProjeto(projeto, ajustes) {
-  const p = JSON.parse(JSON.stringify(projeto));
-  for (const a of ajustes) {
-    const i = p.modelos_card.findIndex((x) => x.indice === a.modelo), m = p.modelos_card[i];
-    if (!m) continue;
-    if (ehTroca(a)) {
-      p.modelos_card[i] = { ...JSON.parse(JSON.stringify(a.modeloCard)), id: m.id, indice: m.indice };
-      continue;
-    }
-    const alvos = [];
-    if (m[a.versao]) alvos.push(m[a.versao]);
-    for (const [k, f] of Object.entries(m.formatos || {})) if (k.startsWith(a.versao + ":")) alvos.push(f);
-    for (const campos of alvos) for (const [peca, aj] of Object.entries(a.pecas)) {
-      if (peca === "fundo_card") aplicarFundoCard(m, campos, aj);
-      else aplicarPeca(campos, peca, aj);
+async function buscarInternet(q) {
+  const listas = await Promise.all([...LOJAS.map((l) => buscarLoja(l, q)), buscarPifPaf(q)]);
+  const vistos = /* @__PURE__ */ new Set();
+  const out = [];
+  const max = Math.max(0, ...listas.map((l) => l.length));
+  for (let i = 0; i < max; i++) {
+    for (const l of listas) {
+      const it = l[i];
+      if (!it) continue;
+      const chave = it.img.replace(/\?.*$/, "");
+      if (vistos.has(chave)) continue;
+      vistos.add(chave);
+      out.push(it);
     }
   }
+  return out.slice(0, 40);
+}
+var ID_OK = /^[0-9a-f-]{36}$/;
+var VALIDADE_MS = 2 * 24 * 36e5;
+var PRESO_MS = 2 * 6e4;
+var WORKER_ONLINE_MS = 3e4;
+var MAX_ORIGINAL = 25 * 1024 * 1024;
+var pastaRecortes = () => path2.join(encarteDir(), "recortes");
+var pastaPedido = (id) => path2.join(pastaRecortes(), id);
+var arqRecorte = (id) => path2.join(pastaPedido(id), "recorte.png");
+var idValido = (id) => ID_OK.test(id);
+async function gravarJson(arq, dados) {
+  const tmp = arq + ".tmp";
+  await fs2.writeFile(tmp, JSON.stringify(dados));
+  await fs2.rename(tmp, arq);
+}
+async function lerPedido(id) {
+  if (!idValido(id)) return null;
+  try {
+    return JSON.parse(await fs2.readFile(path2.join(pastaPedido(id), "pedido.json"), "utf8"));
+  } catch {
+    return null;
+  }
+}
+var salvarPedido = (p) => gravarJson(path2.join(pastaPedido(p.id), "pedido.json"), p);
+async function limparVelhos() {
+  const agora = Date.now();
+  const ids = await fs2.readdir(pastaRecortes()).catch(() => []);
+  for (const id of ids) {
+    if (!idValido(id)) continue;
+    const p = await lerPedido(id);
+    if (!p || agora - Date.parse(p.criado) > VALIDADE_MS) {
+      await fs2.rm(pastaPedido(id), { recursive: true, force: true });
+    }
+  }
+}
+async function fotoDeLink(link) {
+  let r = await baixarExterno(link.trim());
+  let nome = "";
+  if (r.tipo.includes("html")) {
+    const pg = imagemDaPagina(r.corpo.toString("utf8"), r.url);
+    if (!pg.img) throw new Error('o site bloqueou ou a p\xE1gina n\xE3o mostra a foto. Clique com o bot\xE3o direito na foto, "Copiar endere\xE7o da imagem", e cole esse');
+    nome = pg.titulo;
+    r = await baixarExterno(pg.img);
+  }
+  if (r.tipo.includes("svg")) throw new Error("SVG n\xE3o serve: precisa ser foto");
+  const buf = await normalizar(r.corpo, "O link n\xE3o \xE9 de uma foto");
+  if (!nome) {
+    const arq = decodeURIComponent(new URL(r.url).pathname.split("/").pop() || "");
+    nome = arq.replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " ").trim();
+  }
+  return { buf, img: r.url, nome };
+}
+async function normalizar(corpo, erro5) {
+  try {
+    return await sharp(corpo, { limitInputPixels: 8e7 }).rotate().resize({ width: 3e3, height: 3e3, fit: "inside", withoutEnlargement: true }).png().toBuffer();
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("sharp indispon\xEDvel")) return corpo;
+    throw new Error(erro5);
+  }
+}
+async function criarPedidoDeArquivo(corpo, nome) {
+  if (!corpo.length || corpo.length > MAX_ORIGINAL) throw new Error("Foto vazia ou grande demais");
+  const buf = await normalizar(corpo, "O arquivo n\xE3o \xE9 uma foto");
+  return gravarPedido(buf, ".png", "arquivo", nome);
+}
+async function criarPedido(img, nome) {
+  let buf, ext;
+  if (urlPermitida(img)) {
+    const r = await fetch(img, { signal: AbortSignal.timeout(2e4), cache: "no-store" });
+    if (!r.ok) throw new Error(`A loja n\xE3o devolveu a foto (${r.status})`);
+    buf = Buffer.from(await r.arrayBuffer());
+    if (!buf.length || buf.length > MAX_ORIGINAL) throw new Error("Foto vazia ou grande demais");
+    const tipo = r.headers.get("content-type") || "";
+    ext = tipo.includes("png") ? ".png" : tipo.includes("webp") ? ".webp" : ".jpg";
+  } else {
+    const f = await fotoDeLink(img);
+    buf = f.buf;
+    ext = ".png";
+    img = f.img;
+    nome = nome || f.nome;
+  }
+  return gravarPedido(buf, ext, img, nome);
+}
+async function gravarPedido(buf, ext, img, nome) {
+  await fs2.mkdir(pastaRecortes(), { recursive: true });
+  await limparVelhos().catch(() => {
+  });
+  const id = randomUUID();
+  await fs2.mkdir(pastaPedido(id), { recursive: true });
+  await fs2.writeFile(path2.join(pastaPedido(id), "original" + ext), buf);
+  const p = {
+    id,
+    status: "pendente",
+    img,
+    nome: nome.slice(0, 200),
+    original: "original" + ext,
+    criado: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  await salvarPedido(p);
   return p;
 }
-
-// lib/encarte/midia.ts
-import { promises as fs2 } from "node:fs";
-import path2 from "node:path";
+async function caminhoOriginal(id) {
+  const p = await lerPedido(id);
+  return p ? path2.join(pastaPedido(id), p.original) : null;
+}
+var arqWorker = () => path2.join(pastaRecortes(), "worker.json");
+async function registrarWorker(info) {
+  await fs2.mkdir(pastaRecortes(), { recursive: true });
+  await gravarJson(arqWorker(), {
+    nome: String(info.nome || "").slice(0, 60),
+    modelo: String(info.modelo || "").slice(0, 60),
+    visto: (/* @__PURE__ */ new Date()).toISOString()
+  });
+}
+async function statusWorker() {
+  try {
+    const w = JSON.parse(await fs2.readFile(arqWorker(), "utf8"));
+    return { online: Date.now() - Date.parse(w.visto) < WORKER_ONLINE_MS, nome: w.nome, visto: w.visto };
+  } catch {
+    return { online: false };
+  }
+}
+async function pegarProximo() {
+  const ids = await fs2.readdir(pastaRecortes()).catch(() => []);
+  const agora = Date.now();
+  const fila = [];
+  for (const id of ids) {
+    const p2 = idValido(id) ? await lerPedido(id) : null;
+    if (!p2) continue;
+    const preso = p2.status === "processando" && agora - Date.parse(p2.pego || p2.criado) > PRESO_MS;
+    if (p2.status === "pendente" || preso) fila.push(p2);
+  }
+  fila.sort((a, b) => a.criado.localeCompare(b.criado));
+  const p = fila[0];
+  if (!p) return null;
+  p.status = "processando";
+  p.pego = (/* @__PURE__ */ new Date()).toISOString();
+  await salvarPedido(p);
+  return p;
+}
+async function concluirPedido(id, png) {
+  const p = await lerPedido(id);
+  if (!p) throw new Error("Pedido n\xE3o existe");
+  await fs2.writeFile(arqRecorte(id), png);
+  p.status = "pronto";
+  p.pronto = (/* @__PURE__ */ new Date()).toISOString();
+  delete p.erro;
+  await salvarPedido(p);
+}
+async function falharPedido(id, erro5) {
+  const p = await lerPedido(id);
+  if (!p) throw new Error("Pedido n\xE3o existe");
+  p.status = "erro";
+  p.erro = erro5.slice(0, 300) || "Erro no recorte";
+  await salvarPedido(p);
+}
 
 // node_modules/@supabase/supabase-js/dist/index.mjs
 var dist_exports = {};
@@ -23954,7 +24221,206 @@ async function createClient2() {
 }
 var createAdminClient = createClient2;
 
+// local/encarte-pc/recorte-vps.ts
+var VPS = (process.env.ENCARTE_VPS || "https://tarefas.somado.com.br").replace(/\/+$/, "");
+var BUSCA = "/api/encarte/internet/busca";
+var PEDIR = "/api/encarte/internet/recorte";
+var PEDIDO = /^\/api\/encarte\/internet\/recorte\/([^/]+)$/;
+async function vaiPraVps(caminho, metodo) {
+  if (caminho === BUSCA || caminho === PEDIR) return !(await statusWorker()).online;
+  const m = caminho.match(PEDIDO);
+  if (m && metodo === "GET") return !await lerPedido(decodeURIComponent(m[1]));
+  return false;
+}
+async function repassarRecorte(pedido) {
+  const url = new URL(pedido.url);
+  if (!await vaiPraVps(url.pathname, pedido.method)) return null;
+  const cliente = await createClient2();
+  const token = (await cliente.auth.getSession()).data.session?.access_token;
+  if (!token) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const cab = { Authorization: `Bearer ${token}` };
+  const tipo = pedido.headers.get("content-type");
+  if (tipo) cab["Content-Type"] = tipo;
+  try {
+    const r = await fetch(VPS + url.pathname + url.search, {
+      method: pedido.method,
+      headers: cab,
+      body: pedido.method === "GET" || pedido.method === "HEAD" ? void 0 : await pedido.arrayBuffer(),
+      signal: AbortSignal.timeout(6e4)
+    });
+    const volta = new Headers();
+    for (const k of ["content-type", "cache-control"]) {
+      const v = r.headers.get(k);
+      if (v) volta.set(k, v);
+    }
+    return new Response(await r.arrayBuffer(), { status: r.status, headers: volta });
+  } catch (e) {
+    console.error("[encarte-pc] recorte pela VPS", url.pathname, e);
+    if (url.pathname === BUSCA) return null;
+    return Response.json({ error: "N\xE3o deu pra falar com o servidor do recorte. Tente de novo." }, { status: 502 });
+  }
+}
+
+// app/api/encarte/biblioteca/[id]/[acao]/route.ts
+var route_exports = {};
+__export(route_exports, {
+  GET: () => GET,
+  POST: () => POST,
+  dynamic: () => dynamic,
+  runtime: () => runtime
+});
+
+// local/shims/next-server.ts
+var NextResponse = class extends Response {
+  static json(corpo, init) {
+    return Response.json(corpo, init);
+  }
+  static redirect(url, status = 307) {
+    return new Response(null, { status, headers: { Location: String(url) } });
+  }
+  static next() {
+    return new Response(null);
+  }
+};
+
+// lib/encarte/biblioteca.ts
+import fs6 from "fs/promises";
+import path6 from "path";
+import { createHash as createHash2, randomUUID as randomUUID3 } from "crypto";
+
+// lib/encarte/projetos-template.ts
+import fs4 from "fs/promises";
+import path4 from "path";
+import { randomUUID as randomUUID2 } from "crypto";
+
+// lib/encarte/modelo-ajuste.ts
+var ehTroca = (a) => "modeloCard" in a;
+var MAX_MODELO = 3e5;
+var GRUPOS = {
+  grupo_preco: ["preco_fundo", "moeda_fundo", "moeda", "preco", "centavos", "unidade"],
+  grupo_de: ["de_fundo", "de_rotulo", "de_valor"],
+  grupo_selo: ["selo_fundo", "selo_rotulo", "selo_moeda", "selo_valor"],
+  grupo_nome: ["nome_fundo", "nome"],
+  grupo_gatilho: ["gatilho_fundo", "gatilho"]
+};
+var JUNTOS = { area: ["area", "foto"] };
+var TEXTOS = /* @__PURE__ */ new Set(["nome", "moeda", "preco", "centavos", "unidade", "limite", "de_rotulo", "de_valor", "selo_rotulo", "selo_moeda", "selo_valor", "gatilho"]);
+var VERSOES = ["campos", "horizontal", "especial"];
+var num = (v) => typeof v === "number" && Number.isFinite(v);
+var r2 = (v) => Math.round(v * 100) / 100;
+var ehCor = (v) => typeof v === "string" && /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(v);
+var ehFonte = (v) => typeof v === "string" && /^[\w .,'-]{1,80}$/.test(v);
+function normalizarAjustes(entrada) {
+  if (!Array.isArray(entrada)) return [];
+  const out = [];
+  for (const a of entrada.slice(0, 40)) {
+    if (!a || typeof a !== "object") continue;
+    const o = a;
+    if (num(o.modelo) && o.modeloCard && typeof o.modeloCard === "object") {
+      const mc = o.modeloCard;
+      if (!mc.campos || typeof mc.campos !== "object" || JSON.stringify(mc).length > MAX_MODELO) continue;
+      out.push({ modelo: o.modelo, modeloCard: JSON.parse(JSON.stringify(mc)) });
+      continue;
+    }
+    if (!num(o.modelo) || !VERSOES.includes(o.versao) || !o.pecas || typeof o.pecas !== "object") continue;
+    const pecas = {};
+    for (const [k, v] of Object.entries(o.pecas).slice(0, 60)) {
+      if (!/^(grupo_[a-z]+|[a-z_]+|extras\.\d{1,2})$/.test(k) || !v || typeof v !== "object") continue;
+      const p = v, aj = {};
+      if (num(p.dx) && Math.abs(p.dx) <= 200) aj.dx = r2(p.dx);
+      if (num(p.dy) && Math.abs(p.dy) <= 200) aj.dy = r2(p.dy);
+      if (num(p.esc) && p.esc >= 0.2 && p.esc <= 5 && Math.abs(p.esc - 1) > 1e-3) aj.esc = Math.round(p.esc * 1e3) / 1e3;
+      if (ehCor(p.cor)) aj.cor = p.cor;
+      if (ehFonte(p.fonte)) aj.fonte = p.fonte;
+      if (Object.keys(aj).length) pecas[k] = aj;
+    }
+    if (Object.keys(pecas).length) out.push({ modelo: o.modelo, versao: o.versao, pecas });
+  }
+  return out;
+}
+async function ajustesDoPedido(req) {
+  try {
+    if (req.method === "POST") return normalizarAjustes((await req.json())?.aj);
+    return normalizarAjustes(JSON.parse(new URL(req.url).searchParams.get("aj") || "[]"));
+  } catch {
+    return [];
+  }
+}
+function uniao(bs) {
+  const x0 = Math.min(...bs.map((b) => b.x)), y0 = Math.min(...bs.map((b) => b.y));
+  return { x: x0, y: y0, w: Math.max(...bs.map((b) => b.x + b.w)) - x0, h: Math.max(...bs.map((b) => b.y + b.h)) - y0 };
+}
+var caixaDe = (o) => {
+  const c = o;
+  return c && num(c.x) && num(c.y) && num(c.w) && num(c.h) ? { x: c.x, y: c.y, w: c.w, h: c.h } : null;
+};
+function alvosDaPeca(campos, peca) {
+  const c = campos;
+  const m = peca.match(/^extras\.(\d+)$/);
+  if (m) {
+    const i = Number(m[1]), ex = campos.extras;
+    return ex && ex[i] ? [{ chave: peca, pega: () => ex[i], poe: (v) => {
+      ex[i] = v;
+    } }] : [];
+  }
+  const ks = GRUPOS[peca] || JUNTOS[peca] || [peca];
+  return ks.filter((k) => c[k] && typeof c[k] === "object").map((k) => ({ chave: k, pega: () => c[k], poe: (v) => {
+    c[k] = v;
+  } }));
+}
+function aplicarPeca(campos, peca, aj) {
+  const alvos = alvosDaPeca(campos, peca);
+  if (!alvos.length) return;
+  const caixas = alvos.map((a) => caixaDe(a.pega())).filter((b) => !!b);
+  const U = caixas.length ? uniao(caixas) : null;
+  const s = aj.esc || 1;
+  const ox = U ? peca === "grupo_preco" ? U.x + U.w : U.x + U.w / 2 : 0;
+  const oy = U ? peca === "grupo_preco" ? U.y + U.h : U.y + U.h / 2 : 0;
+  for (const a of alvos) {
+    const o = { ...a.pega() }, b = caixaDe(o);
+    if (b && U) {
+      o.x = r2(ox + (b.x - ox) * s + (aj.dx || 0));
+      o.y = r2(oy + (b.y - oy) * s + (aj.dy || 0));
+      o.w = r2(b.w * s);
+      o.h = r2(b.h * s);
+    }
+    if (s !== 1) {
+      for (const k of ["tamanho", "borda", "raio", "largura_max"]) if (num(o[k])) o[k] = r2(o[k] * s);
+    }
+    const texto = TEXTOS.has(a.chave) || a.chave.startsWith("extras.") && o.tipo === "texto";
+    if (aj.cor && (texto || "cor" in o)) o.cor = aj.cor;
+    if (aj.fonte && texto) o.fonte = aj.fonte;
+    a.poe(o);
+  }
+}
+function aplicarFundoCard(m, campos, aj) {
+  if (!aj.cor) return;
+  if (campos.fundo_card) campos.fundo_card = { ...campos.fundo_card, cor: aj.cor };
+  else m.fundo_cor = aj.cor;
+}
+function aplicarAjustesNoProjeto(projeto, ajustes) {
+  const p = JSON.parse(JSON.stringify(projeto));
+  for (const a of ajustes) {
+    const i = p.modelos_card.findIndex((x) => x.indice === a.modelo), m = p.modelos_card[i];
+    if (!m) continue;
+    if (ehTroca(a)) {
+      p.modelos_card[i] = { ...JSON.parse(JSON.stringify(a.modeloCard)), id: m.id, indice: m.indice };
+      continue;
+    }
+    const alvos = [];
+    if (m[a.versao]) alvos.push(m[a.versao]);
+    for (const [k, f] of Object.entries(m.formatos || {})) if (k.startsWith(a.versao + ":")) alvos.push(f);
+    for (const campos of alvos) for (const [peca, aj] of Object.entries(a.pecas)) {
+      if (peca === "fundo_card") aplicarFundoCard(m, campos, aj);
+      else aplicarPeca(campos, peca, aj);
+    }
+  }
+  return p;
+}
+
 // lib/encarte/midia.ts
+import { promises as fs3 } from "node:fs";
+import path3 from "node:path";
 var BUCKET = BUCKETS.anexos;
 var chaveMiniatura = (id) => `encarte/miniaturas/${id}.jpg`;
 var chaveImagem = (dono, arq) => `encarte/imagens/${dono}/${arq}`;
@@ -23965,7 +24431,7 @@ var TIPOS = {
   ".webp": "image/webp",
   ".svg": "image/svg+xml"
 };
-var tipoPorExt = (arq) => TIPOS[path2.extname(arq).toLowerCase()] || "application/octet-stream";
+var tipoPorExt = (arq) => TIPOS[path3.extname(arq).toLowerCase()] || "application/octet-stream";
 async function storage() {
   if (process.env.SUPABASE_SERVICE_ROLE_KEY) return createAdminClient().storage.from(BUCKET);
   return (await createClient2()).storage.from(BUCKET);
@@ -23995,7 +24461,7 @@ async function baixarMidia(chave) {
 var baixando = /* @__PURE__ */ new Map();
 async function garantirLocal(local, chave) {
   try {
-    await fs2.access(local);
+    await fs3.access(local);
     return local;
   } catch {
     let p = baixando.get(local);
@@ -24009,10 +24475,10 @@ async function garantirLocal(local, chave) {
 async function baixarParaDisco(local, chave) {
   const dados = await baixarMidia(chave);
   if (!dados) return null;
-  await fs2.mkdir(path2.dirname(local), { recursive: true });
+  await fs3.mkdir(path3.dirname(local), { recursive: true });
   const tmp = `${local}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
-  await fs2.writeFile(tmp, dados);
-  await fs2.rename(tmp, local);
+  await fs3.writeFile(tmp, dados);
+  await fs3.rename(tmp, local);
   return local;
 }
 var VALE_MS2 = 6e4;
@@ -24045,7 +24511,7 @@ async function existeNoStorage(chave) {
 function migrarSeFaltar(local, chave, tipo) {
   void (async () => {
     if (await existeNoStorage(chave)) return;
-    const dados = await fs2.readFile(local).catch(() => null);
+    const dados = await fs3.readFile(local).catch(() => null);
     if (dados) await subirMidia(chave, dados, tipo);
   })().catch(() => {
   });
@@ -25103,7 +25569,7 @@ var TABELA = "encarte_projetos_template";
 var VERSOES2 = "encarte_projetos_template_versoes";
 var VERSAO_A_CADA_MIN = 10;
 function dirProjetos() {
-  return path3.join(process.env.ENCARTE_DIR || "/srv/encarte", "projetos-template");
+  return path4.join(process.env.ENCARTE_DIR || "/srv/encarte", "projetos-template");
 }
 var normal = (s) => (s || "").normalize("NFC").trim().toLowerCase();
 function linhaParaProjeto(l) {
@@ -25127,7 +25593,7 @@ async function pastasDeCliente(client, workspaceId) {
   const { data, error } = await client.from("folders").select("id, name, pasta_drive, archived_at, spaces!inner(name, workspace_id, archived_at)").eq("spaces.workspace_id", workspaceId);
   if (error) throw error;
   const drive = new Set(
-    (await fs3.readdir(pastaLocal("clientes"), { withFileTypes: true }).catch(() => [])).filter((d) => d.isDirectory()).map((d) => normal(d.name))
+    (await fs4.readdir(pastaLocal("clientes"), { withFileTypes: true }).catch(() => [])).filter((d) => d.isDirectory()).map((d) => normal(d.name))
   );
   return (data || []).filter((f) => !f.archived_at && !f.spaces?.archived_at).map((f) => {
     const nome = String(f.pasta_drive || f.name).normalize("NFC");
@@ -25162,7 +25628,7 @@ async function criarProjeto(client, d) {
   if (!p.nome || !p.cliente || !p.tema) throw new Error("Faltou nome, cliente ou tema");
   const folderId = d.folderId ?? await pastaPeloNome(client, d.workspaceId, p.cliente);
   const { data, error } = await client.from(TABELA).insert({
-    id: p.id || randomUUID(),
+    id: p.id || randomUUID2(),
     workspace_id: d.workspaceId,
     folder_id: folderId,
     cliente: p.cliente.normalize("NFC").trim(),
@@ -25222,16 +25688,16 @@ async function copiarImagens(deId, paraId, arqs) {
   for (const a of arqs) {
     const de = await imagemLocal(deId, a), para = caminhoImagem(paraId, a);
     if (!de || !para) continue;
-    await fs3.copyFile(de, para).catch(() => {
+    await fs4.copyFile(de, para).catch(() => {
     });
-    const dados = await fs3.readFile(de).catch(() => null);
-    if (dados) await subirMidia(chaveImagem(path3.basename(paraId), a), dados, tipoPorExt(a));
+    const dados = await fs4.readFile(de).catch(() => null);
+    if (dados) await subirMidia(chaveImagem(path4.basename(paraId), a), dados, tipoPorExt(a));
   }
 }
 async function duplicar(client, d) {
   const o = await lerProjeto(client, d.workspaceId, d.id);
   if (!o) throw new Error("Projeto n\xE3o encontrado");
-  const novoId = randomUUID();
+  const novoId = randomUUID2();
   const p = duplicarProjeto(o, {
     id: novoId,
     cliente: d.cliente || o.cliente,
@@ -25254,12 +25720,12 @@ async function copiarModelo(client, d) {
   return { projeto: s.projeto, modelo: r.modelo };
 }
 async function importarDoDisco(client, workspaceId, userId) {
-  const arqs = (await fs3.readdir(dirProjetos()).catch(() => [])).filter((a) => a.endsWith(".json"));
+  const arqs = (await fs4.readdir(dirProjetos()).catch(() => [])).filter((a) => a.endsWith(".json"));
   if (!arqs.length) return 0;
   const lidos = [];
   for (const a of arqs) {
     try {
-      lidos.push(JSON.parse(await fs3.readFile(path3.join(dirProjetos(), a), "utf-8")));
+      lidos.push(JSON.parse(await fs4.readFile(path4.join(dirProjetos(), a), "utf-8")));
     } catch {
     }
   }
@@ -25278,31 +25744,31 @@ async function importarDoDisco(client, workspaceId, userId) {
   return n;
 }
 async function garantirDir(dir) {
-  await fs3.mkdir(dir, { recursive: true });
+  await fs4.mkdir(dir, { recursive: true });
 }
 var EXTS_IMAGEM = [".png", ".jpg", ".jpeg", ".webp", ".svg"];
-var pastaImagens = (id) => path3.join(dirProjetos(), "arquivos", path3.basename(id));
+var pastaImagens = (id) => path4.join(dirProjetos(), "arquivos", path4.basename(id));
 async function salvarImagem(id, nomeOrig, dados) {
-  const ext = path3.extname(nomeOrig).toLowerCase();
+  const ext = path4.extname(nomeOrig).toLowerCase();
   if (!EXTS_IMAGEM.includes(ext)) throw new Error("formato n\xE3o aceito");
   const dir = pastaImagens(id);
   await garantirDir(dir);
-  const arq = `${randomUUID()}${ext}`;
-  await fs3.writeFile(path3.join(dir, arq), dados);
-  await subirMidia(chaveImagem(path3.basename(id), arq), dados, tipoPorExt(arq));
+  const arq = `${randomUUID2()}${ext}`;
+  await fs4.writeFile(path4.join(dir, arq), dados);
+  await subirMidia(chaveImagem(path4.basename(id), arq), dados, tipoPorExt(arq));
   return arq;
 }
 async function imagemLocal(id, arq) {
   const local = caminhoImagem(id, arq);
   if (!local) return null;
-  const chave = chaveImagem(path3.basename(id), arq);
+  const chave = chaveImagem(path4.basename(id), arq);
   const achado = await garantirLocal(local, chave);
   if (achado) migrarSeFaltar(achado, chave, tipoPorExt(arq));
   return achado;
 }
 function caminhoImagem(id, arq) {
-  if (!arq || arq !== path3.basename(arq)) return null;
-  return path3.join(pastaImagens(id), arq);
+  if (!arq || arq !== path4.basename(arq)) return null;
+  return path4.join(pastaImagens(id), arq);
 }
 var limpo = (s) => s.replace(/[\\/:*?"<>|]/g, "").trim();
 function donoCliente(folderId) {
@@ -25325,23 +25791,23 @@ function imagensDaPublicacao(projeto) {
 async function publicarTemplate(projetoOrig, blocosCliente = []) {
   const projeto = resolverBlocos(projetoOrig, projetoOrig.blocos, blocosCliente);
   const { cli, tema, nome, imagem, copiadas, daMarca } = imagensDaPublicacao(projeto);
-  const dir = path3.join(pastaLocal("clientes"), cli, "TEMPLATES", tema);
+  const dir = path4.join(pastaLocal("clientes"), cli, "TEMPLATES", tema);
   await criarPastaAberta(dir);
   const resultado = gerarSvgTemplate(corpoDoProjeto(projeto), { imagem });
-  const dirSaida = modoDireto() ? null : path3.join(pastaSaida("clientes"), cli, "TEMPLATES", tema);
+  const dirSaida = modoDireto() ? null : path4.join(pastaSaida("clientes"), cli, "TEMPLATES", tema);
   if (dirSaida) await criarPastaAberta(dirSaida);
   for (const arq of new Set(copiadas)) {
     const orig = await imagemLocal(projeto.id, arq);
     if (!orig) continue;
-    await fs3.copyFile(orig, path3.join(dir, `${nome} img ${arq}`));
-    if (dirSaida) await fs3.copyFile(orig, path3.join(dirSaida, `${nome} img ${arq}`));
+    await fs4.copyFile(orig, path4.join(dir, `${nome} img ${arq}`));
+    if (dirSaida) await fs4.copyFile(orig, path4.join(dirSaida, `${nome} img ${arq}`));
   }
   for (const arq of new Set(daMarca)) {
     const orig = projetoOrig.folderId ? await imagemLocal(donoCliente(projetoOrig.folderId), arq) : null;
     if (!orig) continue;
-    await fs3.copyFile(orig, path3.join(dir, `${nome} img ${arq}`)).catch(() => {
+    await fs4.copyFile(orig, path4.join(dir, `${nome} img ${arq}`)).catch(() => {
     });
-    if (dirSaida) await fs3.copyFile(orig, path3.join(dirSaida, `${nome} img ${arq}`)).catch(() => {
+    if (dirSaida) await fs4.copyFile(orig, path4.join(dirSaida, `${nome} img ${arq}`)).catch(() => {
     });
   }
   const arquivos = [
@@ -25351,8 +25817,8 @@ async function publicarTemplate(projetoOrig, blocosCliente = []) {
     ...resultado.especiais.map((e) => [`${nome} especial ${limpo(e.nome)}.svg`, e.svg])
   ];
   for (const [arq, txt] of arquivos) {
-    await fs3.writeFile(path3.join(dir, arq), txt, "utf-8");
-    if (dirSaida) await fs3.writeFile(path3.join(dirSaida, arq), txt, "utf-8");
+    await fs4.writeFile(path4.join(dir, arq), txt, "utf-8");
+    if (dirSaida) await fs4.writeFile(path4.join(dirSaida, arq), txt, "utf-8");
   }
   await listarTemplates(true);
   return { pasta: dir, arquivos: [...arquivos.map(([a]) => a), ...[.../* @__PURE__ */ new Set([...copiadas, ...daMarca])].map((a) => `${nome} img ${a}`)] };
@@ -25365,7 +25831,7 @@ async function projetoPublicadoComAjuste(tpl, ajustes) {
   const c = resolver(caminhoProjeto(tpl.svg));
   const arq = c && await acharArquivo(c.local);
   if (!arq) return null;
-  const publicado = JSON.parse(await fs3.readFile(arq, "utf8"));
+  const publicado = JSON.parse(await fs4.readFile(arq, "utf8"));
   return aplicarAjustesNoProjeto(publicado, ajustes);
 }
 async function svgsComAjuste(tpl, ajustes) {
@@ -25401,12 +25867,12 @@ async function salvarAjusteNoTemplate(client, ctx, id, ajustes, forcar, blocosDe
 }
 
 // lib/encarte/previa-template.ts
-import fs4 from "fs/promises";
-import path4 from "path";
+import fs5 from "fs/promises";
+import path5 from "path";
 var MIME = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".svg": "image/svg+xml" };
 async function dataUri(arquivo) {
-  const b = await fs4.readFile(arquivo).catch(() => null);
-  return b ? `data:${MIME[path4.extname(arquivo).toLowerCase()] || "application/octet-stream"};base64,${b.toString("base64")}` : null;
+  const b = await fs5.readFile(arquivo).catch(() => null);
+  return b ? `data:${MIME[path5.extname(arquivo).toLowerCase()] || "application/octet-stream"};base64,${b.toString("base64")}` : null;
 }
 async function embutirImagens(dono, marca, svg) {
   const refs = [...new Set([...svg.matchAll(/href="([^"]+)"/g)].map((m) => m[1]).filter((r) => !r.startsWith("data:") && !r.startsWith("#")))];
@@ -25428,9 +25894,9 @@ function instanciasAcumin(svg) {
 var fontconfigPronto = false;
 async function prepararFontconfig() {
   if (fontconfigPronto || process.env.FONTCONFIG_FILE) return;
-  const conf = path4.join(pastaCache(), "fonts.conf");
-  await fs4.mkdir(pastaCache(), { recursive: true });
-  await fs4.writeFile(conf, `<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd"><fontconfig><dir>${pastaFontes()}</dir><dir>/usr/share/fonts</dir><dir>/usr/local/share/fonts</dir><cachedir>${path4.join(pastaCache(), "fontconfig")}</cachedir></fontconfig>`);
+  const conf = path5.join(pastaCache(), "fonts.conf");
+  await fs5.mkdir(pastaCache(), { recursive: true });
+  await fs5.writeFile(conf, `<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd"><fontconfig><dir>${pastaFontes()}</dir><dir>/usr/share/fonts</dir><dir>/usr/local/share/fonts</dir><cachedir>${path5.join(pastaCache(), "fontconfig")}</cachedir></fontconfig>`);
   process.env.FONTCONFIG_FILE = conf;
   fontconfigPronto = true;
 }
@@ -25520,7 +25986,7 @@ async function criarItem(client, d) {
   if (!tipo || !TIPOS_ITEM.includes(tipo)) throw new Error("tipo inv\xE1lido (card, grupo, elementos, estrutura)");
   const erro5 = validarConteudo(tipo, conteudo);
   if (erro5) throw new Error(erro5);
-  const id = randomUUID2();
+  const id = randomUUID3();
   if (d.projetoId) await copiarImagens(d.projetoId, donoItem(id), imagensUsadas(conteudo));
   const { data, error } = await client.from(TABELA2).insert({
     id,
@@ -25576,7 +26042,7 @@ async function usarItem(client, d) {
 async function criarDaEstrutura(client, d) {
   const item = await lerItem(client, d.workspaceId, d.estruturaId);
   if (!item || item.tipo !== "estrutura") throw new Error("Estrutura n\xE3o encontrada");
-  const id = randomUUID2();
+  const id = randomUUID3();
   const p = projetoDaEstrutura(item.conteudo, { id, nome: d.nome, cliente: d.cliente, tema: d.tema, agora: (/* @__PURE__ */ new Date()).toISOString() });
   await copiarImagens(donoItem(item.id), id, imagensUsadas(p));
   if (d.blocos) p.blocos = { ...p.blocos || {}, ...d.blocos };
@@ -25585,12 +26051,12 @@ async function criarDaEstrutura(client, d) {
 async function miniaturaItem(client, workspaceId, item, largura = 360) {
   const blocos = item.folderId ? await blocosDoCliente(client, workspaceId, item.folderId) : [];
   const chave = createHash2("sha1").update(JSON.stringify([item.id, item.atualizadoEm, largura, blocos])).digest("hex").slice(0, 16);
-  const arq = path5.join(pastaCache(), "biblioteca", `${item.id}-${chave}.png`);
-  const cache2 = await fs5.readFile(arq).catch(() => null);
+  const arq = path6.join(pastaCache(), "biblioteca", `${item.id}-${chave}.png`);
+  const cache2 = await fs6.readFile(arq).catch(() => null);
   if (cache2) return cache2;
   const png = await previaPng(projetoDaMiniatura(item), { largura, dono: donoItem(item.id), marca: item.folderId, blocos });
-  await fs5.mkdir(path5.dirname(arq), { recursive: true });
-  await fs5.writeFile(arq, png).catch(() => {
+  await fs6.mkdir(path6.dirname(arq), { recursive: true });
+  await fs6.writeFile(arq, png).catch(() => {
   });
   return png;
 }
@@ -25615,182 +26081,8 @@ async function gravarBlocosCliente(client, d) {
 }
 
 // lib/encarte/projetos-rotas.ts
-import { promises as fs6 } from "node:fs";
-import path6 from "node:path";
-
-// lib/encarte/baixar-externo.ts
-import { lookup as dnsLookup } from "node:dns";
-import http from "node:http";
-import https from "node:https";
-import { BlockList, isIP } from "node:net";
-import zlib from "node:zlib";
-var BLOQUEADOS = new BlockList();
-for (const [rede, pref] of [
-  ["0.0.0.0", 8],
-  ["10.0.0.0", 8],
-  ["100.64.0.0", 10],
-  ["127.0.0.0", 8],
-  ["169.254.0.0", 16],
-  ["172.16.0.0", 12],
-  ["192.0.0.0", 24],
-  ["192.168.0.0", 16],
-  ["198.18.0.0", 15],
-  ["224.0.0.0", 4],
-  ["240.0.0.0", 4]
-]) BLOQUEADOS.addSubnet(rede, pref, "ipv4");
-for (const [rede, pref] of [
-  ["::", 128],
-  ["::1", 128],
-  ["fc00::", 7],
-  ["fe80::", 10],
-  ["ff00::", 8],
-  ["64:ff9b::", 96],
-  ["2001:db8::", 32]
-]) BLOQUEADOS.addSubnet(rede, pref, "ipv6");
-function ipBloqueado(ip) {
-  const mapeado = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
-  if (mapeado) return ipBloqueado(mapeado[1]);
-  const v = isIP(ip);
-  if (v === 4) return BLOQUEADOS.check(ip, "ipv4");
-  if (v === 6) return BLOQUEADOS.check(ip, "ipv6");
-  return true;
-}
-function urlExternaValida(u) {
-  let url;
-  try {
-    url = new URL(u);
-  } catch {
-    return null;
-  }
-  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
-  if (url.port && url.port !== "80" && url.port !== "443") return null;
-  if (url.username || url.password) return null;
-  const host = url.hostname.replace(/^\[|\]$/g, "");
-  if (!host || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal")) return null;
-  if (isIP(host) && ipBloqueado(host)) return null;
-  return url;
-}
-var lookupSeguro = ((host, opts, cb) => {
-  const callback = typeof opts === "function" ? opts : cb;
-  const o = typeof opts === "object" && opts ? opts : {};
-  dnsLookup(host, { all: true }, (err, enderecos) => {
-    if (err) return callback(err, "");
-    const ruim = enderecos.find((a) => ipBloqueado(a.address));
-    if (ruim || !enderecos.length) {
-      return callback(Object.assign(new Error("Endere\xE7o interno bloqueado"), { code: "EBLOQUEADO" }), "");
-    }
-    if (o.all) return callback(null, enderecos);
-    callback(null, enderecos[0].address, enderecos[0].family);
-  });
-});
-function pedir(url, maxBytes, timeoutMs) {
-  const mod = url.protocol === "https:" ? https : http;
-  return new Promise((ok, falha) => {
-    const req = mod.get(
-      url,
-      {
-        lookup: lookupSeguro,
-        timeout: timeoutMs,
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
-          Accept: "image/avif,image/webp,image/png,image/jpeg,image/*,text/html;q=0.8,*/*;q=0.5",
-          "Accept-Encoding": "gzip, deflate, br",
-          "Accept-Language": "pt-BR,pt;q=0.9",
-          // muito site recusa foto sem Referer do próprio domínio (proteção de hotlink)
-          Referer: url.origin + "/"
-        }
-      },
-      (res) => {
-        const status = res.statusCode || 0;
-        const tipo = String(res.headers["content-type"] || "").toLowerCase();
-        if (status >= 300 && status < 400) {
-          res.resume();
-          return ok({ status, tipo, corpo: Buffer.alloc(0), local: String(res.headers.location || "") });
-        }
-        const declarado = Number(res.headers["content-length"] || 0);
-        if (declarado > maxBytes) {
-          res.destroy();
-          return falha(new Error("Arquivo grande demais"));
-        }
-        const partes = [];
-        let total = 0;
-        res.on("data", (c) => {
-          total += c.length;
-          if (total > maxBytes) {
-            res.destroy();
-            falha(new Error("Arquivo grande demais"));
-            return;
-          }
-          partes.push(c);
-        });
-        res.on("end", () => {
-          const cod = String(res.headers["content-encoding"] || "").toLowerCase();
-          const bruto = Buffer.concat(partes);
-          try {
-            const o = { maxOutputLength: maxBytes };
-            const corpo = cod === "gzip" || cod === "x-gzip" ? zlib.gunzipSync(bruto, o) : cod === "br" ? zlib.brotliDecompressSync(bruto, o) : cod === "deflate" ? zlib.inflateSync(bruto, o) : bruto;
-            ok({ status, tipo, corpo });
-          } catch {
-            falha(new Error("N\xE3o consegui ler a resposta do site"));
-          }
-        });
-        res.on("error", falha);
-      }
-    );
-    req.on("timeout", () => req.destroy(new Error("O site demorou demais pra responder")));
-    req.on(
-      "error",
-      (e) => falha(e.code === "EBLOQUEADO" ? new Error("Esse endere\xE7o n\xE3o \xE9 permitido") : e)
-    );
-  });
-}
-async function baixarExterno(u, { maxBytes = 25 * 1024 * 1024, timeoutMs = 2e4 } = {}) {
-  let url = urlExternaValida(u);
-  for (let salto = 0; salto <= 4; salto++) {
-    if (!url) throw new Error("Link inv\xE1lido ou n\xE3o permitido");
-    const r = await pedir(url, maxBytes, timeoutMs);
-    if (r.local !== void 0) {
-      url = urlExternaValida(new URL(r.local, url).toString());
-      continue;
-    }
-    if (r.status < 200 || r.status >= 300) throw new Error(`O site devolveu erro (${r.status})`);
-    return { url: url.toString(), tipo: r.tipo, corpo: r.corpo };
-  }
-  throw new Error("Redirecionamentos demais");
-}
-var decodificar = (s) => s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
-function atributo(tag, nome) {
-  const m = tag.match(new RegExp(`\\b${nome}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, "i"));
-  return m ? decodificar(m[2] ?? m[3] ?? m[4] ?? "") : null;
-}
-function imagemDaPagina(html, base) {
-  const metas = html.match(/<meta\b[^>]*>/gi) ?? [];
-  const meta = (chaves) => {
-    for (const k of chaves) {
-      for (const t of metas) {
-        const p = (atributo(t, "property") || atributo(t, "name") || "").toLowerCase();
-        const c = atributo(t, "content");
-        if (p === k && c) return c.trim();
-      }
-    }
-    return null;
-  };
-  let img = meta(["og:image:secure_url", "og:image", "og:image:url", "twitter:image", "twitter:image:src"]);
-  if (!img) {
-    const link = (html.match(/<link\b[^>]*>/gi) ?? []).find((t) => (atributo(t, "rel") || "").toLowerCase() === "image_src");
-    img = link ? atributo(link, "href") : null;
-  }
-  const titulo = meta(["og:title", "twitter:title"]) || decodificar((html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] ?? "").trim());
-  let abs = null;
-  if (img) {
-    try {
-      abs = new URL(img, base).toString();
-    } catch {
-      abs = null;
-    }
-  }
-  return { img: abs, titulo: titulo.slice(0, 200) };
-}
+import { promises as fs7 } from "node:fs";
+import path7 from "node:path";
 
 // lib/db/queries.ts
 var import_react = __toESM(require_react());
@@ -25867,8 +26159,8 @@ var TIPOS_IMG = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpe
 async function servirImagem(caminho) {
   if (!caminho) return NextResponse.json({ erro: "Forbidden" }, { status: 403 });
   try {
-    const dados = await fs6.readFile(caminho);
-    return new NextResponse(dados, { headers: { "content-type": TIPOS_IMG[path6.extname(caminho).toLowerCase()] || "application/octet-stream", "cache-control": "private, max-age=86400" } });
+    const dados = await fs7.readFile(caminho);
+    return new NextResponse(dados, { headers: { "content-type": TIPOS_IMG[path7.extname(caminho).toLowerCase()] || "application/octet-stream", "cache-control": "private, max-age=86400" } });
   } catch {
     return NextResponse.json({ erro: "Not found" }, { status: 404 });
   }
@@ -25998,11 +26290,14 @@ __export(route_exports4, {
 });
 
 // lib/encarte/sessao.ts
+init_next_headers();
 async function exigirUsuario() {
   const supabase = await createClient2();
+  const auth = (await headers()).get("authorization") ?? "";
+  const jwt = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
   const {
     data: { user }
-  } = await supabase.auth.getUser();
+  } = jwt ? await supabase.auth.getUser(jwt) : await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   return null;
 }
@@ -26069,7 +26364,7 @@ __export(route_exports6, {
 
 // lib/encarte/edicoes.ts
 import { access, mkdir } from "node:fs/promises";
-import path7 from "node:path";
+import path8 from "node:path";
 var COLUNAS = "id, workspace_id, serie_id, task_id, template_id, titulo, ficha, linhas, pasta_trabalho, criado_por, criado_em, atualizado_em, arquivado_em";
 var COLUNAS_RESUMO = "id, serie_id, task_id, template_id, titulo, criado_em, atualizado_em";
 var CHAVES_META = /* @__PURE__ */ new Set([
@@ -26147,11 +26442,11 @@ function nomeDaSerie(titulo) {
   return nome || titulo.trim() || "Encarte";
 }
 function pastaMiniaturas() {
-  return path7.join(process.env.ENCARTE_DIR || "/srv/encarte", "miniaturas");
+  return path8.join(process.env.ENCARTE_DIR || "/srv/encarte", "miniaturas");
 }
 function caminhoMiniatura(id) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-  return path7.join(pastaMiniaturas(), `${id}.jpg`);
+  return path8.join(pastaMiniaturas(), `${id}.jpg`);
 }
 async function garantirPastaMiniaturas() {
   await mkdir(pastaMiniaturas(), { recursive: true });
@@ -26883,7 +27178,7 @@ __export(route_exports13, {
   dynamic: () => dynamic6,
   runtime: () => runtime6
 });
-import path8 from "node:path";
+import path9 from "node:path";
 var runtime6 = "nodejs";
 var dynamic6 = "force-dynamic";
 async function PUT4(req) {
@@ -26895,7 +27190,7 @@ async function PUT4(req) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   let nome = limparNome(q.get("nome") ?? "") || "foto.png";
-  if (!EXTS_IMG.includes(path8.extname(nome).toLowerCase())) nome += ".png";
+  if (!EXTS_IMG.includes(path9.extname(nome).toLowerCase())) nome += ".png";
   const dados = await lerCorpo(req);
   if (!dados) return NextResponse.json({ error: "Arquivo grande demais" }, { status: 413 });
   if (!dados.length) return NextResponse.json({ error: "Arquivo vazio" }, { status: 400 });
@@ -26911,7 +27206,7 @@ __export(route_exports14, {
   dynamic: () => dynamic7,
   runtime: () => runtime7
 });
-import { promises as fs7 } from "node:fs";
+import { promises as fs8 } from "node:fs";
 var runtime7 = "nodejs";
 var dynamic7 = "force-dynamic";
 async function GET12(_req, context) {
@@ -26925,7 +27220,7 @@ async function GET12(_req, context) {
   if (!arq) return NextResponse.json({ error: "Not found" }, { status: 404 });
   let dados;
   try {
-    dados = await fs7.readFile(arq);
+    dados = await fs8.readFile(arq);
   } catch {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -26986,7 +27281,7 @@ __export(route_exports17, {
   dynamic: () => dynamic10,
   runtime: () => runtime10
 });
-import { promises as fs8 } from "node:fs";
+import { promises as fs9 } from "node:fs";
 var runtime10 = "nodejs";
 var dynamic10 = "force-dynamic";
 async function GET14(req) {
@@ -27003,7 +27298,7 @@ async function GET14(req) {
       if (req.headers.get("if-none-match") === etag) {
         return new Response(null, { status: 304, headers: { ETag: etag } });
       }
-      return new Response(new Uint8Array(await fs8.readFile(arquivo)), {
+      return new Response(new Uint8Array(await fs9.readFile(arquivo)), {
         headers: {
           "Content-Type": "image/webp",
           "Cache-Control": "private, no-cache",
@@ -27013,7 +27308,7 @@ async function GET14(req) {
     } catch {
     }
   }
-  return new Response(new Uint8Array(await fs8.readFile(arq)), {
+  return new Response(new Uint8Array(await fs9.readFile(arq)), {
     headers: {
       "Content-Type": tipoDoArquivo(arq),
       "Cache-Control": "private, no-cache"
@@ -27048,260 +27343,6 @@ __export(route_exports19, {
   dynamic: () => dynamic12,
   runtime: () => runtime12
 });
-
-// lib/encarte/internet.ts
-init_sharp();
-import { randomUUID as randomUUID3 } from "node:crypto";
-import { promises as fs9 } from "node:fs";
-import path9 from "node:path";
-var LOJAS = [
-  { host: "www.savegnago.com.br", nome: "Savegnago" },
-  { host: "www.zonasul.com.br", nome: "Zona Sul" },
-  { host: "www.bistek.com.br", nome: "Bistek" },
-  { host: "www.covabra.com.br", nome: "Covabra" }
-];
-var PIFPAF = { host: "www.pifpaf.com.br", nome: "Pif Paf" };
-function urlPermitida(u) {
-  try {
-    const url = new URL(u);
-    return url.protocol === "https:" && (url.hostname.endsWith(".vteximg.com.br") || url.hostname.endsWith(".vtexassets.com") || url.hostname === PIFPAF.host && url.pathname.startsWith("/wp-content/uploads/"));
-  } catch {
-    return false;
-  }
-}
-function urlMiniatura(img, lado = 300) {
-  return img.replace(/\/ids\/(\d+)(?:-\d+-\d+)?\//, `/ids/$1-${lado}-${lado}/`);
-}
-function itensDoCatalogo(loja, produtos, maxFotos = 2) {
-  const out = [];
-  for (const p of produtos) {
-    const it = p.items?.[0];
-    const imgs = (it?.images ?? []).map((i) => i.imageUrl).filter((u) => !!u);
-    for (const img of imgs.slice(0, maxFotos)) {
-      if (!urlPermitida(img)) continue;
-      out.push({ loja, nome: p.productName || it?.name || "", img, thumb: urlMiniatura(img) });
-    }
-  }
-  return out;
-}
-async function buscarLoja(loja, q) {
-  const url = `https://${loja.host}/api/catalog_system/pub/products/search?ft=${encodeURIComponent(q)}&_from=0&_to=7`;
-  try {
-    const r = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" },
-      signal: AbortSignal.timeout(8e3),
-      cache: "no-store"
-    });
-    if (!r.ok) return [];
-    const d = await r.json();
-    return Array.isArray(d) ? itensDoCatalogo(loja.nome, d) : [];
-  } catch {
-    return [];
-  }
-}
-var textoHtml = (s) => s.replace(/<[^>]+>/g, "").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n))).replace(/&amp;/g, "&").trim();
-function itensPifPaf(produtos) {
-  const out = [];
-  for (const p of produtos) {
-    const m = p._embedded?.["wp:featuredmedia"]?.[0];
-    const img = m?.source_url;
-    if (!img || !urlPermitida(img)) continue;
-    const thumb = m?.media_details?.sizes?.medium?.source_url || img;
-    out.push({ loja: PIFPAF.nome, nome: textoHtml(p.title?.rendered || ""), img, thumb: urlPermitida(thumb) ? thumb : img });
-  }
-  return out;
-}
-async function buscarPifPaf(q) {
-  const termo = q.replace(/\bpif\s*paf\b/gi, " ").replace(/\s+/g, " ").trim();
-  if (termo.length < 3) return [];
-  const url = `https://${PIFPAF.host}/wp-json/wp/v2/tipo-produto?search=${encodeURIComponent(termo)}&per_page=10&_embed=wp:featuredmedia`;
-  try {
-    const r = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" },
-      signal: AbortSignal.timeout(8e3),
-      cache: "no-store"
-    });
-    if (!r.ok) return [];
-    const d = JSON.parse((await r.text()).replace(/^﻿/, ""));
-    return Array.isArray(d) ? itensPifPaf(d) : [];
-  } catch {
-    return [];
-  }
-}
-async function buscarInternet(q) {
-  const listas = await Promise.all([...LOJAS.map((l) => buscarLoja(l, q)), buscarPifPaf(q)]);
-  const vistos = /* @__PURE__ */ new Set();
-  const out = [];
-  const max = Math.max(0, ...listas.map((l) => l.length));
-  for (let i = 0; i < max; i++) {
-    for (const l of listas) {
-      const it = l[i];
-      if (!it) continue;
-      const chave = it.img.replace(/\?.*$/, "");
-      if (vistos.has(chave)) continue;
-      vistos.add(chave);
-      out.push(it);
-    }
-  }
-  return out.slice(0, 40);
-}
-var ID_OK = /^[0-9a-f-]{36}$/;
-var VALIDADE_MS = 2 * 24 * 36e5;
-var PRESO_MS = 2 * 6e4;
-var WORKER_ONLINE_MS = 3e4;
-var MAX_ORIGINAL = 25 * 1024 * 1024;
-var pastaRecortes = () => path9.join(encarteDir(), "recortes");
-var pastaPedido = (id) => path9.join(pastaRecortes(), id);
-var arqRecorte = (id) => path9.join(pastaPedido(id), "recorte.png");
-var idValido = (id) => ID_OK.test(id);
-async function gravarJson(arq, dados) {
-  const tmp = arq + ".tmp";
-  await fs9.writeFile(tmp, JSON.stringify(dados));
-  await fs9.rename(tmp, arq);
-}
-async function lerPedido(id) {
-  if (!idValido(id)) return null;
-  try {
-    return JSON.parse(await fs9.readFile(path9.join(pastaPedido(id), "pedido.json"), "utf8"));
-  } catch {
-    return null;
-  }
-}
-var salvarPedido = (p) => gravarJson(path9.join(pastaPedido(p.id), "pedido.json"), p);
-async function limparVelhos() {
-  const agora = Date.now();
-  const ids = await fs9.readdir(pastaRecortes()).catch(() => []);
-  for (const id of ids) {
-    if (!idValido(id)) continue;
-    const p = await lerPedido(id);
-    if (!p || agora - Date.parse(p.criado) > VALIDADE_MS) {
-      await fs9.rm(pastaPedido(id), { recursive: true, force: true });
-    }
-  }
-}
-async function fotoDeLink(link) {
-  let r = await baixarExterno(link.trim());
-  let nome = "";
-  if (r.tipo.includes("html")) {
-    const pg = imagemDaPagina(r.corpo.toString("utf8"), r.url);
-    if (!pg.img) throw new Error('o site bloqueou ou a p\xE1gina n\xE3o mostra a foto. Clique com o bot\xE3o direito na foto, "Copiar endere\xE7o da imagem", e cole esse');
-    nome = pg.titulo;
-    r = await baixarExterno(pg.img);
-  }
-  if (r.tipo.includes("svg")) throw new Error("SVG n\xE3o serve: precisa ser foto");
-  const buf = await normalizar(r.corpo, "O link n\xE3o \xE9 de uma foto");
-  if (!nome) {
-    const arq = decodeURIComponent(new URL(r.url).pathname.split("/").pop() || "");
-    nome = arq.replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " ").trim();
-  }
-  return { buf, img: r.url, nome };
-}
-async function normalizar(corpo, erro5) {
-  try {
-    return await sharp(corpo, { limitInputPixels: 8e7 }).rotate().resize({ width: 3e3, height: 3e3, fit: "inside", withoutEnlargement: true }).png().toBuffer();
-  } catch (e) {
-    if (e instanceof Error && e.message.includes("sharp indispon\xEDvel")) return corpo;
-    throw new Error(erro5);
-  }
-}
-async function criarPedidoDeArquivo(corpo, nome) {
-  if (!corpo.length || corpo.length > MAX_ORIGINAL) throw new Error("Foto vazia ou grande demais");
-  const buf = await normalizar(corpo, "O arquivo n\xE3o \xE9 uma foto");
-  return gravarPedido(buf, ".png", "arquivo", nome);
-}
-async function criarPedido(img, nome) {
-  let buf, ext;
-  if (urlPermitida(img)) {
-    const r = await fetch(img, { signal: AbortSignal.timeout(2e4), cache: "no-store" });
-    if (!r.ok) throw new Error(`A loja n\xE3o devolveu a foto (${r.status})`);
-    buf = Buffer.from(await r.arrayBuffer());
-    if (!buf.length || buf.length > MAX_ORIGINAL) throw new Error("Foto vazia ou grande demais");
-    const tipo = r.headers.get("content-type") || "";
-    ext = tipo.includes("png") ? ".png" : tipo.includes("webp") ? ".webp" : ".jpg";
-  } else {
-    const f = await fotoDeLink(img);
-    buf = f.buf;
-    ext = ".png";
-    img = f.img;
-    nome = nome || f.nome;
-  }
-  return gravarPedido(buf, ext, img, nome);
-}
-async function gravarPedido(buf, ext, img, nome) {
-  await fs9.mkdir(pastaRecortes(), { recursive: true });
-  await limparVelhos().catch(() => {
-  });
-  const id = randomUUID3();
-  await fs9.mkdir(pastaPedido(id), { recursive: true });
-  await fs9.writeFile(path9.join(pastaPedido(id), "original" + ext), buf);
-  const p = {
-    id,
-    status: "pendente",
-    img,
-    nome: nome.slice(0, 200),
-    original: "original" + ext,
-    criado: (/* @__PURE__ */ new Date()).toISOString()
-  };
-  await salvarPedido(p);
-  return p;
-}
-async function caminhoOriginal(id) {
-  const p = await lerPedido(id);
-  return p ? path9.join(pastaPedido(id), p.original) : null;
-}
-var arqWorker = () => path9.join(pastaRecortes(), "worker.json");
-async function registrarWorker(info) {
-  await fs9.mkdir(pastaRecortes(), { recursive: true });
-  await gravarJson(arqWorker(), {
-    nome: String(info.nome || "").slice(0, 60),
-    modelo: String(info.modelo || "").slice(0, 60),
-    visto: (/* @__PURE__ */ new Date()).toISOString()
-  });
-}
-async function statusWorker() {
-  try {
-    const w = JSON.parse(await fs9.readFile(arqWorker(), "utf8"));
-    return { online: Date.now() - Date.parse(w.visto) < WORKER_ONLINE_MS, nome: w.nome, visto: w.visto };
-  } catch {
-    return { online: false };
-  }
-}
-async function pegarProximo() {
-  const ids = await fs9.readdir(pastaRecortes()).catch(() => []);
-  const agora = Date.now();
-  const fila = [];
-  for (const id of ids) {
-    const p2 = idValido(id) ? await lerPedido(id) : null;
-    if (!p2) continue;
-    const preso = p2.status === "processando" && agora - Date.parse(p2.pego || p2.criado) > PRESO_MS;
-    if (p2.status === "pendente" || preso) fila.push(p2);
-  }
-  fila.sort((a, b) => a.criado.localeCompare(b.criado));
-  const p = fila[0];
-  if (!p) return null;
-  p.status = "processando";
-  p.pego = (/* @__PURE__ */ new Date()).toISOString();
-  await salvarPedido(p);
-  return p;
-}
-async function concluirPedido(id, png) {
-  const p = await lerPedido(id);
-  if (!p) throw new Error("Pedido n\xE3o existe");
-  await fs9.writeFile(arqRecorte(id), png);
-  p.status = "pronto";
-  p.pronto = (/* @__PURE__ */ new Date()).toISOString();
-  delete p.erro;
-  await salvarPedido(p);
-}
-async function falharPedido(id, erro5) {
-  const p = await lerPedido(id);
-  if (!p) throw new Error("Pedido n\xE3o existe");
-  p.status = "erro";
-  p.erro = erro5.slice(0, 300) || "Erro no recorte";
-  await salvarPedido(p);
-}
-
-// app/api/encarte/internet/busca/route.ts
 var runtime12 = "nodejs";
 var dynamic12 = "force-dynamic";
 async function GET16(req) {
@@ -28165,7 +28206,7 @@ async function atender(req, res) {
       await contexto.run(ctx, async () => {
         let r;
         try {
-          r = await handler(pedido, { params: Promise.resolve(params) });
+          r = await repassarRecorte(pedido) ?? await handler(pedido, { params: Promise.resolve(params) });
         } catch (e) {
           console.error("[encarte-pc]", metodo, url.pathname, e);
           r = Response.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
