@@ -523,7 +523,7 @@ function lerProduto(g) {
     margem: margemOk ? mgRet : null,
     molde: /_ESPECIAL/.test(g.id) ? 'tpl' : 'normal', span: /_ESPECIAL/.test(g.id) ? { c: 2, r: 2 } : { c: 1, r: 1 },
     desenho: g.getAttribute('data-formato') || null, // 'horizontal' = desenho de card largo (construtor)
-    nomeG, nomeTxts, preco, real, cent, dividido: !!(real && cent), formato, qtd, tarja: tarjaEl, moeda, fundo, precoG,
+    nomeG, nomeTxts, preco, real, cent, dividido: !!(real && cent), formato, qtd, tarja: tarjaEl, tarjaFundo, moeda, fundo, precoG,
     base: {}, escNome: 1, escPreco: 1, fundoW: 1, fundoH: 1,
     precoDx: 0, precoDy: 0, nomeDx: 0, nomeDy: 0, nomeCaixa: 1, nomeEntre: 1, nomeAlinha: null, nomeLinhas: null, removido: false, novo: false,
   };
@@ -1099,12 +1099,14 @@ function aplicarCelula(p) {
   // (data-ancora-v: na altura, o de cima, o do meio ou o de baixo)
   const dxDe = o => o.ancora === 'dir' ? c.x + c.w - (k.x + k.w) : o.ancora === 'centro' ? c.x + c.w / 2 - (k.x + k.w / 2) : dx;
   const dyDe = o => o.ancoraV === 'baixo' ? c.y + c.h - (k.y + k.h) : o.ancoraV === 'meio' ? c.y + c.h / 2 - (k.y + k.h / 2) : dy;
-  for (const o of p.outros) o.el.setAttribute('transform', o.estica && o.estBB
+  for (const o of p.outros) o.trCel = (o.estica && o.estBB
     // tarja do gatilho (construtor): mesma distância em pt das laterais e a altura do data-ancora-v
     ? `translate(${arred(c.x + o.estBB.x - k.x)} ${arred(dyDe(o))}) scale(${+((o.estBB.width + c.w - k.w) / o.estBB.width).toFixed(5)} 1) translate(${arred(-o.estBB.x)} 0)`
     : o.estica
     ? `translate(${arred(c.x)} ${arred(dyDe(o))}) scale(${arred(c.w / k.w)} 1) translate(${arred(-k.x)} 0) ${o.tr}`.trim()
     : `translate(${arred(dxDe(o))} ${arred(dyDe(o))}) ${o.tr}`.trim());
+  for (const o of p.outros) o.el.setAttribute('transform', o.trCel);
+  posTarja(p);
   posLogo(p);
 }
 
@@ -2339,17 +2341,30 @@ function linhasTarja(p) {
   const m = t.match(/^(NA COMPRA DE|PARA QUALQUER)\s+(.+)$/i);
   return m && m[2].length <= 24 ? [m[1], m[2]] : quebrarEmDuas(t);
 }
+// tarja arrastada à mão (tarjaDx/Dy, Matheus 30/10/2026: "posicionar a tarja igual as outras coisas"): o
+// texto e a faixa andam juntos por cima do lugar que a célula deu (o.trCel, de aplicarCelula)
+function posTarja(p) {
+  if (!p.tarja) return;
+  const dx = p.tarjaDx || 0, dy = p.tarjaDy || 0;
+  for (const o of p.outros || []) {
+    if (o.el !== p.tarja && o.el !== p.tarjaFundo) continue;
+    const base = o.trCel != null ? o.trCel : o.tr;
+    o.el.setAttribute('transform', (dx || dy ? `translate(${arred(dx)} ${arred(dy)}) ${base}` : base).trim());
+  }
+}
 // centrada onde o template pôs (acompanha o meio do card); encolhe só se não couber no card
 function renderTarja(p) {
   const b = p.base.tarja, e = p.tarja; if (!b || !e) return;
   const linhas = linhasTarja(p);
   e.style.display = linhas.length ? '' : 'none';
+  // sem texto, a faixa atrás some junto (antes ficava a faixa vazia no card, Redemais FIND R+ 30/10/2026)
+  if (p.tarjaFundo) p.tarjaFundo.style.display = linhas.length ? '' : 'none';
   if (!linhas.length) return;
   const ts = textosDe(e), entre0 = b.entre || b.fonte * 1.2;
   const xl = b.cxl + (p.cell.w - p.card.w) / 2 / (b.m.a || 1);
   const lim = Math.max(b.larg * p.cell.w / p.card.w, p.cell.w - 12);
   const escreve = f => { for (const t of ts) escreverTexto(t, linhas, xl, 'middle', f, entre0 * f / b.fonte, null); };
-  let fonte = b.fonte;
+  let fonte = b.fonte * (p.tarjaEsc || 1);
   escreve(fonte);
   const w = Math.max(0, ...ts.map(t => largura(t, b.m)));
   if (w > lim) { fonte = arred(fonte * lim / w); escreve(fonte); }
@@ -2641,8 +2656,9 @@ function aplicarTravas(p) {
       const nx = Z.x + (cx - A.x) / (A.w || 1) * Z.w, ny = Z.y + (cy - A.y) / (A.h || 1) * Z.h;
       tr = `translate(${arred(nx - cx)} ${arred(ny - cy)}) ${o.tr}`;
     }
-    if (tr != null) o.el.setAttribute('transform', tr.trim());
+    if (tr != null) { o.el.setAttribute('transform', tr.trim()); if (o.el === p.tarja || o.el === p.tarjaFundo) o.trCel = tr.trim(); }
   }
+  posTarja(p); // tarja travada: o arrastado à mão vale por cima da trava
 }
 
 // tapete/apoio: largura do card, proporção do desenho, e a borda de baixo um pouco abaixo da base
@@ -2816,6 +2832,8 @@ function estado(p) {
     precoDx: arred(p.precoDx), precoDy: arred(p.precoDy), nomeDx: arred(p.nomeDx), nomeDy: arred(p.nomeDy),
     qtdDx: p.qtdDx ? arred(p.qtdDx) : undefined, qtdDy: p.qtdDy ? arred(p.qtdDy) : undefined,
     qtdEsc: p.qtdEsc && p.qtdEsc !== 1 ? p.qtdEsc : undefined, qtdZ: p.qtdZ ?? undefined,
+    tarjaDx: p.tarjaDx ? arred(p.tarjaDx) : undefined, tarjaDy: p.tarjaDy ? arred(p.tarjaDy) : undefined,
+    tarjaEsc: p.tarjaEsc && p.tarjaEsc !== 1 ? p.tarjaEsc : undefined,
     removido: p.removido || undefined, z: p.z || undefined,
     escReal: p.escReal && p.escReal !== 1 ? p.escReal : undefined, escCent: p.escCent && p.escCent !== 1 ? p.escCent : undefined,
     apoioDx: p.apoioDx ? arred(p.apoioDx) : undefined, apoioDy: p.apoioDy ? arred(p.apoioDy) : undefined,
@@ -2964,6 +2982,7 @@ function aplicarEstado(p, e) {
   p.nomeCaixa = e.nomeCaixa || 1; p.nomeEntre = e.nomeEntre || 1; p.nomeAlinha = e.nomeAlinha || null; p.nomeLinhas = e.nomeLinhas || null; p.nomeBorda = typeof e.nomeBorda === 'number' ? e.nomeBorda : null; p.nomeBordaCor = e.nomeBordaCor || null;
   p.precoDx = e.precoDx || 0; p.precoDy = e.precoDy || 0; p.nomeDx = e.nomeDx || 0; p.nomeDy = e.nomeDy || 0;
   p.qtdDx = e.qtdDx || 0; p.qtdDy = e.qtdDy || 0; p.qtdEsc = e.qtdEsc || 1; p.qtdZ = e.qtdZ ?? null;
+  p.tarjaDx = e.tarjaDx || 0; p.tarjaDy = e.tarjaDy || 0; p.tarjaEsc = e.tarjaEsc || 1;
   p.escReal = e.escReal || 1; p.escCent = e.escCent || 1; p.apoioDx = e.apoioDx || 0; p.apoioDy = e.apoioDy || 0; p.apoioEsc = e.apoioEsc || 1;
   (p.apoiosExtra || []).forEach((_, i) => { const n = 'apoio' + (i + 1), a = (e.apoiosAj || [])[i] || {}; p[n + 'Dx'] = a.dx || 0; p[n + 'Dy'] = a.dy || 0; p[n + 'Esc'] = a.esc || 1; p[n + 'Off'] = !!a.off; });
   p.apoioOff = !!e.apoioOff;
@@ -3496,7 +3515,7 @@ function painel() {
     const b = S.bloco;
     marcarAlvos();
     const n = blocoPs().length;
-    const rot = ehApoio(b.tipo) ? ['Tapete' + (b.tipo === 'apoio' ? '' : ' de trás'), 'Tapetes'] : { preco: ['Preço', 'Preços'], nome: ['Nome', 'Nomes'], logo: ['Logo', 'Logos'], qtd: ['Limite', 'Limites'] }[b.tipo];
+    const rot = ehApoio(b.tipo) ? ['Tapete' + (b.tipo === 'apoio' ? '' : ' de trás'), 'Tapetes'] : { preco: ['Preço', 'Preços'], nome: ['Nome', 'Nomes'], logo: ['Logo', 'Logos'], qtd: ['Limite', 'Limites'], tarja: ['Tarja', 'Tarjas'] }[b.tipo];
     $('#pb-titulo').textContent = n > 1 ? `${rot[1]} · ${n} produtos` : rot[0] + ' · produto ' + b.p.rotulo;
     $('#pb-voltar').textContent = n > 1 ? '‹ produtos' : '‹ produto';
     $('#pb-alinhar').classList.toggle('oculto', n < 2);
@@ -3525,6 +3544,8 @@ function painel() {
              `<label><input type="radio" name="nome-alinha" value="${v}"${(b.p.nomeAlinha || '') === v ? ' checked' : ''}><span>${t}</span></label>`).join('')}
          </div>`;
     // limite: tamanho em pt + camada (Frente/Trás); a posição é a de todo bloco (arrastar e setas)
+    // tarja: só o tamanho; a posição é a de todo bloco (arrastar e setas)
+    if (b.tipo === 'tarja') { const box = $('#pb-tam'); box.textContent = ''; box.insertAdjacentHTML('beforeend', linhaAj('nome', 'Tamanho', 'tarja', pt)); }
     if (b.tipo === 'qtd') {
       const box = $('#pb-tam'); box.textContent = '';
       box.insertAdjacentHTML('beforeend', linhaAj('nome', 'Tamanho', 'qtd', pt)
@@ -3605,6 +3626,7 @@ function elBloco(q, t) {
   if (t === 'preco') return q.precoG;
   if (t === 'logo') return q.logo && q.logo.el;
   if (t === 'qtd') return q.qtdWrap && q.qtdTxt ? q.qtdWrap : null;
+  if (t === 'tarja') return q.tarja && linhasTarja(q).length ? q.tarja : null;
   if (t === 'apoio') return q.apoio && q.apoio.el;
   const m = t.match(/^apoio(\d+)$/); if (m) { const e = (q.apoiosExtra || [])[+m[1] - 1]; return e && e.el; }
   return q.nomeG;
@@ -3613,8 +3635,8 @@ function ehApoio(t) { return /^apoio\d*$/.test(t); }
 // nome preso ao preço: arrastar só o nome ou só o preço refaz a trava (senão o título voltava pro lugar do
 // molde, ou ficava parado com o preço andando; Matheus, 30/10/2026)
 function posBloco(q, t) {
-  if (t === 'preco') renderGrupoPreco(q); else if (t === 'logo') posLogo(q); else if (t === 'qtd') posQtd(q); else if (ehApoio(t)) posApoio(q); else posNome(q);
-  if (t !== 'logo' && t !== 'qtd' && !ehApoio(t)) nomePresoAoPreco(q);
+  if (t === 'preco') renderGrupoPreco(q); else if (t === 'logo') posLogo(q); else if (t === 'qtd') posQtd(q); else if (t === 'tarja') { renderTarja(q); posTarja(q); } else if (ehApoio(t)) posApoio(q); else posNome(q);
+  if (t !== 'logo' && t !== 'qtd' && t !== 'tarja' && !ehApoio(t)) nomePresoAoPreco(q);
 }
 // "Aplicar em" do painel do nome/preço (S.alvo): este (o que foi tocado) | destaque | normal | todos.
 // Vale pra tamanho, posição, arrastar e borda; os grupos pegam o encarte inteiro.
@@ -3909,6 +3931,7 @@ function toque(alvo, shift) {
     if (jaNoProduto && p.precoG && p.precoG.contains(alvo)) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'preco' }; return painel(); }
     const iAp = [p.apoio, ...(p.apoiosExtra || [])].findIndex(a => a && a.el.contains(alvo));
     if (jaNoProduto && iAp >= 0) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: iAp ? 'apoio' + iAp : 'apoio' }; return painel(); }
+    if (jaNoProduto && p.tarja && linhasTarja(p).length && (p.tarja.contains(alvo) || (p.tarjaFundo && p.tarjaFundo.contains(alvo)))) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'tarja' }; return painel(); }
     if (jaNoProduto && p.qtdWrap && p.qtdTxt && p.qtdWrap.contains(alvo)) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'qtd' }; return painel(); }
     if (jaNoProduto && p.nomeG && p.nomeG.contains(alvo)) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'nome' }; return painel(); }
     return selecionarProduto(p);
@@ -4756,6 +4779,7 @@ function ajustar(chave, sinal, alvos) {
     if (chave === 'real') p.escReal = Math.max(0.4, arred((p.escReal || 1) + sinal * 0.05));
     if (chave === 'cent') p.escCent = Math.max(0.4, arred((p.escCent || 1) + sinal * 0.05));
     if (chave === 'qtd') p.qtdEsc = Math.max(0.3, arred((p.qtdEsc || 1) + sinal * 0.05));
+    if (chave === 'tarja') p.tarjaEsc = Math.max(0.3, arred((p.tarjaEsc || 1) + sinal * 0.05));
     if (chave === 'logo') p.logoEsc = Math.min(3, Math.max(0.3, arred((p.logoEsc || 1) + sinal * 0.05)));
     if (ehApoio(chave)) p[chave + 'Esc'] = Math.max(0.3, arred((p[chave + 'Esc'] || 1) + sinal * 0.05));
     if (chave === 'fundoW') p.fundoW = Math.max(0.4, arred(p.fundoW + sinal * 0.04));
@@ -4849,14 +4873,14 @@ function apagarLogo() {
   aviso('Logo apagada (Ctrl+Z desfaz; volta pelo "Logo da marca no card" do produto)');
 }
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-apaga-logo]')) apagarLogo(); });
-$('#pb-zerar').onclick = () => { const ps = blocoPs(), t = S.bloco.tipo; marcar(...ps); for (const p of ps) { p[t + 'Dx'] = p[t + 'Dy'] = 0; if (ehApoio(t)) { p[t + 'Esc'] = 1; p[t + 'Off'] = false; } if (t === 'logo') p.logoEsc = 1; if (t === 'qtd') p.qtdEsc = 1; render(p); } mudou(); };
+$('#pb-zerar').onclick = () => { const ps = blocoPs(), t = S.bloco.tipo; marcar(...ps); for (const p of ps) { p[t + 'Dx'] = p[t + 'Dy'] = 0; if (ehApoio(t)) { p[t + 'Esc'] = 1; p[t + 'Off'] = false; } if (t === 'logo') p.logoEsc = 1; if (t === 'qtd') p.qtdEsc = 1; if (t === 'tarja') p.tarjaEsc = 1; render(p); } mudou(); };
 // Voltar ao modelo (SMD-1149, pedido do Matheus 21/10/2026): o encarte fica como veio do tema — cada card no
 // tamanho e no lugar que o template dá, os textos soltos da arte (data, rodapé) no lugar original. O CONTEÚDO
 // fica: nome, preço, formato, limite, tarja, preços extras, De/selo/logo ligados, as fotos escolhidas e a casa
 // do card na grade. Com vários cards selecionados vale só pra eles (e os textos ficam como estão).
 const AJUSTES_DO_CARD = ['escNome', 'escPreco', 'fundoW', 'fundoH', 'fundoDx', 'fundoDy', 'nomeCaixa', 'nomeEntre',
   'nomeAlinha', 'nomeLinhas', 'nomeBorda', 'nomeBordaCor', 'precoDx', 'precoDy', 'nomeDx', 'nomeDy', 'qtdDx', 'qtdDy',
-  'qtdEsc', 'qtdZ', 'escReal', 'escCent', 'apoioDx', 'apoioDy', 'apoioEsc', 'apoiosAj', 'apoioOff', 'areaImg', 'cellAj',
+  'qtdEsc', 'qtdZ', 'tarjaDx', 'tarjaDy', 'tarjaEsc', 'escReal', 'escCent', 'apoioDx', 'apoioDy', 'apoioEsc', 'apoiosAj', 'apoioOff', 'areaImg', 'cellAj',
   'fotoArea', 'fotoAlinha', 'fotoMao', 'fotoArranjo'];
 function voltarAoModelo() {
   const so = S.selProds.size > 1;
@@ -5167,10 +5191,11 @@ function ptNome(p) { return p.base.nome ? p.base.nome.fonte * p.escNome * kNome(
 function basePreco(p) { return p.base.preco || p.base.real || null; }
 function ptPreco(p) { const b = basePreco(p); return b ? b.fonte * p.escPreco * fatorTarja(p) * fatorLarguraPreco(p) : 0; }
 function ptQtd(p) { return p.base.qtd ? p.base.qtd.fonte * (p.qtdEsc || 1) : 0; }
+function ptTarja(p) { return p.base.tarja ? p.base.tarja.fonte * (p.tarjaEsc || 1) : 0; }
 function fmtPt(v) { return (Math.round(v * 10) / 10).toString().replace('.', ','); }
 function mostrarPt() {
   const p = S.bloco ? S.bloco.p : S.sel; if (!p) return;
-  for (const [id, v] of [['#pt-nome', ptNome(p)], ['#pt-preco', ptPreco(p)], ['#pb-pt', S.bloco ? (S.bloco.tipo === 'preco' ? ptPreco(p) : S.bloco.tipo === 'qtd' ? ptQtd(p) : ptNome(p)) : 0]]) {
+  for (const [id, v] of [['#pt-nome', ptNome(p)], ['#pt-preco', ptPreco(p)], ['#pb-pt', S.bloco ? (S.bloco.tipo === 'preco' ? ptPreco(p) : S.bloco.tipo === 'qtd' ? ptQtd(p) : S.bloco.tipo === 'tarja' ? ptTarja(p) : ptNome(p)) : 0]]) {
     const inp = $(id); if (inp && document.activeElement !== inp) inp.value = fmtPt(v);
   }
   $$('.nl-val').forEach(e => { e.textContent = p.nomeLinhas ? String(p.nomeLinhas) : 'auto'; });
@@ -5188,6 +5213,7 @@ function definirPt(tipo, valor) {
     if (tipo === 'nome' && p.base.nome) p.escNome = v / (p.base.nome.fonte * kNome(p));
     if (tipo === 'preco' && basePreco(p)) p.escPreco = v / (basePreco(p).fonte * fatorTarja(p) * fatorLarguraPreco(p));
     if (tipo === 'qtd' && p.base.qtd) p.qtdEsc = v / p.base.qtd.fonte;
+    if (tipo === 'tarja' && p.base.tarja) p.tarjaEsc = v / p.base.tarja.fonte;
     render(p);
   }
   mudou(); mostrarPt();
@@ -5200,7 +5226,7 @@ document.addEventListener('change', e => {
   }
   if (e.target.id === 'pt-nome') definirPt('nome', e.target.value);
   if (e.target.id === 'pt-preco') definirPt('preco', e.target.value);
-  if (e.target.id === 'pb-pt' && S.bloco) definirPt(S.bloco.tipo === 'preco' || S.bloco.tipo === 'qtd' ? S.bloco.tipo : 'nome', e.target.value);
+  if (e.target.id === 'pb-pt' && S.bloco) definirPt(['preco', 'qtd', 'tarja'].includes(S.bloco.tipo) ? S.bloco.tipo : 'nome', e.target.value);
 });
 
 // ---------------------------------------------------------------- textos da arte
