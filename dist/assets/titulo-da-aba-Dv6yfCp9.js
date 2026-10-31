@@ -1,0 +1,1 @@
+import{gR as u,ke as r,kf as a}from"./index-Cg-XnfvU.js";function l({titulo:n}){return u.useEffect(()=>(r(n?.trim()||null),()=>r(null)),[n]),null}function f(n,e){u.useEffect(()=>{const t=[n,e?.trim()].filter(Boolean).join(" ");return a(t||null),()=>a(null)},[n,e])}export{l as T,f as u};
