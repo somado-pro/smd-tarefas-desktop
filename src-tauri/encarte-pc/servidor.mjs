@@ -26657,6 +26657,8 @@ __export(route_exports7, {
 
 // lib/encarte/acordar.ts
 import { EventEmitter } from "node:events";
+var ESPERA_VAZIA_MS = 12e3;
+var ESPERA_OCUPADA_MS = 2e3;
 var g = globalThis;
 var bus = g.__encarteAcordar ??= (() => {
   const e = new EventEmitter();
@@ -26665,6 +26667,33 @@ var bus = g.__encarteAcordar ??= (() => {
 })();
 function acordar(fila) {
   bus.emit(fila);
+}
+function esperarFila(fila, ms, signal) {
+  return new Promise((ok) => {
+    const sai = (acordou) => {
+      clearTimeout(t);
+      bus.off(fila, porAviso);
+      signal?.removeEventListener("abort", porQueda);
+      ok(acordou);
+    };
+    const porAviso = () => sai(true);
+    const porQueda = () => sai(false);
+    const t = setTimeout(() => sai(false), Math.max(0, ms));
+    bus.on(fila, porAviso);
+    signal?.addEventListener("abort", porQueda, { once: true });
+  });
+}
+async function esperarItem(fila, totalMs, signal, pegar) {
+  const fim = Date.now() + totalMs;
+  for (; ; ) {
+    const { item, ocupada } = await pegar();
+    if (item) return item;
+    const resta = fim - Date.now();
+    if (resta <= 0 || signal?.aborted) return null;
+    const acordou = await esperarFila(fila, Math.min(resta, ocupada ? ESPERA_OCUPADA_MS : ESPERA_VAZIA_MS), signal);
+    if (signal?.aborted) return null;
+    if (!acordou && Date.now() >= fim) return null;
+  }
 }
 
 // lib/encarte/chat.ts
@@ -27417,6 +27446,7 @@ async function POST8(req) {
     const nome2 = new URL(req.url).searchParams.get("nome") || "";
     try {
       const p = await criarPedidoDeArquivo(Buffer.from(await req.arrayBuffer()), nome2);
+      acordar("recorte");
       return NextResponse.json({ id: p.id, status: p.status, nome: p.nome });
     } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "Erro" }, { status: 400 });
@@ -27427,6 +27457,7 @@ async function POST8(req) {
   const nome = typeof corpo?.nome === "string" ? corpo.nome : "";
   try {
     const p = await criarPedido(img, nome);
+    acordar("recorte");
     return NextResponse.json({ id: p.id, status: p.status, nome: p.nome });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Erro" }, { status: 400 });
@@ -28015,6 +28046,7 @@ async function PUT8(req, context) {
     const erro5 = new URL(req.url).searchParams.get("erro");
     if (erro5 !== null) {
       await falharPedido(id, erro5);
+      acordar("recorte");
       return NextResponse.json({ ok: true });
     }
     const png = await lerCorpo(req);
@@ -28023,6 +28055,7 @@ async function PUT8(req, context) {
       return NextResponse.json({ error: "N\xE3o \xE9 PNG" }, { status: 400 });
     }
     await concluirPedido(id, png);
+    acordar("recorte");
     return NextResponse.json({ ok: true });
   });
 }
@@ -28037,18 +28070,12 @@ __export(route_exports41, {
 var runtime34 = "nodejs";
 var dynamic34 = "force-dynamic";
 var ESPERA_MS = 2e4;
-var PASSO_MS = 400;
 async function POST19(req) {
   return withApiAuth(req, async () => {
     const corpo = await req.json().catch(() => ({}));
-    const fim = Date.now() + ESPERA_MS;
-    for (let volta = 0; ; volta++) {
-      if (volta % 12 === 0) await registrarWorker(corpo ?? {});
-      const p = await pegarProximo();
-      if (p) return NextResponse.json({ id: p.id, nome: p.nome });
-      if (Date.now() >= fim || req.signal.aborted) return new Response(null, { status: 204 });
-      await new Promise((ok) => setTimeout(ok, PASSO_MS));
-    }
+    await registrarWorker(corpo ?? {});
+    const p = await esperarItem("recorte", ESPERA_MS, req.signal, async () => ({ item: await pegarProximo(), ocupada: false }));
+    return p ? NextResponse.json({ id: p.id, nome: p.nome }) : new Response(null, { status: 204 });
   });
 }
 
