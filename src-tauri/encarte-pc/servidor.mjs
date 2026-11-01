@@ -221,10 +221,10 @@ function __generator(thisArg, body) {
   var _ = { label: 0, sent: function() {
     if (t[0] & 1) throw t[1];
     return t[1];
-  }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
-  return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() {
+  }, trys: [], ops: [] }, f, y, t, g2 = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+  return g2.next = verb(0), g2["throw"] = verb(1), g2["return"] = verb(2), typeof Symbol === "function" && (g2[Symbol.iterator] = function() {
     return this;
-  }), g;
+  }), g2;
   function verb(n) {
     return function(v) {
       return step([n, v]);
@@ -232,7 +232,7 @@ function __generator(thisArg, body) {
   }
   function step(op) {
     if (f) throw new TypeError("Generator is already executing.");
-    while (g && (g = 0, op[0] && (_ = 0)), _) try {
+    while (g2 && (g2 = 0, op[0] && (_ = 0)), _) try {
       if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
       if (y = 0, t) op = [op[0] & 2, t.value];
       switch (op[0]) {
@@ -343,7 +343,7 @@ function __await(v) {
 }
 function __asyncGenerator(thisArg, _arguments, generator) {
   if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
-  var g = generator.apply(thisArg, _arguments || []), i, q = [];
+  var g2 = generator.apply(thisArg, _arguments || []), i, q = [];
   return i = Object.create((typeof AsyncIterator === "function" ? AsyncIterator : Object).prototype), verb("next"), verb("throw"), verb("return", awaitReturn), i[Symbol.asyncIterator] = function() {
     return this;
   }, i;
@@ -353,7 +353,7 @@ function __asyncGenerator(thisArg, _arguments, generator) {
     };
   }
   function verb(n, f) {
-    if (g[n]) {
+    if (g2[n]) {
       i[n] = function(v) {
         return new Promise(function(a, b) {
           q.push([n, v, a, b]) > 1 || resume(n, v);
@@ -364,7 +364,7 @@ function __asyncGenerator(thisArg, _arguments, generator) {
   }
   function resume(n, v) {
     try {
-      step(g[n](v));
+      step(g2[n](v));
     } catch (e) {
       settle(q[0][3], e);
     }
@@ -24638,11 +24638,11 @@ var caixa = (c, card) => ({
 var xTexto = (b, a) => n2(a === "middle" ? b.x + b.w / 2 : a === "end" ? b.x + b.w : b.x);
 var DEFS = [];
 var hexA = (c) => c.length === 9 ? parseInt(c.slice(7), 16) / 255 : 1;
-function svgDegrade(id, g) {
-  const s = (g.escala ?? 100) / 100;
-  const paradas = [...g.paradas].sort((a2, b) => a2.pos - b.pos).map((p) => `<stop offset="${n2(p.pos)}%" stop-color="${esc(p.cor.slice(0, 7))}" stop-opacity="${+((p.a ?? 1) * hexA(p.cor)).toFixed(3)}"/>`).join("");
-  if (g.tipo === "radial") return `<radialGradient id="${id}" cx="0.5" cy="0.5" r="${n2(0.5 * s)}">${paradas}</radialGradient>`;
-  const a = (g.angulo ?? 0) * Math.PI / 180, dx = Math.cos(a) * s / 2, dy = -Math.sin(a) * s / 2;
+function svgDegrade(id, g2) {
+  const s = (g2.escala ?? 100) / 100;
+  const paradas = [...g2.paradas].sort((a2, b) => a2.pos - b.pos).map((p) => `<stop offset="${n2(p.pos)}%" stop-color="${esc(p.cor.slice(0, 7))}" stop-opacity="${+((p.a ?? 1) * hexA(p.cor)).toFixed(3)}"/>`).join("");
+  if (g2.tipo === "radial") return `<radialGradient id="${id}" cx="0.5" cy="0.5" r="${n2(0.5 * s)}">${paradas}</radialGradient>`;
+  const a = (g2.angulo ?? 0) * Math.PI / 180, dx = Math.cos(a) * s / 2, dy = -Math.sin(a) * s / 2;
   return `<linearGradient id="${id}" x1="${n2(0.5 - dx)}" y1="${n2(0.5 - dy)}" x2="${n2(0.5 + dx)}" y2="${n2(0.5 + dy)}">${paradas}</linearGradient>`;
 }
 var defsSvg = () => DEFS.length ? `<defs>${DEFS.join("")}</defs>` : "";
@@ -24965,9 +24965,9 @@ function svgCampos(campos0, num2, card) {
     const dados = ` data-ancora="esq" data-ancora-v="${ancoraVGatilho(campos)}" data-frente="1"`;
     if (campos.gatilho_fundo) out.push("  " + svgForma(`produto_${num2}_tarja_fundo`, caixa(campos.gatilho_fundo, card), campos.gatilho_fundo).replace(/^<(\w+) /, `<$1${dados} `));
     if (campos.gatilho) {
-      const g = campos.gatilho, b = caixa(g, card), ls = linhasGatilho(g.texto_exemplo), { y, entre } = baseGatilho(b, g, ls.length);
+      const g2 = campos.gatilho, b = caixa(g2, card), ls = linhasGatilho(g2.texto_exemplo), { y, entre } = baseGatilho(b, g2, ls.length);
       const tsp = ls.map((l, i) => `<tspan x="0" y="${i ? entre : 0}">${esc(l)}</tspan>`).join("");
-      out.push(`  <text id="produto_${num2}_gatilho"${dados} ${fontStr(g.fonte, g.tamanho)} ${pinta("fill", g.cor)}${borda(g, true)}${estiloTexto(g)} transform="translate(${n2(b.x + b.w / 2)} ${y})" ${anchor("middle")}>${tsp}</text>`);
+      out.push(`  <text id="produto_${num2}_gatilho"${dados} ${fontStr(g2.fonte, g2.tamanho)} ${pinta("fill", g2.cor)}${borda(g2, true)}${estiloTexto(g2)} transform="translate(${n2(b.x + b.w / 2)} ${y})" ${anchor("middle")}>${tsp}</text>`);
     }
   }
   if (nome) {
@@ -25360,12 +25360,12 @@ function extrairGrupo(campos, grupo, casa) {
   });
   return { grupo, casa: { w: r22(casa.w), h: r22(casa.h) }, caixa: { x: r22(caixa2.x), y: r22(caixa2.y), w: r22(caixa2.w), h: r22(caixa2.h) }, pecas };
 }
-function aplicarGrupo(campos, g, casa, pos) {
+function aplicarGrupo(campos, g2, casa, pos) {
   if (temRef(campos)) campos = naCasa(campos, casa);
   const novo = clone2(campos);
-  for (const k of CAMPOS_DO_GRUPO[g.grupo]) delete novo[k];
-  const { x, y, s } = posicionar(g.caixa, g.casa, casa, pos);
-  for (const [k, p] of Object.entries(g.pecas)) {
+  for (const k of CAMPOS_DO_GRUPO[g2.grupo]) delete novo[k];
+  const { x, y, s } = posicionar(g2.caixa, g2.casa, casa, pos);
+  for (const [k, p] of Object.entries(g2.pecas)) {
     novo[k] = escalar({ ...clone2(p), x: r22((x + p.x * s) / casa.w * 100), y: r22((y + p.y * s) / casa.h * 100), w: r22(p.w * s / casa.w * 100), h: r22(p.h * s / casa.h * 100) }, s);
   }
   return novo;
@@ -25465,9 +25465,9 @@ function projetoDaMiniatura(item) {
     return umCard(c.modelo, c.casa.w, c.casa.h);
   }
   if (item.tipo === "grupo") {
-    const g = item.conteudo;
-    const campos = aplicarGrupo({}, g, g.casa);
-    return umCard({ id: "m", nome: item.nome, indice: 1, fundo_cor: "#f6f7f9", campos }, g.casa.w, g.casa.h);
+    const g2 = item.conteudo;
+    const campos = aplicarGrupo({}, g2, g2.casa);
+    return umCard({ id: "m", nome: item.nome, indice: 1, fundo_cor: "#f6f7f9", campos }, g2.casa.w, g2.casa.h);
   }
   if (item.tipo === "elementos") {
     const e = item.conteudo, m = 8;
@@ -26655,6 +26655,18 @@ __export(route_exports7, {
   POST: () => POST5
 });
 
+// lib/encarte/acordar.ts
+import { EventEmitter } from "node:events";
+var g = globalThis;
+var bus = g.__encarteAcordar ??= (() => {
+  const e = new EventEmitter();
+  e.setMaxListeners(0);
+  return e;
+})();
+function acordar(fila) {
+  bus.emit(fila);
+}
+
 // lib/encarte/chat.ts
 var COLUNAS2 = "id, edicao_id, autor, user_id, tipo, texto, dados, estado, criado_em";
 var RODADA_MORTA_MS = 45 * 6e4;
@@ -26739,6 +26751,7 @@ async function POST5(req, context) {
     const texto = typeof corpo.texto === "string" ? corpo.texto.trim() : "";
     if (!texto) return NextResponse.json({ error: "Mensagem vazia" }, { status: 400 });
     const msg = await enviarPedido(supabase, ed, user.id, texto);
+    acordar("chat");
     return NextResponse.json({ mensagem: msg });
   } catch (e) {
     return erro(e);
@@ -26810,6 +26823,7 @@ async function POST6(req, context) {
     const ed = await buscarEdicao(await createClient2(), id);
     if (!ed) return NextResponse.json({ error: "Edi\xE7\xE3o n\xE3o encontrada" }, { status: 404 });
     const e = await pedirExportacao(createAdminClient(), ed, user.id, pasta);
+    acordar("export");
     return NextResponse.json(await resposta(e));
   } catch (err) {
     return erro2(err);
@@ -27796,10 +27810,10 @@ function limparBorda(e) {
 }
 function limparEstilo(e) {
   const r = limparBorda(e);
-  const g = e && typeof e === "object" ? e.grupos : null;
+  const g2 = e && typeof e === "object" ? e.grupos : null;
   const grupos = {};
   for (const k of ["destaque", "normal"]) {
-    const b = limparBorda(g?.[k]);
+    const b = limparBorda(g2?.[k]);
     if (Object.keys(b).length) grupos[k] = b;
   }
   if (Object.keys(grupos).length) r.grupos = grupos;
