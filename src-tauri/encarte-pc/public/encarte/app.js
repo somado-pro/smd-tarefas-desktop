@@ -695,17 +695,22 @@ function lerProduto(g) {
     // alinhamento do valor: o construtor grava text-anchor (start/middle/end) no ponto que o template
     // escolheu; sem ele (Illustrator) o valor cresce pra esquerda pela borda direita, como sempre foi
     // (Luxo, Novembro do Pescado 03/11/2026: alinhado no construtor e o editor ignorava)
-    const anc = dePreco && dePreco.getAttribute('text-anchor');
-    const riscado = e => !!e && /line-through/.test((e.getAttribute('text-decoration') || '') + ' ' + getComputedStyle(e).textDecorationLine);
+    // o card pode ser lido de novo depois de desenhado: o que é do template fica guardado no 1º contato
+    // (data-*-0), senão o riscado/âncora/lugar que o editor escreveu viravam o "original"
+    const guarda = (e, k, f) => { if (e.dataset[k] == null) e.dataset[k] = f(); return e.dataset[k]; };
+    const anc = dePreco && guarda(dePreco, 'anc0', () => dePreco.getAttribute('text-anchor') || '');
+    const riscado = e => !!e && guarda(e, 'risca0', () => (/line-through/.test((e.getAttribute('text-decoration') || '') + ' ' + getComputedStyle(e).textDecorationLine) ? '1' : '')) === '1';
     const valEls = [dePreco, dr ? deReal : null, dc ? deCent : null].filter(Boolean);
+    if (rot) { guarda(rot, 'tr0', () => rot.getAttribute('transform') || ''); guarda(rot, 'fs0', () => String(parseFloat(getComputedStyle(rot).fontSize) || 0)); }
+    for (const e of valEls) guarda(e, 'tr0', () => e.getAttribute('transform') || '');
     p.de = {
       g: deG, padraoG, preco: dePreco, real: dr ? deReal : null, cent: dc ? deCent : null,
       base: { preco: dp, real: dr, cent: dc && { ...dc, sep: (dc.linhas.join('').trim().match(/^[,.]/) || [''])[0] } },
       rotulo: br && dp && br.dir <= dp.esq + 1 ? { el: rot, tr: rot.getAttribute('transform') || '' } : null,
       // peças soltas do DE (bloco "DE R$" e bloco "Valor DE" no painel): cada uma anda e cresce sozinha
-      rotEl: br ? rot : null, rotTr: rot ? rot.getAttribute('transform') || '' : '', rotBase: br,
+      rotEl: br ? rot : null, rotTr: rot ? rot.dataset.tr0 : '', rotBase: br && { ...br, fonte: +rot.dataset.fs0 || br.fonte },
       ancora: dp && /^(start|middle|end)$/.test(anc || '') ? anc : '',
-      vals: valEls.map(e => ({ el: e, tr: e.getAttribute('transform') || '' })),
+      vals: valEls.map(e => ({ el: e, tr: e.dataset.tr0 })),
       risca0: valEls.some(riscado),
     };
     // com as 2 tags, começa como o template mostra; com o bloco só, ligado
@@ -773,6 +778,10 @@ function lerProduto(g) {
       // tarja do gatilho do construtor (com data-ancora): estica com as margens em pt até as laterais do card
       estBB: c === tarjaFundo && c.hasAttribute('data-ancora') && !c.getAttribute('transform') ? bbSeguro(c) : null }));
   // trava no título: guarda onde o pé do nome estava no template (o bloco anda o que o nome andar)
+  // imagens enfeite DENTRO de um grupo (selo "Oferta woow" e R$ em imagem no grupo do preço do Marcelino):
+  // um clique no produto já seleciona a peça, sem precisar descer pelo bloco do preço
+  p.pecasImg = $$('image, use', g).filter(e => e.parentNode !== g && !/(^|\s)ed-/.test(e.getAttribute('class') || '') && !e.closest('[class*="ed-"]')
+    && !/(_imagem|_area)$/.test(e.id || '') && !(p.apoio && p.apoio.el === e) && !p.apoiosExtra.some(a => a.el === e)).map(el => ({ el }));
   if (nomeG && p.outros.some(o => o.trava === 'nome')) p.base.nomeTrava = caixaNoCard(p, nomeG);
   // área em posição fixa do construtor (data-fixa): distâncias em pt até as bordas do card, sem seguir o nome
   p.areaFixa = !!(areaEl && areaEl.dataset && areaEl.dataset.fixa === '1');
@@ -1119,6 +1128,7 @@ function aplicarCelula(p) {
   for (const o of p.outros) o.el.setAttribute('transform', o.trCel);
   posTarja(p);
   posLogo(p);
+  posOutros(p);
 }
 
 // Logo da marca no card (Granja Meroto nos suínos do Lima e do J Meroto, 06/10/2026): o elemento do
@@ -2705,6 +2715,138 @@ function aplicarTravas(p) {
     if (tr != null) { o.el.setAttribute('transform', tr.trim()); if (o.el === p.tarja || o.el === p.tarjaFundo) o.trCel = tr.trim(); }
   }
   posTarja(p); // tarja travada: o arrastado à mão vale por cima da trava
+  posOutros(p);
+}
+
+// QUALQUER peça do card anda e cresce sozinha (Matheus 03/11/2026: "quero poder mover TODOS os elementos").
+// Bloco "Elemento" (tipo 'ox~<chave>'): com um bloco selecionado, clicar de novo dentro dele desce um nível
+// (grupo do preço → R$, centavos, kg, fundo, selo…; DE → peças); peça fora de todo bloco (imagem extra do
+// construtor, enfeite, selo "Oferta woow") é pega direto. O ajuste vai em CSS (translate/scale no style),
+// que se soma ao transform que o editor recalcula — assim não briga com célula, trava, R$ que anda etc.
+// Chave: id sem o número do produto (extra_3_1 → extra_N_1) ou o caminho de filhos a partir do card
+// ('@2.0', sem contar o que o editor injeta) — "Aplicar em: todos" acha a mesma peça nos outros cards.
+function filhosTpl(e) { return [...e.children].filter(c => !/(^|\s)ed-/.test(c.getAttribute('class') || '')); }
+function chaveSolta(p, el) {
+  // sufixo "-77" do Illustrator (id repetido entre cards) sai da chave: a busca aceita base ou base-NN
+  if (el.id) { const n = String(p.num), nn = n.padStart(2, '0'); return el.id.replace(new RegExp(`(^|_)(${nn}|${n})(?=_|-|$)`), '$1N').replace(/-\d+$/, ''); }
+  const idx = [];
+  for (let e = el; e && e !== p.g; e = e.parentNode) idx.unshift(filhosTpl(e.parentNode).indexOf(e));
+  return '@' + idx.join('.');
+}
+function pecaPorChave(p, k) {
+  const c = (p.pecaCache = p.pecaCache || {});
+  if (c[k] && p.g.contains(c[k])) return c[k];
+  let el = null;
+  if (k[0] === '@') { el = p.g; for (const i of k.slice(1).split('.')) el = el && filhosTpl(el)[+i]; }
+  else {
+    const n = String(p.num), ids = [n, n.padStart(2, '0')].map(x => k.replace(/(^|_)N(?=_|-|$)/, `$1${x}`));
+    el = $$('[id]', p.g).find(e => ids.includes(e.id) || ids.includes(e.id.replace(/-\d+$/, ''))) || null;
+  }
+  if (el && el !== p.g) c[k] = el; else el = null;
+  return el;
+}
+// compat com o resto do código (chaveOutro/outroDoTipo)
+function chaveOutro(p, o) { return o.chave || (o.chave = chaveSolta(p, o.el)); }
+function outroSolto(p, o) { return o.el !== p.tarja && o.el !== p.tarjaFundo && !(p.qtdWrap && o.el === p.qtdWrap); }
+function outroDoTipo(q, t) { const el = pecaPorChave(q, t.slice(3)); return el ? { el } : null; }
+// peça clicada um nível abaixo de "dono" (null = o dono já é a folha)
+function pecaAbaixo(dono, alvo) {
+  if (!dono || !alvo || dono === alvo || !dono.contains(alvo) || dono.tagName === 'text') return null;
+  let e = alvo.closest && alvo.closest('text') && dono.contains(alvo.closest('text')) ? alvo.closest('text') : alvo;
+  while (e && e.parentNode !== dono) e = e.parentNode;
+  return e && e !== dono ? e : null;
+}
+function listaPecas(p) {
+  const out = [], viu = new Set();
+  const add = el => {
+    if (!el || viu.has(el)) return;
+    try { if (getComputedStyle(el).display === 'none' || el.closest('[style*="display: none"]') || !(el.getBBox().width > 0)) return; } catch (e) { return; }
+    viu.add(el); out.push(el);
+  };
+  if (p.nomeG) add(p.nomeG);
+  if (p.precoG && p.precoG !== p.g) for (const c of filhosTpl(p.precoG)) add(c);
+  if (p.de && p.deOn) { add(p.de.rotEl); add(p.de.preco || p.de.real); }
+  for (const o of p.outros || []) if (outroSolto(p, o)) add(o.el);
+  for (const o of p.pecasImg || []) add(o.el);
+  if (p.qtdWrap && p.qtdTxt) add(p.qtdWrap);
+  return out;
+}
+function nomePeca(p, el) {
+  const id = (el.id || '').toLowerCase();
+  if (el === p.nomeG) return 'Nome';
+  if (p.de && el === p.de.rotEl) return 'DE R$';
+  if (p.de && (el === p.de.preco || el === p.de.real)) return 'Valor DE';
+  if (el === p.qtdWrap) return 'Limite';
+  const tab = [[/^fundo_moeda/, 'Fundo do R$'], [/^moeda/, 'R$'], [/^fundo_preco/, 'Fundo do preço'], [/centavos/, 'Centavos'], [/preco_real|_preco$/, 'Valor'],
+    [/formato|unidade/, 'Unidade (kg/un)'], [/^extra_/, 'Imagem extra'], [/_de$/, 'Bloco do DE'], [/selo/, 'Selo'], [/limite|qtd/, 'Limite'], [/gatilho/, 'Gatilho']];
+  for (const [re, n] of tab) if (re.test(id)) return n;
+  const arq = el.dataset && el.dataset.arq;
+  if (arq) return nomeArq(arq).slice(0, 22);
+  if (el.tagName === 'text' || (el.querySelector && el.querySelector('text'))) { const t = (el.textContent || '').trim().slice(0, 18); if (t) return '“' + t + '”'; }
+  return { image: 'Imagem', g: 'Grupo', rect: 'Forma', path: 'Forma', circle: 'Círculo', ellipse: 'Elipse', use: 'Imagem' }[el.tagName] || el.tagName;
+}
+function tipoDaPeca(p, el) {
+  if (el === p.nomeG) return 'nome';
+  if (p.de && el === p.de.rotEl) return 'derot';
+  if (p.de && (el === p.de.preco || el === p.de.real)) return 'deval';
+  if (el === p.qtdWrap) return 'qtd';
+  return 'ox~' + chaveSolta(p, el);
+}
+// botões "Elementos do card" no painel do produto (texto via textContent)
+function painelPecas(p) {
+  let box = $('#pp-pecas');
+  if (!box) { box = document.createElement('div'); box.id = 'pp-pecas'; box.style.cssText = 'margin:10px 0 4px'; $('#p-produto').appendChild(box); }
+  box.textContent = '';
+  const cab = document.createElement('div'); cab.className = 'pp-lin';
+  cab.title = 'Escolha a peça pra mover (arrastar ou setas) e mudar o tamanho. No card: clique no bloco e clique de novo pra descer até a peça.';
+  const tit = document.createElement('b'); tit.textContent = 'Elementos do card'; cab.appendChild(tit); box.appendChild(cab);
+  const lista = document.createElement('div'); lista.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px';
+  for (const el of listaPecas(p)) {
+    const b = document.createElement('button'); b.className = 'btn sec'; b.textContent = nomePeca(p, el);
+    b.onclick = () => { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: tipoDaPeca(p, el) }; painel(); };
+    lista.appendChild(b);
+  }
+  box.appendChild(lista);
+}
+function posPeca(p, el, dx, dy, k) {
+  if (!dx && !dy && k === 1) { el.style.translate = ''; el.style.scale = ''; return; }
+  // arrasto no espaço do card: divide pela escala do grupo onde a peça mora (preço escalado etc.)
+  const sg = Math.abs(matrizAteRaiz(el.parentNode).a / (matrizAteRaiz(p.g).a || 1)) || 1;
+  let tx = dx / sg, ty = dy / sg;
+  if (k !== 1) { // cresce a partir do centro: translate compensa a escala em volta da origem
+    try {
+      const b = el.getBBox(), m = matriz(el), cx = b.x + b.width / 2, cy = b.y + b.height / 2;
+      tx += (m.a * cx + m.c * cy + m.e) * (1 - k); ty += (m.b * cx + m.d * cy + m.f) * (1 - k);
+    } catch (e) { /* sem medida */ }
+  }
+  el.style.translate = `${arred(tx)}px ${arred(ty)}px`;
+  el.style.scale = k !== 1 ? String(k) : '';
+}
+function posOutros(p) {
+  if (p.rendendo) return;
+  const ks = new Set();
+  for (const k of Object.keys(p)) { const m = k.match(/^ox~(.+)(Dx|Dy|Esc)$/); if (m) ks.add(m[1]); }
+  for (const c of p.pecasUsadas || []) ks.add(c);
+  for (const c of ks) {
+    const el = pecaPorChave(p, c); if (!el) continue;
+    const t = 'ox~' + c;
+    posPeca(p, el, p[t + 'Dx'] || 0, p[t + 'Dy'] || 0, p[t + 'Esc'] || 1);
+  }
+  p.pecasUsadas = [...ks];
+}
+function ajustesOutros(p) {
+  const o = {};
+  for (const k of Object.keys(p)) {
+    const m = k.match(/^ox~(.+)(Dx|Dy|Esc)$/); if (!m || !p[k] || (m[2] === 'Esc' && p[k] === 1)) continue;
+    (o[m[1]] = o[m[1]] || {})[m[2].toLowerCase()] = m[2] === 'Esc' ? p[k] : arred(p[k]);
+  }
+  return Object.keys(o).length ? o : undefined;
+}
+function lerAjustesOutros(p, aj) {
+  for (const k of Object.keys(p)) if (k.startsWith('ox~')) delete p[k];
+  for (const [c, v] of Object.entries(aj || {})) {
+    if (v.dx) p['ox~' + c + 'Dx'] = v.dx; if (v.dy) p['ox~' + c + 'Dy'] = v.dy; if (v.esc) p['ox~' + c + 'Esc'] = v.esc;
+  }
 }
 
 // tapete/apoio: largura do card, proporção do desenho, e a borda de baixo um pouco abaixo da base
@@ -2734,6 +2876,10 @@ function render(p) {
   p.g.style.display = p.removido ? 'none' : '';
   p.g.classList.toggle('ed-campanha', p.zona === ZONA_CAMPANHA);
   if (p.removido) return;
+  // peças ajustadas à mão saem do lugar enquanto o card é refeito: o editor mede preço/fundo pela caixa na
+  // tela e, com o deslocamento aplicado, compensava em cima dele (Lima: o valor perdia parte do arrasto)
+  p.rendendo = true;
+  for (const c of p.pecasUsadas || []) { const el = pecaPorChave(p, c); if (el) { el.style.translate = ''; el.style.scale = ''; } }
   const A0 = p.area ? { ...p.area } : null;
   aplicarCelula(p);
   posApoio(p);
@@ -2773,6 +2919,8 @@ function render(p) {
   }
   renderLogo(p);
   aplicarTravas(p); // a área pode ter mudado depois do preço
+  p.rendendo = false;
+  posOutros(p);
 }
 
 // ---------------------------------------------------------------- tamanho em pt na página
@@ -2888,6 +3036,7 @@ function estado(p) {
     apoioOff: p.apoioOff || undefined,
     precosExtra: p.extras && p.extras.length ? Object.fromEntries(p.extras.map(v => [v.suf, v.txt])) : undefined,
     de: p.de ? { on: !!p.deOn, preco: p.deTxt, ...ajustesDe(p) } : undefined,
+    outrosAj: ajustesOutros(p),
     selo: p.selo ? { on: !!p.seloOn, preco: p.seloTxt } : undefined,
     logo: p.logo ? { on: !!p.logoOn, arq: p.logoArq || undefined, dx: p.logoDx ? arred(p.logoDx) : undefined,
       dy: p.logoDy ? arred(p.logoDy) : undefined, esc: p.logoEsc && p.logoEsc !== 1 ? p.logoEsc : undefined } : undefined,
@@ -3037,6 +3186,7 @@ function aplicarEstado(p, e) {
   if (e.precosExtra) for (const v of p.extras || []) if (e.precosExtra[v.suf] != null) v.txt = e.precosExtra[v.suf];
   if (e.de && p.de) { p.deOn = !!e.de.on; if (e.de.preco != null) p.deTxt = e.de.preco; }
   lerAjustesDe(p, e.de || {});
+  lerAjustesOutros(p, e.outrosAj);
   if (e.selo && e.selo.on) garantirSelo(p);
   if (e.selo && p.selo) { p.seloOn = !!e.selo.on; if (e.selo.preco != null) p.seloTxt = e.selo.preco; }
   if (e.logo && e.logo.on) garantirLogo(p);
@@ -3548,6 +3698,7 @@ function painel() {
     painelEstilo(p);
     $('#pp-casa-c').textContent = fmtCasa(p.span.c); $('#pp-casa-r').textContent = fmtCasa(p.span.r);
     painelAreaImg(p); painelAreaCard(p);
+    painelPecas(p);
   }
   if (ativa === 'p-produto' || ativa === 'p-bloco') setTimeout(() => { mostrarPt(); mostrarBorda(); }, 0);
   if (ativa === 'p-varios') { $('#pv-titulo').textContent = `${S.selProds.size} produtos selecionados`; painelAreaImg(S.sel); painelAreaCard(S.sel); }
@@ -3562,7 +3713,7 @@ function painel() {
     const b = S.bloco;
     marcarAlvos();
     const n = blocoPs().length;
-    const rot = ehApoio(b.tipo) ? ['Tapete' + (b.tipo === 'apoio' ? '' : ' de trás'), 'Tapetes'] : { preco: ['Preço', 'Preços'], nome: ['Nome', 'Nomes'], logo: ['Logo', 'Logos'], qtd: ['Limite', 'Limites'], tarja: ['Tarja', 'Tarjas'], derot: ['DE R$', 'DE R$'], deval: ['Valor DE', 'Valores DE'] }[b.tipo];
+    const rot = ehApoio(b.tipo) ? ['Tapete' + (b.tipo === 'apoio' ? '' : ' de trás'), 'Tapetes'] : { preco: ['Preço', 'Preços'], nome: ['Nome', 'Nomes'], logo: ['Logo', 'Logos'], qtd: ['Limite', 'Limites'], tarja: ['Tarja', 'Tarjas'], derot: ['DE R$', 'DE R$'], deval: ['Valor DE', 'Valores DE'] }[b.tipo] || ['Elemento', 'Elementos'];
     $('#pb-titulo').textContent = n > 1 ? `${rot[1]} · ${n} produtos` : rot[0] + ' · produto ' + b.p.rotulo;
     $('#pb-voltar').textContent = n > 1 ? '‹ produtos' : '‹ produto';
     $('#pb-alinhar').classList.toggle('oculto', n < 2);
@@ -3593,6 +3744,7 @@ function painel() {
     // limite: tamanho em pt + camada (Frente/Trás); a posição é a de todo bloco (arrastar e setas)
     // tarja: só o tamanho; a posição é a de todo bloco (arrastar e setas)
     // DE R$ e valor DE: tamanho próprio; o valor ainda tem alinhamento e riscado. Posição = arrastar/setas
+    if (b.tipo.startsWith('ox~')) { const box = $('#pb-tam'); box.textContent = ''; box.insertAdjacentHTML('beforeend', linhaAj('tam', 'Tamanho', b.tipo, val(b.tipo))); }
     if (ehDe(b.tipo)) {
       const box = $('#pb-tam'); box.textContent = '';
       let h = linhaAj('tam', 'Tamanho', b.tipo, val(b.tipo));
@@ -3687,6 +3839,7 @@ $('#pb-voltar').onclick = () => { S.bloco = null; painel(); };
 function elBloco(q, t) {
   if (t === 'preco') return q.precoG;
   if (t === 'derot') return q.de && q.deOn && q.de.rotEl;
+  if (t.startsWith('ox~')) { const o = outroDoTipo(q, t); return o && o.el; }
   if (t === 'deval') return q.de && q.deOn && (q.de.preco || q.de.real);
   if (t === 'logo') return q.logo && q.logo.el;
   if (t === 'qtd') return q.qtdWrap && q.qtdTxt ? q.qtdWrap : null;
@@ -3701,6 +3854,7 @@ function ehApoio(t) { return /^apoio\d*$/.test(t); }
 function ehDe(t) { return t === 'derot' || t === 'deval'; }
 function posBloco(q, t) {
   if (ehDe(t)) return renderDe(q);
+  if (t.startsWith('ox~')) return posOutros(q);
   if (t === 'preco') renderGrupoPreco(q); else if (t === 'logo') posLogo(q); else if (t === 'qtd') posQtd(q); else if (t === 'tarja') { renderTarja(q); posTarja(q); } else if (ehApoio(t)) posApoio(q); else posNome(q);
   if (t !== 'logo' && t !== 'qtd' && t !== 'tarja' && !ehApoio(t)) nomePresoAoPreco(q);
 }
@@ -3815,7 +3969,8 @@ function camposExtras(p) {
     moveu = false; dupNoArrasto = e.altKey || e.ctrlKey;
     ini = { x: e.clientX, y: e.clientY, vb: { ...S.vb }, alvo: e.target, shift: e.shiftKey };
     const foto = e.target.closest && e.target.closest('image.ed-img');
-    const noBloco = S.bloco && blocoPs().some(q => { const el = elBloco(q, S.bloco.tipo); return el && el.contains(e.target); });
+    const dentroDaCaixa = el => { try { const r = el.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; } catch (er) { return false; } };
+    const noBloco = S.bloco && blocoPs().some(q => { const el = elBloco(q, S.bloco.tipo); return el && (el.contains(e.target) || (S.bloco.tipo.startsWith('ox~') && dentroDaCaixa(el))); });
     const pAlvo = prodDe(e.target);
     const ponta = S.selLinha ? pontaDaLinha(e.clientX, e.clientY) : 0;
     const lnAlvo = e.target.closest && e.target.closest('[data-linha]');
@@ -3992,16 +4147,26 @@ function toque(alvo, shift) {
 
   if (p) {
     const jaNoProduto = S.sel === p || S.selImgs.some(im => prodDe(im) === p);
+    // bloco deste produto já selecionado e clique dentro dele: desce um nível (a peça clicada)
+    if (S.bloco && S.bloco.p === p && !foto) {
+      const dono = elBloco(p, S.bloco.tipo), peca = pecaAbaixo(dono, alvo);
+      if (peca) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'ox~' + chaveSolta(p, peca) }; return painel(); }
+      if (dono && dono.contains(alvo) && S.bloco.tipo.startsWith('ox~')) return painel();
+    }
     if (foto && (jaNoProduto || S.selImgs.length)) { limparSelecao(); S.sel = p; S.selProds.add(p); S.selImgs = [foto]; return painel(); }
     if (jaNoProduto && p.logo && p.logoOn && p.logo.el === alvo) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'logo' }; return painel(); }
     if (jaNoProduto && p.de && p.deOn && p.de.rotEl && p.de.rotEl.contains(alvo)) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'derot' }; return painel(); }
     if (jaNoProduto && p.de && p.deOn && (p.de.vals || []).some(v => v.el.contains(alvo))) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'deval' }; return painel(); }
+    const pImg = jaNoProduto && (p.pecasImg || []).find(o => o.el === alvo || o.el.contains(alvo));
+    if (pImg) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'ox~' + chaveSolta(p, pImg.el) }; return painel(); }
     if (jaNoProduto && p.precoG && p.precoG.contains(alvo)) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'preco' }; return painel(); }
     const iAp = [p.apoio, ...(p.apoiosExtra || [])].findIndex(a => a && a.el.contains(alvo));
     if (jaNoProduto && iAp >= 0) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: iAp ? 'apoio' + iAp : 'apoio' }; return painel(); }
     if (jaNoProduto && p.tarja && linhasTarja(p).length && (p.tarja.contains(alvo) || (p.tarjaFundo && p.tarjaFundo.contains(alvo)))) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'tarja' }; return painel(); }
     if (jaNoProduto && p.qtdWrap && p.qtdTxt && p.qtdWrap.contains(alvo)) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'qtd' }; return painel(); }
     if (jaNoProduto && p.nomeG && p.nomeG.contains(alvo)) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'nome' }; return painel(); }
+    const ox = jaNoProduto && (p.outros || []).find(o => outroSolto(p, o) && o.el.contains(alvo));
+    if (ox) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'ox~' + chaveSolta(p, ox.el) }; return painel(); }
     return selecionarProduto(p);
   }
 
@@ -4849,7 +5014,7 @@ function ajustar(chave, sinal, alvos) {
     if (chave === 'qtd') p.qtdEsc = Math.max(0.3, arred((p.qtdEsc || 1) + sinal * 0.05));
     if (chave === 'tarja') p.tarjaEsc = Math.max(0.3, arred((p.tarjaEsc || 1) + sinal * 0.05));
     if (chave === 'logo') p.logoEsc = Math.min(3, Math.max(0.3, arred((p.logoEsc || 1) + sinal * 0.05)));
-    if (ehDe(chave)) p[chave + 'Esc'] = Math.min(3, Math.max(0.3, arred((p[chave + 'Esc'] || 1) + sinal * 0.05)));
+    if (ehDe(chave) || chave.startsWith('ox~')) p[chave + 'Esc'] = Math.min(3, Math.max(0.3, arred((p[chave + 'Esc'] || 1) + sinal * 0.05)));
     if (ehApoio(chave)) p[chave + 'Esc'] = Math.max(0.3, arred((p[chave + 'Esc'] || 1) + sinal * 0.05));
     if (chave === 'fundoW') p.fundoW = Math.max(0.4, arred(p.fundoW + sinal * 0.04));
     if (chave === 'fundoH') p.fundoH = Math.max(0.4, arred(p.fundoH + sinal * 0.04));
@@ -4942,7 +5107,7 @@ function apagarLogo() {
   aviso('Logo apagada (Ctrl+Z desfaz; volta pelo "Logo da marca no card" do produto)');
 }
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-apaga-logo]')) apagarLogo(); });
-$('#pb-zerar').onclick = () => { const ps = blocoPs(), t = S.bloco.tipo; marcar(...ps); for (const p of ps) { p[t + 'Dx'] = p[t + 'Dy'] = 0; if (ehApoio(t)) { p[t + 'Esc'] = 1; p[t + 'Off'] = false; } if (t === 'logo') p.logoEsc = 1; if (ehDe(t)) p[t + 'Esc'] = 1; if (t === 'qtd') p.qtdEsc = 1; if (t === 'tarja') p.tarjaEsc = 1; render(p); } mudou(); };
+$('#pb-zerar').onclick = () => { const ps = blocoPs(), t = S.bloco.tipo; marcar(...ps); for (const p of ps) { p[t + 'Dx'] = p[t + 'Dy'] = 0; if (ehApoio(t)) { p[t + 'Esc'] = 1; p[t + 'Off'] = false; } if (t === 'logo') p.logoEsc = 1; if (ehDe(t) || t.startsWith('ox~')) p[t + 'Esc'] = 1; if (t === 'qtd') p.qtdEsc = 1; if (t === 'tarja') p.tarjaEsc = 1; render(p); } mudou(); };
 // Voltar ao modelo (SMD-1149, pedido do Matheus 21/10/2026): o encarte fica como veio do tema — cada card no
 // tamanho e no lugar que o template dá, os textos soltos da arte (data, rodapé) no lugar original. O CONTEÚDO
 // fica: nome, preço, formato, limite, tarja, preços extras, De/selo/logo ligados, as fotos escolhidas e a casa
@@ -4950,7 +5115,7 @@ $('#pb-zerar').onclick = () => { const ps = blocoPs(), t = S.bloco.tipo; marcar(
 const AJUSTES_DO_CARD = ['escNome', 'escPreco', 'fundoW', 'fundoH', 'fundoDx', 'fundoDy', 'nomeCaixa', 'nomeEntre',
   'nomeAlinha', 'nomeLinhas', 'nomeBorda', 'nomeBordaCor', 'precoDx', 'precoDy', 'nomeDx', 'nomeDy', 'qtdDx', 'qtdDy',
   'qtdEsc', 'qtdZ', 'tarjaDx', 'tarjaDy', 'tarjaEsc', 'escReal', 'escCent', 'apoioDx', 'apoioDy', 'apoioEsc', 'apoiosAj', 'apoioOff', 'areaImg', 'cellAj',
-  'fotoArea', 'fotoAlinha', 'fotoMao', 'fotoArranjo', 'derotDx', 'derotDy', 'derotEsc', 'devalDx', 'devalDy', 'devalEsc', 'devalAlinha', 'deRisca'];
+  'fotoArea', 'fotoAlinha', 'fotoMao', 'fotoArranjo', 'outrosAj'];
 function voltarAoModelo() {
   const so = S.selProds.size > 1;
   const ps = (so ? [...S.selProds] : S.produtos).filter(p => !p.removido);
@@ -4976,6 +5141,7 @@ function voltarAoModelo() {
     const e = estado(p);
     for (const k of AJUSTES_DO_CARD) delete e[k];
     if (e.logo) { delete e.logo.dx; delete e.logo.dy; delete e.logo.esc; }
+    if (e.de) { delete e.de.rot; delete e.de.val; delete e.de.risca; }
     // a casa da grade sem o ajuste à mão
     e.cell = p.cellAuto ? { ...p.cellAuto } : e.cell;
     aplicarEstado(p, e);
