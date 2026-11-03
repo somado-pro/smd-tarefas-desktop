@@ -691,11 +691,22 @@ function lerProduto(g) {
     const txt = dp ? dp.linhas.join('') : dr && dc ? dr.linhas.join('').trim() + ',' + dc.linhas.join('').trim().replace(/^[,.]\s*/, '') : '';
     // rótulo do DE ("R$" do construtor) à esquerda do valor: anda junto quando o valor cresce pra esquerda
     // (Mais Perto, SMD-773: "26,90" cobria o R$ desenhado pro exemplo "0,00")
-    const rot = deG && dp ? $('[id^="de_rotulo"]', deG) : null, br = rot && lerTexto(rot);
+    const rot = deG ? $('[id^="de_rotulo"]', deG) : null, br = rot && lerTexto(rot);
+    // alinhamento do valor: o construtor grava text-anchor (start/middle/end) no ponto que o template
+    // escolheu; sem ele (Illustrator) o valor cresce pra esquerda pela borda direita, como sempre foi
+    // (Luxo, Novembro do Pescado 03/11/2026: alinhado no construtor e o editor ignorava)
+    const anc = dePreco && dePreco.getAttribute('text-anchor');
+    const riscado = e => !!e && /line-through/.test((e.getAttribute('text-decoration') || '') + ' ' + getComputedStyle(e).textDecorationLine);
+    const valEls = [dePreco, dr ? deReal : null, dc ? deCent : null].filter(Boolean);
     p.de = {
       g: deG, padraoG, preco: dePreco, real: dr ? deReal : null, cent: dc ? deCent : null,
       base: { preco: dp, real: dr, cent: dc && { ...dc, sep: (dc.linhas.join('').trim().match(/^[,.]/) || [''])[0] } },
-      rotulo: br && br.dir <= dp.esq + 1 ? { el: rot, tr: rot.getAttribute('transform') || '' } : null,
+      rotulo: br && dp && br.dir <= dp.esq + 1 ? { el: rot, tr: rot.getAttribute('transform') || '' } : null,
+      // peças soltas do DE (bloco "DE R$" e bloco "Valor DE" no painel): cada uma anda e cresce sozinha
+      rotEl: br ? rot : null, rotTr: rot ? rot.getAttribute('transform') || '' : '', rotBase: br,
+      ancora: dp && /^(start|middle|end)$/.test(anc || '') ? anc : '',
+      vals: valEls.map(e => ({ el: e, tr: e.getAttribute('transform') || '' })),
+      risca0: valEls.some(riscado),
     };
     // com as 2 tags, começa como o template mostra; com o bloco só, ligado
     p.deOn = deG ? vis(deG) && !(padraoG && vis(padraoG)) : true;
@@ -2183,6 +2194,21 @@ function renderPreco(p) {
   renderSelo(p);
 }
 
+// ajustes do DE na ficha (dentro de "de"): rot = rótulo "DE R$", val = valor; risca = riscado (null = template)
+function ajustesDe(p) {
+  const o = {}, r = v => (v ? arred(v) : undefined);
+  if (p.derotDx || p.derotDy || (p.derotEsc && p.derotEsc !== 1)) o.rot = { dx: r(p.derotDx), dy: r(p.derotDy), esc: p.derotEsc && p.derotEsc !== 1 ? p.derotEsc : undefined };
+  if (p.devalDx || p.devalDy || (p.devalEsc && p.devalEsc !== 1) || p.devalAlinha) o.val = { dx: r(p.devalDx), dy: r(p.devalDy), esc: p.devalEsc && p.devalEsc !== 1 ? p.devalEsc : undefined, al: p.devalAlinha || undefined };
+  if (p.deRisca != null) o.risca = !!p.deRisca;
+  return o;
+}
+function lerAjustesDe(p, e) {
+  const r = e.rot || {}, v = e.val || {};
+  p.derotDx = r.dx || 0; p.derotDy = r.dy || 0; p.derotEsc = r.esc || 1;
+  p.devalDx = v.dx || 0; p.devalDy = v.dy || 0; p.devalEsc = v.esc || 1; p.devalAlinha = v.al || null;
+  p.deRisca = e.risca == null ? null : !!e.risca;
+}
+
 // DE/POR: liga/desliga o bloco do DE (e alterna com a tag padrão) e escreve o valor
 function renderDe(p) {
   const d = p.de; if (!d) return;
@@ -2190,14 +2216,34 @@ function renderDe(p) {
   if (d.padraoG) d.padraoG.style.display = p.deOn ? 'none' : '';
   if (!d.g) for (const e of [d.preco, d.real, d.cent]) if (e) e.style.display = p.deOn ? '' : 'none';
   if (!p.deOn) return;
-  const txt = p.deTxt || '';
-  if (d.real && d.cent && d.base.real && d.base.cent) desenharDividido(d.real, d.cent, d.base.real, d.base.cent, txt, null);
+  const txt = p.deTxt || '', kv = p.devalEsc || 1;
+  let segue = 0; // o rótulo à esquerda do valor anda junto quando o valor cresce pra esquerda
+  if (d.real && d.cent && d.base.real && d.base.cent) desenharDividido(d.real, d.cent, d.base.real, d.base.cent, txt, null, kv, kv);
   else if (d.preco && d.base.preco) {
-    desenharSimples(d.preco, d.base.preco, txt, null);
-    if (d.rotulo) {
-      const b = d.base.preco, dx = b.dir - largura(d.preco, b.m) - b.esq;
-      d.rotulo.el.setAttribute('transform', `${Math.abs(dx) > 0.05 ? `translate(${arred(dx)} 0) ` : ''}${d.rotulo.tr}`.trim());
-    }
+    const b = d.base.preco, an = p.devalAlinha || d.ancora || 'end';
+    const x = an === 'start' ? b.esq : an === 'middle' ? (b.esq + b.dir) / 2 : b.dir;
+    escreverTexto(d.preco, [txt], x, an, b.fonte * kv, 0, b.m);
+    const w = largura(d.preco, b.m), maxW = b.larg * 1.3 * kv;
+    if (w > maxW) escreverTexto(d.preco, [txt], x, an, b.fonte * kv * maxW / w, 0, b.m);
+    if (d.rotulo) { try { segue = b.m.e + d.preco.getBBox().x * b.m.a - b.esq; } catch (e) { segue = 0; } }
+  }
+  // valor: arrastado à mão (devalDx/Dy, no espaço do card: divide pela escala do bloco, que vai junto com o
+  // preço) e riscado ligado/desligado (deRisca; null = o do template)
+  const sg = d.g ? Math.abs(matriz(d.g).a) || 1 : 1;
+  const risca = p.deRisca == null ? d.risca0 : !!p.deRisca;
+  for (const v of d.vals || []) {
+    const t = p.devalDx || p.devalDy ? `translate(${arred((p.devalDx || 0) / sg)} ${arred((p.devalDy || 0) / sg)}) ` : '';
+    if (t || v.tr) v.el.setAttribute('transform', (t + v.tr).trim()); else v.el.removeAttribute('transform');
+    v.el.setAttribute('text-decoration', risca ? 'line-through' : 'none');
+    v.el.style.textDecoration = risca ? 'line-through' : 'none';
+  }
+  // rótulo "DE R$": segue o valor (se estiver à esquerda dele) + arrastado à mão + tamanho próprio
+  if (d.rotEl) {
+    const kr = p.derotEsc || 1;
+    d.rotEl.style.fontSize = kr !== 1 && d.rotBase ? d.rotBase.fonte * kr + 'px' : '';
+    const dx = segue + (p.derotDx || 0) / sg, dy = (p.derotDy || 0) / sg;
+    const t = Math.abs(dx) > 0.05 || Math.abs(dy) > 0.05 ? `translate(${arred(dx)} ${arred(dy)}) ` : '';
+    if (t || d.rotTr) d.rotEl.setAttribute('transform', (t + d.rotTr).trim()); else d.rotEl.removeAttribute('transform');
   }
 }
 
@@ -2841,7 +2887,7 @@ function estado(p) {
     apoiosAj: (p.apoiosExtra || []).length ? p.apoiosExtra.map((_, i) => { const n = 'apoio' + (i + 1); return { dx: arred(p[n + 'Dx'] || 0), dy: arred(p[n + 'Dy'] || 0), esc: p[n + 'Esc'] || 1, off: p[n + 'Off'] || undefined }; }) : undefined,
     apoioOff: p.apoioOff || undefined,
     precosExtra: p.extras && p.extras.length ? Object.fromEntries(p.extras.map(v => [v.suf, v.txt])) : undefined,
-    de: p.de ? { on: !!p.deOn, preco: p.deTxt } : undefined,
+    de: p.de ? { on: !!p.deOn, preco: p.deTxt, ...ajustesDe(p) } : undefined,
     selo: p.selo ? { on: !!p.seloOn, preco: p.seloTxt } : undefined,
     logo: p.logo ? { on: !!p.logoOn, arq: p.logoArq || undefined, dx: p.logoDx ? arred(p.logoDx) : undefined,
       dy: p.logoDy ? arred(p.logoDy) : undefined, esc: p.logoEsc && p.logoEsc !== 1 ? p.logoEsc : undefined } : undefined,
@@ -2990,6 +3036,7 @@ function aplicarEstado(p, e) {
   p.autoH = !!e.autoH; p.origemNormal = e.origemNormal || null; p.fixoNormal = !!e.fixoNormal;
   if (e.precosExtra) for (const v of p.extras || []) if (e.precosExtra[v.suf] != null) v.txt = e.precosExtra[v.suf];
   if (e.de && p.de) { p.deOn = !!e.de.on; if (e.de.preco != null) p.deTxt = e.de.preco; }
+  lerAjustesDe(p, e.de || {});
   if (e.selo && e.selo.on) garantirSelo(p);
   if (e.selo && p.selo) { p.seloOn = !!e.selo.on; if (e.selo.preco != null) p.seloTxt = e.selo.preco; }
   if (e.logo && e.logo.on) garantirLogo(p);
@@ -3515,7 +3562,7 @@ function painel() {
     const b = S.bloco;
     marcarAlvos();
     const n = blocoPs().length;
-    const rot = ehApoio(b.tipo) ? ['Tapete' + (b.tipo === 'apoio' ? '' : ' de trás'), 'Tapetes'] : { preco: ['Preço', 'Preços'], nome: ['Nome', 'Nomes'], logo: ['Logo', 'Logos'], qtd: ['Limite', 'Limites'], tarja: ['Tarja', 'Tarjas'] }[b.tipo];
+    const rot = ehApoio(b.tipo) ? ['Tapete' + (b.tipo === 'apoio' ? '' : ' de trás'), 'Tapetes'] : { preco: ['Preço', 'Preços'], nome: ['Nome', 'Nomes'], logo: ['Logo', 'Logos'], qtd: ['Limite', 'Limites'], tarja: ['Tarja', 'Tarjas'], derot: ['DE R$', 'DE R$'], deval: ['Valor DE', 'Valores DE'] }[b.tipo];
     $('#pb-titulo').textContent = n > 1 ? `${rot[1]} · ${n} produtos` : rot[0] + ' · produto ' + b.p.rotulo;
     $('#pb-voltar').textContent = n > 1 ? '‹ produtos' : '‹ produto';
     $('#pb-alinhar').classList.toggle('oculto', n < 2);
@@ -3545,6 +3592,21 @@ function painel() {
          </div>`;
     // limite: tamanho em pt + camada (Frente/Trás); a posição é a de todo bloco (arrastar e setas)
     // tarja: só o tamanho; a posição é a de todo bloco (arrastar e setas)
+    // DE R$ e valor DE: tamanho próprio; o valor ainda tem alinhamento e riscado. Posição = arrastar/setas
+    if (ehDe(b.tipo)) {
+      const box = $('#pb-tam'); box.textContent = '';
+      let h = linhaAj('tam', 'Tamanho', b.tipo, val(b.tipo));
+      if (b.tipo === 'deval') {
+        const al = b.p.devalAlinha || '', risca = b.p.deRisca == null ? !!(b.p.de && b.p.de.risca0) : !!b.p.deRisca;
+        h += `<div class="pp-lin">${icone('alinha')}<span>Alinhar</span></div>
+          <div class="segs" title="De que lado o valor fica parado quando o número muda (Template = como o template desenhou)">
+          ${[['', 'Template'], ['start', '⇤ Esq.'], ['middle', 'Centro'], ['end', 'Dir. ⇥']].map(([v, t]) =>
+            `<label><input type="radio" name="de-alinha" value="${v}"${al === v ? ' checked' : ''}><span>${t}</span></label>`).join('')}
+          </div>
+          <label class="pp-lin" style="cursor:pointer"><input type="checkbox" id="pb-de-risca"${risca ? ' checked' : ''}><span>Riscado</span></label>`;
+      }
+      box.insertAdjacentHTML('beforeend', h);
+    }
     if (b.tipo === 'tarja') { const box = $('#pb-tam'); box.textContent = ''; box.insertAdjacentHTML('beforeend', linhaAj('nome', 'Tamanho', 'tarja', pt)); }
     if (b.tipo === 'qtd') {
       const box = $('#pb-tam'); box.textContent = '';
@@ -3624,6 +3686,8 @@ $('#pi-voltar').onclick = () => { S.selImgs = []; painel(); };
 $('#pb-voltar').onclick = () => { S.bloco = null; painel(); };
 function elBloco(q, t) {
   if (t === 'preco') return q.precoG;
+  if (t === 'derot') return q.de && q.deOn && q.de.rotEl;
+  if (t === 'deval') return q.de && q.deOn && (q.de.preco || q.de.real);
   if (t === 'logo') return q.logo && q.logo.el;
   if (t === 'qtd') return q.qtdWrap && q.qtdTxt ? q.qtdWrap : null;
   if (t === 'tarja') return q.tarja && linhasTarja(q).length ? q.tarja : null;
@@ -3634,7 +3698,9 @@ function elBloco(q, t) {
 function ehApoio(t) { return /^apoio\d*$/.test(t); }
 // nome preso ao preço: arrastar só o nome ou só o preço refaz a trava (senão o título voltava pro lugar do
 // molde, ou ficava parado com o preço andando; Matheus, 30/10/2026)
+function ehDe(t) { return t === 'derot' || t === 'deval'; }
 function posBloco(q, t) {
+  if (ehDe(t)) return renderDe(q);
   if (t === 'preco') renderGrupoPreco(q); else if (t === 'logo') posLogo(q); else if (t === 'qtd') posQtd(q); else if (t === 'tarja') { renderTarja(q); posTarja(q); } else if (ehApoio(t)) posApoio(q); else posNome(q);
   if (t !== 'logo' && t !== 'qtd' && t !== 'tarja' && !ehApoio(t)) nomePresoAoPreco(q);
 }
@@ -3928,6 +3994,8 @@ function toque(alvo, shift) {
     const jaNoProduto = S.sel === p || S.selImgs.some(im => prodDe(im) === p);
     if (foto && (jaNoProduto || S.selImgs.length)) { limparSelecao(); S.sel = p; S.selProds.add(p); S.selImgs = [foto]; return painel(); }
     if (jaNoProduto && p.logo && p.logoOn && p.logo.el === alvo) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'logo' }; return painel(); }
+    if (jaNoProduto && p.de && p.deOn && p.de.rotEl && p.de.rotEl.contains(alvo)) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'derot' }; return painel(); }
+    if (jaNoProduto && p.de && p.deOn && (p.de.vals || []).some(v => v.el.contains(alvo))) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'deval' }; return painel(); }
     if (jaNoProduto && p.precoG && p.precoG.contains(alvo)) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: 'preco' }; return painel(); }
     const iAp = [p.apoio, ...(p.apoiosExtra || [])].findIndex(a => a && a.el.contains(alvo));
     if (jaNoProduto && iAp >= 0) { limparSelecao(); S.sel = p; S.selProds.add(p); S.bloco = { p, tipo: iAp ? 'apoio' + iAp : 'apoio' }; return painel(); }
@@ -4781,6 +4849,7 @@ function ajustar(chave, sinal, alvos) {
     if (chave === 'qtd') p.qtdEsc = Math.max(0.3, arred((p.qtdEsc || 1) + sinal * 0.05));
     if (chave === 'tarja') p.tarjaEsc = Math.max(0.3, arred((p.tarjaEsc || 1) + sinal * 0.05));
     if (chave === 'logo') p.logoEsc = Math.min(3, Math.max(0.3, arred((p.logoEsc || 1) + sinal * 0.05)));
+    if (ehDe(chave)) p[chave + 'Esc'] = Math.min(3, Math.max(0.3, arred((p[chave + 'Esc'] || 1) + sinal * 0.05)));
     if (ehApoio(chave)) p[chave + 'Esc'] = Math.max(0.3, arred((p[chave + 'Esc'] || 1) + sinal * 0.05));
     if (chave === 'fundoW') p.fundoW = Math.max(0.4, arred(p.fundoW + sinal * 0.04));
     if (chave === 'fundoH') p.fundoH = Math.max(0.4, arred(p.fundoH + sinal * 0.04));
@@ -4873,7 +4942,7 @@ function apagarLogo() {
   aviso('Logo apagada (Ctrl+Z desfaz; volta pelo "Logo da marca no card" do produto)');
 }
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-apaga-logo]')) apagarLogo(); });
-$('#pb-zerar').onclick = () => { const ps = blocoPs(), t = S.bloco.tipo; marcar(...ps); for (const p of ps) { p[t + 'Dx'] = p[t + 'Dy'] = 0; if (ehApoio(t)) { p[t + 'Esc'] = 1; p[t + 'Off'] = false; } if (t === 'logo') p.logoEsc = 1; if (t === 'qtd') p.qtdEsc = 1; if (t === 'tarja') p.tarjaEsc = 1; render(p); } mudou(); };
+$('#pb-zerar').onclick = () => { const ps = blocoPs(), t = S.bloco.tipo; marcar(...ps); for (const p of ps) { p[t + 'Dx'] = p[t + 'Dy'] = 0; if (ehApoio(t)) { p[t + 'Esc'] = 1; p[t + 'Off'] = false; } if (t === 'logo') p.logoEsc = 1; if (ehDe(t)) p[t + 'Esc'] = 1; if (t === 'qtd') p.qtdEsc = 1; if (t === 'tarja') p.tarjaEsc = 1; render(p); } mudou(); };
 // Voltar ao modelo (SMD-1149, pedido do Matheus 21/10/2026): o encarte fica como veio do tema — cada card no
 // tamanho e no lugar que o template dá, os textos soltos da arte (data, rodapé) no lugar original. O CONTEÚDO
 // fica: nome, preço, formato, limite, tarja, preços extras, De/selo/logo ligados, as fotos escolhidas e a casa
@@ -4881,7 +4950,7 @@ $('#pb-zerar').onclick = () => { const ps = blocoPs(), t = S.bloco.tipo; marcar(
 const AJUSTES_DO_CARD = ['escNome', 'escPreco', 'fundoW', 'fundoH', 'fundoDx', 'fundoDy', 'nomeCaixa', 'nomeEntre',
   'nomeAlinha', 'nomeLinhas', 'nomeBorda', 'nomeBordaCor', 'precoDx', 'precoDy', 'nomeDx', 'nomeDy', 'qtdDx', 'qtdDy',
   'qtdEsc', 'qtdZ', 'tarjaDx', 'tarjaDy', 'tarjaEsc', 'escReal', 'escCent', 'apoioDx', 'apoioDy', 'apoioEsc', 'apoiosAj', 'apoioOff', 'areaImg', 'cellAj',
-  'fotoArea', 'fotoAlinha', 'fotoMao', 'fotoArranjo'];
+  'fotoArea', 'fotoAlinha', 'fotoMao', 'fotoArranjo', 'derotDx', 'derotDy', 'derotEsc', 'devalDx', 'devalDy', 'devalEsc', 'devalAlinha', 'deRisca'];
 function voltarAoModelo() {
   const so = S.selProds.size > 1;
   const ps = (so ? [...S.selProds] : S.produtos).filter(p => !p.removido);
@@ -5027,7 +5096,7 @@ function trocarMolde(p, moldeKey, op = {}) {
   if (n.tarja && p.tarja) n.tarjaTxt = p.tarjaTxt;
   // o que o molde novo também tem segue igual; o que ele não tem fica de fora
   for (const v of n.extras || []) { const o = (p.extras || []).find(x => x.suf === v.suf); if (o) v.txt = o.txt; }
-  if (n.de) { n.deOn = !!(p.de && p.deOn); if (p.de) n.deTxt = p.deTxt; }
+  if (n.de) { n.deOn = !!(p.de && p.deOn); if (p.de) n.deTxt = p.deTxt; lerAjustesDe(n, ajustesDe(p)); }
   if (n.selo) { n.seloOn = !!(p.selo && p.seloOn); if (p.selo) n.seloTxt = p.seloTxt; }
   levarLogo(p, n);
   n.fotos.forEach(im => im.remove());
@@ -5072,7 +5141,7 @@ function copiarEstiloDe(p, orig, de) {
   n.nome = p.nome; n.precoTxt = p.precoTxt; n.formatoTxt = p.formatoTxt || n.formatoTxt; n.qtdTxt = p.qtdTxt;
   if (n.tarja && p.tarja) n.tarjaTxt = p.tarjaTxt;
   for (const v of n.extras || []) { const o = (p.extras || []).find(x => x.suf === v.suf); if (o) v.txt = o.txt; }
-  if (n.de) { n.deOn = !!(p.de && p.deOn); if (p.de) n.deTxt = p.deTxt; }
+  if (n.de) { n.deOn = !!(p.de && p.deOn); if (p.de) n.deTxt = p.deTxt; lerAjustesDe(n, ajustesDe(p)); }
   if (p.selo && p.seloOn) { garantirSelo(n); if (n.selo) { n.seloOn = true; n.seloTxt = p.seloTxt; } }
   else if (n.selo) n.seloOn = false;
   levarLogo(p, n);
@@ -5222,6 +5291,16 @@ document.addEventListener('change', e => {
   if (e.target.name === 'nome-alinha' && S.bloco) {
     const ps = blocoPs(); marcar(...ps);
     for (const p of ps) { p.nomeAlinha = e.target.value || null; render(p); }
+    mudou();
+  }
+  if (e.target.name === 'de-alinha' && S.bloco) {
+    const ps = blocoPs(); marcar(...ps);
+    for (const p of ps) { p.devalAlinha = e.target.value || null; renderDe(p); }
+    mudou(); desenharSelecao();
+  }
+  if (e.target.id === 'pb-de-risca' && S.bloco) {
+    const ps = blocoPs(); marcar(...ps);
+    for (const p of ps) { p.deRisca = e.target.checked === !!(p.de && p.de.risca0) ? null : e.target.checked; renderDe(p); }
     mudou();
   }
   if (e.target.id === 'pt-nome') definirPt('nome', e.target.value);
