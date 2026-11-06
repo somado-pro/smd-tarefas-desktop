@@ -1241,6 +1241,8 @@ function remapearFotos(p, A0, A1) {
   });
   p.fotosRef = { ...ref, ult: p.fotos.map(retFoto) };
   if (auto) marcarArranjo(p, p.fotosAuto.tipo);
+  // as fotos agora estão postas na área atual: a área antiga da pendência não vale mais pra elas
+  p.fotoPend = null;
 }
 
 function mudarCelula(p, cell) {
@@ -3056,6 +3058,11 @@ const alinhaFoto = p => (p.fotoAlinha ? `${p.fotoAlinha.y} ${p.fotoAlinha.x}` : 
 // a ficha gravou a foto numa área (ou alinhamento) que o template atual não tem mais: pendente
 function pendenciaFoto(p, area, alinha, mao) {
   if (!area || !p.fotos.length || !p.area) return null;
+  // área gravada que nem cabe na célula do card é resto de outra casa (card mudou de lugar na grade com a
+  // pendência ainda aberta, ou nasceu copiando a ficha de outro card): não é template mudado, ignora.
+  // Sem isso o "Atualizar template" remapeava as fotos por essa área e jogava a foto pro card vizinho
+  // (Super Mais Ofertas Final de Semana, SMD-1560, 06/11/2026)
+  if (!areaDaCelula(area, p.cell)) return null;
   return !mesmaCaixa(area, p.area) || (!mao && alinha !== alinhaFoto(p)) ? { area: { ...area }, alinha } : null;
 }
 function areaArred(p) { const A = p.area; return { x: arred(A.x), y: arred(A.y), w: arred(A.w), h: arred(A.h) }; }
@@ -3132,6 +3139,12 @@ function restaurarFotos(p, f) {
   Object.assign(p, f.card);
 }
 const mesmaCaixa = (a, b, tol = 0.05) => !!a && !!b && ['x', 'y', 'w', 'h'].every(k => Math.abs(a[k] - b[k]) <= tol);
+// a área cabe na célula (com folga de 25% pra área ajustada à mão que passa um pouco da borda)
+function areaDaCelula(A, c) {
+  if (!A || !c || !(c.w > 0 && c.h > 0)) return true;
+  const fx = c.w * 0.25, fy = c.h * 0.25;
+  return A.x >= c.x - fx && A.y >= c.y - fy && A.x + A.w <= c.x + c.w + fx && A.y + A.h <= c.y + c.h + fy;
+}
 // fotos da ficha no lugar final, depois que célula, nome, preço e regras da abertura já assentaram a área.
 // Área igual à gravada = posições gravadas (abre idêntico). Área mudou (template republicado, zona
 // mexida): foto do arranjo volta pro encaixe automático na área nova; mexida à mão segue a área na mesma
@@ -5642,6 +5655,7 @@ function fotosDoArranjo(p) {
 function marcarArranjo(p, tipo) { p.fotosAuto = { tipo, ims: [...p.fotos], r: assinaturaFotos(p) }; }
 function arranjar(p, tipo) {
   const r = arranjarSo(p, tipo);
+  p.fotoPend = null; // arrumou na área atual: some a pendência do template
   // expandir mantém o desenho que está no card: não vira arranjo automático
   if (tipo !== 'expandir') marcarArranjo(p, tipo); else if (p.fotosAuto) marcarArranjo(p, p.fotosAuto.tipo);
   return r;
