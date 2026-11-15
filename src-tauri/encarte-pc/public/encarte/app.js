@@ -2600,11 +2600,29 @@ function fatorLarguraPreco(p) {
   const kw = c.w / k.w;
   return kw <= 1 ? kw : Math.max(1, Math.min(kw, c.h / k.h));
 }
+// preço mínimo (Matheus, 15/11/2026, Redemais Esquenta Black): o card estreito (2 por linha na elástica)
+// já vem do template com o preço pela metade e ele some no card. Regra preco_min_largura = fração da casa
+// que o grupo do preço ocupa no mínimo (ex. 0.9). Só vale pro card cujo preço saiu bem menor que o maior
+// preço do encarte (encolhido), e nunca passa da fonte desse maior preço (o tamanho do molde).
+function fonteMaxPreco() {
+  let m = 0;
+  for (const q of S.produtos || []) { const b = q.base && (q.base.preco || q.base.real); if (b && b.fonte > m) m = b.fonte; }
+  return m;
+}
+function pisoPreco(p, atual) {
+  const f = +regraTpl('preco_min_largura', 0);
+  const b = p.base && (p.base.preco || p.base.real);
+  if (!(f > 0) || !b || !(b.fonte > 0) || !(p.base.precoW > 0) || !(p.cell && p.cell.w > 0)) return atual;
+  const fm = fonteMaxPreco();
+  if (!(fm > 0) || b.fonte * atual >= fm * 0.8) return atual; // preço do tamanho normal: não mexe
+  const alvo = (f * p.cell.w) / p.base.precoW, teto = fm / b.fonte;
+  return Math.max(atual, Math.min(alvo, teto));
+}
 // escala do preço pelo tamanho do card: mais estreito e mais baixo ao mesmo tempo vale o que encolheu
 // mais (não multiplica as duas reduções)
 function fatorCardPreco(p) {
   const kc = fatorCardBaixo(p), kl = fatorLarguraPreco(p);
-  return kl > 1 ? kl * kc : Math.min(kl, kc);
+  return kl > 1 ? kl * kc : pisoPreco(p, Math.min(kl, kc));
 }
 
 function deslocPreco(p) {

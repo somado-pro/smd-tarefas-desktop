@@ -24565,7 +24565,7 @@ function regrasValidas(r) {
   const o = {};
   for (const k of ["nome_acima_do_preco", "nome_embaixo_fica", "linha_incompleta_embaixo", "encolhe_card_baixo", "logo_auto", "preco_proporcional"])
     if (typeof r[k] === "boolean") o[k] = r[k];
-  for (const k of ["primeira_linha_max", "titulo_min_pt", "preco_ajustar_largura"])
+  for (const k of ["primeira_linha_max", "titulo_min_pt", "preco_ajustar_largura", "preco_min_largura"])
     if (typeof r[k] === "number" && isFinite(r[k]) && r[k] >= 0) o[k] = r[k];
   if (r.moeda_anda === true || r.moeda_anda === false || r.moeda_anda === "fundo") o.moeda_anda = r.moeda_anda;
   return Object.keys(o).length ? o : null;
