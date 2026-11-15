@@ -2613,6 +2613,7 @@ function pisoPreco(p, atual) {
   const f = +regraTpl('preco_min_largura', 0);
   const b = p.base && (p.base.preco || p.base.real);
   if (!(f > 0) || !b || !(b.fonte > 0) || !(p.base.precoW > 0) || !(p.cell && p.cell.w > 0)) return atual;
+  if (p.desenho === 'horizontal' || p.autoH) return atual; // card largo: o preço mora na metade da direita
   const fm = fonteMaxPreco();
   if (!(fm > 0) || b.fonte * atual >= fm * 0.8) return atual; // preço do tamanho normal: não mexe
   const alvo = (f * p.cell.w) / p.base.precoW, teto = fm / b.fonte;
