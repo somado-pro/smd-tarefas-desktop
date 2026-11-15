@@ -1896,6 +1896,9 @@ function renderNome(p) {
   // tamanho aumentado à mão manda: a caixa alarga junto (até a largura do card) em vez de o editor
   // encolher a fonte de volta pra caber na largura antiga
   if (p.escNome > 1 && !tarja) maxW = Math.max(maxW, Math.min(maxW * p.escNome, p.cell.w - 8));
+  // regra nome_largura_preco (Redemais, 15/11/2026): o nome não passa da largura do preço; passou, ganha
+  // linhas. p.nomeLimite é medido no render, com o preço já desenhado
+  if (p.nomeLimite > 0 && !tarja && regraTpl('nome_largura_preco', false)) maxW = Math.min(maxW, p.nomeLimite);
   let x = x0;
   if (ancora !== auto) {
     const L = auto === 'start' ? x0 : auto === 'end' ? x0 - maxW : x0 - maxW / 2;
@@ -2936,6 +2939,12 @@ function render(p) {
   if (rf && rf.max && p.regraSNovo != null && p.regraSNovo !== (p.regraS || 1) && (p.regraSNovo === 1 || Math.abs(p.regraSNovo - (p.regraS || 1)) > 0.003)) {
     p.regraS = p.regraSNovo; zerarRegraFundo(p, rf); renderGrupoPreco(p);
     try { aplicarRegraFundo(p, rf); } catch (e) { console.warn('regra do fundo', p.id, e); }
+  }
+  // nome não passa da largura do preço (regra do template): mede o preço já desenhado e refaz o nome
+  if (regraTpl('nome_largura_preco', false) && !nomeNaTarja(p)) {
+    const alvoP = p.fundoAlvo || p.precoG;
+    const lim = alvoP && alvoP !== p.g ? retSvgBBox(alvoP).w : 0;
+    if (lim > 0 && Math.abs((p.nomeLimite || 0) - lim) > 0.5) { p.nomeLimite = lim; renderNome(p); }
   }
   if (!nomePresoAoPreco(p)) nomeAcimaDoPreco(p);
   // a área por regras olha o preço já no lugar final: refaz e leva as fotos junto

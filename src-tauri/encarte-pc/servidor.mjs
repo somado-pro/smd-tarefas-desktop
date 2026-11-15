@@ -24563,7 +24563,7 @@ function divisoriasDaZona(cells, o = {}) {
 function regrasValidas(r) {
   if (!r || typeof r !== "object") return null;
   const o = {};
-  for (const k of ["nome_acima_do_preco", "nome_embaixo_fica", "linha_incompleta_embaixo", "encolhe_card_baixo", "logo_auto", "preco_proporcional"])
+  for (const k of ["nome_acima_do_preco", "nome_embaixo_fica", "linha_incompleta_embaixo", "encolhe_card_baixo", "logo_auto", "preco_proporcional", "nome_largura_preco"])
     if (typeof r[k] === "boolean") o[k] = r[k];
   for (const k of ["primeira_linha_max", "titulo_min_pt", "preco_ajustar_largura", "preco_min_largura"])
     if (typeof r[k] === "number" && isFinite(r[k]) && r[k] >= 0) o[k] = r[k];

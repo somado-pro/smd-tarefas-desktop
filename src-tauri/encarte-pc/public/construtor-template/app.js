@@ -1736,6 +1736,7 @@ const REGRAS = [
   { k: 'moeda_anda', rot: 'R$ anda', dica: 'o R$ vai pra esquerda quando o valor não cabe', tipo: 'moeda', padrao: 'do cliente' },
   { k: 'titulo_min_pt', rot: 'Nome mínimo (pt)', dica: 'menor tamanho do nome que encolheu sozinho', tipo: 'num', ph: '14' },
   { k: 'primeira_linha_max', rot: 'Máx. na 1ª linha', dica: '0 = sem limite', tipo: 'num', ph: 'do cliente' },
+  { k: 'nome_largura_preco', rot: 'Nome até a largura do preço', dica: 'nome mais largo que o preço quebra em mais linhas', tipo: 'liga', padrao: 'desligado' },
   { k: 'preco_proporcional', rot: 'Preço acompanha a largura', dica: 'card mais estreito encolhe o preço, mais largo aumenta', tipo: 'liga', padrao: 'ligado' },
   { k: 'preco_ajustar_largura', rot: 'Tarja na largura da casa', dica: 'fração da largura (ex. 0.94); 0 = desligado', tipo: 'num', ph: 'do cliente', step: 0.01 },
   { k: 'preco_min_largura', rot: 'Preço mínimo (fração da casa)', dica: 'card estreito: o preço ocupa pelo menos essa fração da largura (ex. 0.9); vazio = desligado', tipo: 'num', ph: 'desligado', step: 0.01 },
