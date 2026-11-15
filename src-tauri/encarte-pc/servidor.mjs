@@ -24930,7 +24930,7 @@ function precoNaBorda(campos) {
   }
   return out;
 }
-function svgCampos(campos0, num2, card) {
+function svgCampos(campos0, num3, card) {
   const campos = precoNaBorda(campos0);
   const out = [];
   const { foto, area, nome, preco_fundo, moeda_fundo, moeda, preco, centavos, unidade } = campos;
@@ -24939,10 +24939,10 @@ function svgCampos(campos0, num2, card) {
     const b = porRegra || caixa(area, card);
     const dados = porRegra ? ` data-regra="1" data-margem="${[area.margem_t, area.margem_r, area.margem_b, area.margem_l].map((v) => v ?? 6).join(" ")}" data-nome="${area.resp_nome !== false ? 1 : 0}" data-preco-baixo="${area.resp_preco_baixo !== false ? 1 : 0}" data-preco-cima="${area.resp_preco_cima ? 1 : 0}" data-espaco="${area.espaco ?? 6}"` : ' data-fixa="1"';
     const alinha = area.foto_alinha && /^(cima|centro|baixo) (esq|centro|dir)$/.test(area.foto_alinha) ? ` data-foto-alinha="${area.foto_alinha}"` : "";
-    out.push(`  <rect id="produto_${num2}_area"${dados}${alinha} x="${n2(b.x)}" y="${n2(b.y)}" width="${n2(b.w)}" height="${n2(b.h)}" fill="none" stroke="none"/>`);
+    out.push(`  <rect id="produto_${num3}_area"${dados}${alinha} x="${n2(b.x)}" y="${n2(b.y)}" width="${n2(b.w)}" height="${n2(b.h)}" fill="none" stroke="none"/>`);
   }
   const extra = (e, k) => {
-    const b = caixa(e, card), id = `extra_${num2}_${k + 1}`;
+    const b = caixa(e, card), id = `extra_${num3}_${k + 1}`;
     const ancora = dadosTrava(e, e.trava) + (e.frente || e.topo ? ' data-frente="1"' : "");
     let t = "";
     if (e.tipo === "texto") t = svgTexto(id, e, b, e.texto);
@@ -24956,18 +24956,18 @@ function svgCampos(campos0, num2, card) {
   });
   if (foto) {
     const b = porRegra || caixa(foto, card);
-    out.push(`  <image id="produto_${num2}_var_01_imagem" x="${n2(b.x)}" y="${n2(b.y)}" width="${n2(b.w)}" height="${n2(b.h)}" preserveAspectRatio="xMidYMid meet"/>`);
+    out.push(`  <image id="produto_${num3}_var_01_imagem" x="${n2(b.x)}" y="${n2(b.y)}" width="${n2(b.w)}" height="${n2(b.h)}" preserveAspectRatio="xMidYMid meet"/>`);
   }
   (campos.extras || []).forEach((e, k) => {
     if (e.frente && !e.topo) extra(e, k);
   });
   if (campos.gatilho || campos.gatilho_fundo) {
     const dados = ` data-ancora="esq" data-ancora-v="${ancoraVGatilho(campos)}" data-frente="1"`;
-    if (campos.gatilho_fundo) out.push("  " + svgForma(`produto_${num2}_tarja_fundo`, caixa(campos.gatilho_fundo, card), campos.gatilho_fundo).replace(/^<(\w+) /, `<$1${dados} `));
+    if (campos.gatilho_fundo) out.push("  " + svgForma(`produto_${num3}_tarja_fundo`, caixa(campos.gatilho_fundo, card), campos.gatilho_fundo).replace(/^<(\w+) /, `<$1${dados} `));
     if (campos.gatilho) {
       const g2 = campos.gatilho, b = caixa(g2, card), ls = linhasGatilho(g2.texto_exemplo), { y, entre } = baseGatilho(b, g2, ls.length);
       const tsp = ls.map((l, i) => `<tspan x="0" y="${i ? entre : 0}">${esc(l)}</tspan>`).join("");
-      out.push(`  <text id="produto_${num2}_gatilho"${dados} ${fontStr(g2.fonte, g2.tamanho)} ${pinta("fill", g2.cor)}${borda(g2, true)}${estiloTexto(g2)} transform="translate(${n2(b.x + b.w / 2)} ${y})" ${anchor("middle")}>${tsp}</text>`);
+      out.push(`  <text id="produto_${num3}_gatilho"${dados} ${fontStr(g2.fonte, g2.tamanho)} ${pinta("fill", g2.cor)}${borda(g2, true)}${estiloTexto(g2)} transform="translate(${n2(b.x + b.w / 2)} ${y})" ${anchor("middle")}>${tsp}</text>`);
     }
   }
   if (nome) {
@@ -24978,17 +24978,17 @@ function svgCampos(campos0, num2, card) {
     const lim = (v2) => typeof v2 === "number" && isFinite(v2) ? n2(v2) : "-";
     const preso = (o) => o && o.preso_preco ? ` data-preso="${n2(o.preso_gap ?? 6)} ${lim(o.preso_esq)} ${lim(o.preso_dir)}"` : "";
     const dadosTxt = ` data-largura="${n2(b.w)}" data-altura="${n2(b.h)}"${v}${ml}`;
-    if (!nf) out.push("  " + svgTexto(`produto_${num2}_nome`, nome, b, nome.texto_exemplo || "PRODUTO", void 0, false, dadosTxt + preso(nome)));
+    if (!nf) out.push("  " + svgTexto(`produto_${num3}_nome`, nome, b, nome.texto_exemplo || "PRODUTO", void 0, false, dadosTxt + preso(nome)));
     else {
       const m = margensNome(nf);
       const dados = ` data-regra="${nf.regra || "fixo"}" data-margem="${[m.t, m.r, m.b, m.l].join(" ")}"` + preso(nf);
-      out.push(`  <g id="produto_${num2}_nome">`);
-      out.push("    " + svgForma(`fundo_nome_${num2}`, caixa(nf, card), nf).replace(/^<(\w+) /, `<$1${dados} `));
-      out.push("    " + svgTexto(`produto_${num2}_nome_texto`, nome, b, nome.texto_exemplo || "PRODUTO", void 0, false, dadosTxt));
+      out.push(`  <g id="produto_${num3}_nome">`);
+      out.push("    " + svgForma(`fundo_nome_${num3}`, caixa(nf, card), nf).replace(/^<(\w+) /, `<$1${dados} `));
+      out.push("    " + svgTexto(`produto_${num3}_nome_texto`, nome, b, nome.texto_exemplo || "PRODUTO", void 0, false, dadosTxt));
       out.push("  </g>");
     }
   }
-  const limiteSvg = campos.limite ? svgTexto(`produto_${num2}_qtd_max`, campos.limite, caixa(campos.limite, card), campos.limite.texto_exemplo || "LIMITE 3 UN", void 0, false, ' data-exemplo="1"') : "";
+  const limiteSvg = campos.limite ? svgTexto(`produto_${num3}_qtd_max`, campos.limite, caixa(campos.limite, card), campos.limite.texto_exemplo || "LIMITE 3 UN", void 0, false, ' data-exemplo="1"') : "";
   const limiteNoPreco = !!(campos.limite && campos.limite.no_preco && (preco_fundo || moeda_fundo || moeda || preco || unidade));
   if (limiteSvg && !limiteNoPreco) out.push("  " + limiteSvg);
   if (preco_fundo || moeda_fundo || moeda || preco || unidade) {
@@ -25018,10 +25018,10 @@ function svgCampos(campos0, num2, card) {
         }
       }
     }
-    out.push(`  <g id="PRECO_${num2}"${comSelo}>`);
+    out.push(`  <g id="PRECO_${num3}"${comSelo}>`);
     if (preco_fundo) {
       const b = caixa(preco_fundo, card);
-      let f = svgForma(`fundo_preco_${num2}`, b, preco_fundo);
+      let f = svgForma(`fundo_preco_${num3}`, b, preco_fundo);
       const naBorda = preco_fundo.na_borda === "esq" || preco_fundo.na_borda === "dir" ? preco_fundo.na_borda : "";
       if (preco_fundo.regra && preco_fundo.regra !== "fixo" || naBorda) {
         const c = preco_fundo.cantos && preco_fundo.cantos.length === 4 ? preco_fundo.cantos : [true, true, true, true];
@@ -25042,14 +25042,14 @@ function svgCampos(campos0, num2, card) {
       }
       out.push("    " + ps("preco_fundo", f));
     }
-    if (moeda_fundo) out.push("    " + ps("moeda_fundo", svgForma(`fundo_moeda_${num2}`, caixa(moeda_fundo, card), moeda_fundo)));
+    if (moeda_fundo) out.push("    " + ps("moeda_fundo", svgForma(`fundo_moeda_${num3}`, caixa(moeda_fundo, card), moeda_fundo)));
     if (limiteNoPreco) out.push("    " + limiteSvg);
-    if (moeda) out.push("    " + ps("moeda", svgTexto(`moeda_${num2}`, moeda, caixa(moeda, card), "R$")));
+    if (moeda) out.push("    " + ps("moeda", svgTexto(`moeda_${num3}`, moeda, caixa(moeda, card), "R$")));
     if (preco && centavos) {
-      out.push("    " + ps("preco", svgTexto(`produto_${num2}_preco_real`, preco, caixa(preco, card), "0", "end")));
-      out.push("    " + ps("centavos", svgTexto(`produto_${num2}_preco_centavos`, centavos, caixa(centavos, card), ",00", "start")));
-    } else if (preco) out.push("    " + ps("preco", svgTexto(`produto_${num2}_preco`, preco, caixa(preco, card), "0,00")));
-    if (unidade) out.push("    " + ps("unidade", svgTexto(`produto_${num2}_formato`, unidade, caixa(unidade, card), unidade.texto_exemplo || "kg")));
+      out.push("    " + ps("preco", svgTexto(`produto_${num3}_preco_real`, preco, caixa(preco, card), "0", "end")));
+      out.push("    " + ps("centavos", svgTexto(`produto_${num3}_preco_centavos`, centavos, caixa(centavos, card), ",00", "start")));
+    } else if (preco) out.push("    " + ps("preco", svgTexto(`produto_${num3}_preco`, preco, caixa(preco, card), "0,00")));
+    if (unidade) out.push("    " + ps("unidade", svgTexto(`produto_${num3}_formato`, unidade, caixa(unidade, card), unidade.texto_exemplo || "kg")));
     out.push(`  </g>`);
   }
   if (campos.de_valor) {
@@ -25057,18 +25057,18 @@ function svgCampos(campos0, num2, card) {
     const pcs = [campos.de_fundo, campos.de_rotulo, v].filter(Boolean);
     const u = { x: Math.min(...pcs.map((c) => c.x)), y: Math.min(...pcs.map((c) => c.y)) };
     const uw = Math.max(...pcs.map((c) => c.x + c.w)) - u.x, uh = Math.max(...pcs.map((c) => c.y + c.h)) - u.y;
-    out.push(`  <g id="produto_${num2}_de"${dadosTrava({ ...u, w: uw, h: uh }, campos.de_trava || "preco")} style="display:none">`);
-    if (campos.de_fundo) out.push("    " + svgForma(`de_fundo_${num2}`, caixa(campos.de_fundo, card), campos.de_fundo));
-    if (campos.de_rotulo) out.push("    " + svgTexto(`de_rotulo_${num2}`, campos.de_rotulo, caixa(campos.de_rotulo, card), campos.de_rotulo.texto_exemplo || "DE R$"));
-    out.push("    " + svgTexto(`produto_${num2}_preco_de`, v, bv, "0,00", void 0, v.riscar !== false));
+    out.push(`  <g id="produto_${num3}_de"${dadosTrava({ ...u, w: uw, h: uh }, campos.de_trava || "preco")} style="display:none">`);
+    if (campos.de_fundo) out.push("    " + svgForma(`de_fundo_${num3}`, caixa(campos.de_fundo, card), campos.de_fundo));
+    if (campos.de_rotulo) out.push("    " + svgTexto(`de_rotulo_${num3}`, campos.de_rotulo, caixa(campos.de_rotulo, card), campos.de_rotulo.texto_exemplo || "DE R$"));
+    out.push("    " + svgTexto(`produto_${num3}_preco_de`, v, bv, "0,00", void 0, v.riscar !== false));
     out.push(`  </g>`);
   }
   if (campos.selo_valor) {
-    out.push(`  <g id="produto_${num2}_selo" style="display:none">`);
-    if (campos.selo_fundo) out.push("    " + svgForma(`selo_fundo_${num2}`, caixa(campos.selo_fundo, card), campos.selo_fundo));
-    if (campos.selo_rotulo) out.push("    " + svgTexto(`selo_rotulo_${num2}`, campos.selo_rotulo, caixa(campos.selo_rotulo, card), campos.selo_rotulo.texto_exemplo || "CLUBE"));
-    if (campos.selo_moeda) out.push("    " + svgTexto(`moeda_selo_${num2}`, campos.selo_moeda, caixa(campos.selo_moeda, card), "R$"));
-    out.push("    " + svgTexto(`produto_${num2}_valor_selo`, campos.selo_valor, caixa(campos.selo_valor, card), "0,00"));
+    out.push(`  <g id="produto_${num3}_selo" style="display:none">`);
+    if (campos.selo_fundo) out.push("    " + svgForma(`selo_fundo_${num3}`, caixa(campos.selo_fundo, card), campos.selo_fundo));
+    if (campos.selo_rotulo) out.push("    " + svgTexto(`selo_rotulo_${num3}`, campos.selo_rotulo, caixa(campos.selo_rotulo, card), campos.selo_rotulo.texto_exemplo || "CLUBE"));
+    if (campos.selo_moeda) out.push("    " + svgTexto(`moeda_selo_${num3}`, campos.selo_moeda, caixa(campos.selo_moeda, card), "R$"));
+    out.push("    " + svgTexto(`produto_${num3}_valor_selo`, campos.selo_valor, caixa(campos.selo_valor, card), "0,00"));
     out.push(`  </g>`);
   }
   (campos.extras || []).forEach((e, k) => {
@@ -25076,8 +25076,8 @@ function svgCampos(campos0, num2, card) {
   });
   return out;
 }
-function svgCard(gId, num2, modelo, campos, card, horizontal = false) {
-  const nn = String(num2).padStart(2, "0");
+function svgCard(gId, num3, modelo, campos, card, horizontal = false) {
+  const nn = String(num3).padStart(2, "0");
   const fc = campos.fundo_card;
   if (fc) modelo = { ...modelo, fundo_cor: fc.cor, raio: fc.raio ?? modelo.raio, borda: fc.borda ?? modelo.borda, borda_cor: fc.borda_cor ?? modelo.borda_cor };
   const r = modelo.raio ? ` rx="${modelo.raio}" ry="${modelo.raio}"` : "";
@@ -25170,7 +25170,7 @@ function gerarSvgTemplate(projeto, opcoes = {}) {
   const pranchetas = [];
   const casaPorModelo = /* @__PURE__ */ new Map();
   const refPorModelo = casasNormaisPorModelo(projeto);
-  let num2 = 1, ga = 0;
+  let num3 = 1, ga = 0;
   projeto.pranchetas.forEach((pr, pi) => {
     const ox = pi * (W + VAO);
     pranchetas.push({ nome: pr.nome, x: ox, y: 0, w: W, h: H });
@@ -25194,8 +25194,8 @@ function gerarSvgTemplate(projeto, opcoes = {}) {
         const card = { x: z.x + ox + k * (cw + c.e), y: z.y + r * (c.h + c.e), w: cw, h: c.h };
         const hz = usaHorizontal(m, z, cw, c.h);
         casas.push(card);
-        cards.push(svgCard(`PRODUTO_${num2}`, num2, m, hz ? versaoNaCasa(m, "horizontal", card, null) : versaoNaCasa(m, "campos", card, refPorModelo.get(m.id)), card, hz));
-        num2++;
+        cards.push(svgCard(`PRODUTO_${num3}`, num3, m, hz ? versaoNaCasa(m, "horizontal", card, null) : versaoNaCasa(m, "campos", card, refPorModelo.get(m.id)), card, hz));
+        num3++;
       }
       if (dv) corpo.push(svgDivisorias(gaId, casas, dv, Math.max(40, c.e * 3)));
       corpo.push(...cards);
@@ -26991,6 +26991,89 @@ async function salvarEdicao(client, id, corpo, autor, atual2) {
   return { status: 200, corpo: { ok: true, atualizadoEm: data.atualizado_em, versao } };
 }
 
+// lib/encarte/memoria-fotos.ts
+var CONTAS_AGENTE = /* @__PURE__ */ new Set(["ia@somado.com.br"]);
+function ehAgente(email) {
+  return !!email && CONTAS_AGENTE.has(email.trim().toLowerCase());
+}
+var num2 = (v) => typeof v === "number" && Number.isFinite(v) ? v : null;
+function ret(v) {
+  if (!v || typeof v !== "object") return null;
+  const o = v;
+  const x = num2(o.x), y = num2(o.y), w = num2(o.w), h = num2(o.h);
+  return x === null || y === null || w === null || h === null || w <= 0 || h <= 0 ? null : { x, y, w, h };
+}
+function fotoUnica(p) {
+  if (!Array.isArray(p.fotos) || p.fotos.length !== 1) return null;
+  const f = p.fotos[0];
+  const r = ret(f);
+  return typeof f?.arq === "string" && f.arq && r ? { arq: f.arq, r } : null;
+}
+function relDaFoto(cell, r) {
+  return { cx: (r.x + r.w / 2 - cell.x) / cell.w, pe: (r.y + r.h - cell.y) / cell.h, w: r.w / cell.w };
+}
+var arred = (v) => Math.round(v * 1e4) / 1e4;
+function memoriasDaFicha(novos, antigos) {
+  const guardar = [], esquecer = [];
+  if (!Array.isArray(novos)) return { guardar, esquecer };
+  const ant = /* @__PURE__ */ new Map();
+  if (Array.isArray(antigos)) {
+    for (const p of antigos) if (typeof p?.id === "string") ant.set(p.id, p);
+  }
+  const vistos = /* @__PURE__ */ new Set();
+  for (const p of novos) {
+    if (!p || typeof p !== "object") continue;
+    const f = fotoUnica(p), cell = ret(p.cell);
+    if (!f || !cell) continue;
+    if (p.fotoMao !== true) {
+      if (typeof p.fotoArranjo === "string" && p.fotoArranjo !== "auto") esquecer.push(f.arq);
+      continue;
+    }
+    if (vistos.has(f.arq)) continue;
+    const a = typeof p.id === "string" ? ant.get(p.id) : void 0;
+    if (a && a.fotoMao === true) {
+      const fa = fotoUnica(a), ca = ret(a.cell);
+      const igual = fa && ca && fa.arq === f.arq && [fa.r.x - f.r.x, fa.r.y - f.r.y, fa.r.w - f.r.w, fa.r.h - f.r.h, ca.w - cell.w, ca.h - cell.h].every((d) => Math.abs(d) < 0.05);
+      if (igual) continue;
+    }
+    const rel = relDaFoto(cell, f.r);
+    vistos.add(f.arq);
+    guardar.push({ arq: f.arq, rel: { cx: arred(rel.cx), pe: arred(rel.pe), w: arred(rel.w) }, cellAsp: arred(cell.w / cell.h) });
+  }
+  return { guardar, esquecer: esquecer.filter((a) => !vistos.has(a)) };
+}
+
+// lib/encarte/memoria-fotos-db.ts
+async function memoriasDoTemplate(client, workspaceId, templateId) {
+  const { data, error } = await client.from("encarte_memoria_fotos").select("arq, rel, cell_asp").eq("workspace_id", workspaceId).eq("template_id", templateId);
+  if (error) throw error;
+  return (data ?? []).map((r) => ({ arq: r.arq, rel: r.rel, cellAsp: r.cell_asp }));
+}
+async function aprenderFotos(client, dados) {
+  const { guardar, esquecer } = memoriasDaFicha(dados.produtosNovos, dados.produtosAntigos);
+  const agora = (/* @__PURE__ */ new Date()).toISOString();
+  if (guardar.length) {
+    const { error } = await client.from("encarte_memoria_fotos").upsert(
+      guardar.map((m) => ({
+        workspace_id: dados.workspaceId,
+        template_id: dados.templateId,
+        arq: m.arq,
+        rel: m.rel,
+        cell_asp: m.cellAsp,
+        atualizado_por: dados.userId,
+        atualizado_em: agora
+      })),
+      { onConflict: "workspace_id,template_id,arq" }
+    );
+    if (error) throw error;
+  }
+  if (esquecer.length) {
+    const { error } = await client.from("encarte_memoria_fotos").delete().eq("workspace_id", dados.workspaceId).eq("template_id", dados.templateId).in("arq", esquecer);
+    if (error) throw error;
+  }
+  return { guardadas: guardar.length, esquecidas: esquecer.length };
+}
+
 // app/api/encarte/edicoes/[id]/route.ts
 async function GET9(_req, context) {
   const user = await getCurrentUser();
@@ -27020,7 +27103,20 @@ async function PUT3(req, context) {
   const { id } = await context.params;
   const supabase = await createClient2();
   try {
-    const r = await salvarEdicao(supabase, id, corpo, user.id);
+    const atual2 = await buscarEdicao(supabase, id);
+    const r = await salvarEdicao(supabase, id, corpo, user.id, atual2);
+    if (r.status === 200 && atual2 && Array.isArray(corpo.produtos) && !ehAgente(user.email)) {
+      const templateId = typeof corpo.template === "string" && corpo.template ? corpo.template : atual2.template_id;
+      if (templateId) {
+        await aprenderFotos(supabase, {
+          workspaceId: atual2.workspace_id,
+          templateId,
+          produtosNovos: corpo.produtos,
+          produtosAntigos: (atual2.ficha ?? {}).produtos,
+          userId: user.id
+        }).catch((e) => console.error("[encarte] mem\xF3ria da foto:", e instanceof Error ? e.message : e));
+      }
+    }
     return NextResponse.json(r.corpo, { status: r.status });
   } catch (e) {
     return erro3(e);
@@ -27913,7 +28009,7 @@ async function PUT7(req, context) {
   }
 }
 
-// app/api/encarte/templates/[id]/padrao/route.ts
+// app/api/encarte/templates/[id]/memoria-fotos/route.ts
 var route_exports35 = {};
 __export(route_exports35, {
   GET: () => GET26,
@@ -27922,16 +28018,24 @@ __export(route_exports35, {
 });
 var runtime28 = "nodejs";
 var dynamic28 = "force-dynamic";
-async function GET26(_req, context) {
-  const negado = await exigirUsuario();
-  if (negado) return negado;
+async function GET26(req, context) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "N\xE3o autenticado" }, { status: 401 });
   const { id } = await context.params;
-  const tpl = await acharTemplate(id);
-  const padrao = tpl ? await padraoMercado(tpl.mercado, tpl.modelo) : null;
-  return NextResponse.json({ padrao });
+  const edicao = new URL(req.url).searchParams.get("edicao");
+  if (!edicao) return NextResponse.json({ memorias: [] });
+  try {
+    const supabase = await createClient2();
+    const ed = await buscarEdicao(supabase, edicao);
+    if (!ed || ed.template_id !== id) return NextResponse.json({ memorias: [] });
+    return NextResponse.json({ memorias: await memoriasDoTemplate(supabase, ed.workspace_id, id) });
+  } catch (err) {
+    console.error("[encarte] mem\xF3ria da foto (ler):", err instanceof Error ? err.message : err);
+    return NextResponse.json({ memorias: [] });
+  }
 }
 
-// app/api/encarte/templates/[id]/pranchetas/route.ts
+// app/api/encarte/templates/[id]/padrao/route.ts
 var route_exports36 = {};
 __export(route_exports36, {
   GET: () => GET27,
@@ -27945,19 +28049,37 @@ async function GET27(_req, context) {
   if (negado) return negado;
   const { id } = await context.params;
   const tpl = await acharTemplate(id);
-  const conteudo = tpl ? await lerPranchetas(tpl) : null;
-  return NextResponse.json(conteudo ?? { pranchetas: null });
+  const padrao = tpl ? await padraoMercado(tpl.mercado, tpl.modelo) : null;
+  return NextResponse.json({ padrao });
 }
 
-// app/api/encarte/templates/[id]/projeto/route.ts
+// app/api/encarte/templates/[id]/pranchetas/route.ts
 var route_exports37 = {};
 __export(route_exports37, {
-  POST: () => POST17,
+  GET: () => GET28,
   dynamic: () => dynamic30,
   runtime: () => runtime30
 });
 var runtime30 = "nodejs";
 var dynamic30 = "force-dynamic";
+async function GET28(_req, context) {
+  const negado = await exigirUsuario();
+  if (negado) return negado;
+  const { id } = await context.params;
+  const tpl = await acharTemplate(id);
+  const conteudo = tpl ? await lerPranchetas(tpl) : null;
+  return NextResponse.json(conteudo ?? { pranchetas: null });
+}
+
+// app/api/encarte/templates/[id]/projeto/route.ts
+var route_exports38 = {};
+__export(route_exports38, {
+  POST: () => POST17,
+  dynamic: () => dynamic31,
+  runtime: () => runtime31
+});
+var runtime31 = "nodejs";
+var dynamic31 = "force-dynamic";
 async function POST17(req, context) {
   const negado = await exigirUsuario();
   if (negado) return negado;
@@ -27969,16 +28091,16 @@ async function POST17(req, context) {
 }
 
 // app/api/encarte/templates/[id]/svg/route.ts
-var route_exports38 = {};
-__export(route_exports38, {
-  GET: () => GET28,
+var route_exports39 = {};
+__export(route_exports39, {
+  GET: () => GET29,
   POST: () => POST18,
-  dynamic: () => dynamic31,
-  runtime: () => runtime31
+  dynamic: () => dynamic32,
+  runtime: () => runtime32
 });
-var runtime31 = "nodejs";
-var dynamic31 = "force-dynamic";
-async function GET28(req, context) {
+var runtime32 = "nodejs";
+var dynamic32 = "force-dynamic";
+async function GET29(req, context) {
   const negado = await exigirUsuario();
   if (negado) return negado;
   const { id } = await context.params;
@@ -27993,18 +28115,18 @@ async function GET28(req, context) {
     }
   });
 }
-var POST18 = GET28;
+var POST18 = GET29;
 
 // app/api/encarte/templates/route.ts
-var route_exports39 = {};
-__export(route_exports39, {
-  GET: () => GET29,
-  dynamic: () => dynamic32,
-  runtime: () => runtime32
+var route_exports40 = {};
+__export(route_exports40, {
+  GET: () => GET30,
+  dynamic: () => dynamic33,
+  runtime: () => runtime33
 });
-var runtime32 = "nodejs";
-var dynamic32 = "force-dynamic";
-async function GET29(req) {
+var runtime33 = "nodejs";
+var dynamic33 = "force-dynamic";
+async function GET30(req) {
   const negado = await exigirUsuario();
   if (negado) return negado;
   const recarregar = !!new URL(req.url).searchParams.get("recarregar");
@@ -28012,12 +28134,12 @@ async function GET29(req) {
 }
 
 // app/api/v1/encarte/recorte/[id]/route.ts
-var route_exports40 = {};
-__export(route_exports40, {
-  GET: () => GET30,
+var route_exports41 = {};
+__export(route_exports41, {
+  GET: () => GET31,
   PUT: () => PUT8,
-  dynamic: () => dynamic33,
-  runtime: () => runtime33
+  dynamic: () => dynamic34,
+  runtime: () => runtime34
 });
 import { promises as fs11 } from "node:fs";
 
@@ -28032,9 +28154,9 @@ async function withApiAuth(_req, fn) {
 }
 
 // app/api/v1/encarte/recorte/[id]/route.ts
-var runtime33 = "nodejs";
-var dynamic33 = "force-dynamic";
-async function GET30(req, context) {
+var runtime34 = "nodejs";
+var dynamic34 = "force-dynamic";
+async function GET31(req, context) {
   return withApiAuth(req, async () => {
     const { id } = await context.params;
     const arq = await caminhoOriginal(id);
@@ -28064,14 +28186,14 @@ async function PUT8(req, context) {
 }
 
 // app/api/v1/encarte/recorte/proximo/route.ts
-var route_exports41 = {};
-__export(route_exports41, {
+var route_exports42 = {};
+__export(route_exports42, {
   POST: () => POST19,
-  dynamic: () => dynamic34,
-  runtime: () => runtime34
+  dynamic: () => dynamic35,
+  runtime: () => runtime35
 });
-var runtime34 = "nodejs";
-var dynamic34 = "force-dynamic";
+var runtime35 = "nodejs";
+var dynamic35 = "force-dynamic";
 var ESPERA_MS = 2e4;
 async function POST19(req) {
   return withApiAuth(req, async () => {
@@ -28118,13 +28240,14 @@ var ROTAS_API = [
   { caminho: "/api/encarte/sugerir-pasta", modulo: route_exports32 },
   { caminho: "/api/encarte/templates/[id]/especiais", modulo: route_exports33 },
   { caminho: "/api/encarte/templates/[id]/estilo", modulo: route_exports34 },
-  { caminho: "/api/encarte/templates/[id]/padrao", modulo: route_exports35 },
-  { caminho: "/api/encarte/templates/[id]/pranchetas", modulo: route_exports36 },
-  { caminho: "/api/encarte/templates/[id]/projeto", modulo: route_exports37 },
-  { caminho: "/api/encarte/templates/[id]/svg", modulo: route_exports38 },
-  { caminho: "/api/encarte/templates", modulo: route_exports39 },
-  { caminho: "/api/v1/encarte/recorte/[id]", modulo: route_exports40 },
-  { caminho: "/api/v1/encarte/recorte/proximo", modulo: route_exports41 }
+  { caminho: "/api/encarte/templates/[id]/memoria-fotos", modulo: route_exports35 },
+  { caminho: "/api/encarte/templates/[id]/padrao", modulo: route_exports36 },
+  { caminho: "/api/encarte/templates/[id]/pranchetas", modulo: route_exports37 },
+  { caminho: "/api/encarte/templates/[id]/projeto", modulo: route_exports38 },
+  { caminho: "/api/encarte/templates/[id]/svg", modulo: route_exports39 },
+  { caminho: "/api/encarte/templates", modulo: route_exports40 },
+  { caminho: "/api/v1/encarte/recorte/[id]", modulo: route_exports41 },
+  { caminho: "/api/v1/encarte/recorte/proximo", modulo: route_exports42 }
 ];
 
 // local/encarte-pc/servidor.ts

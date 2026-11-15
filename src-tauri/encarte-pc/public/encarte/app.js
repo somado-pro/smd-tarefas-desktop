@@ -232,6 +232,9 @@ async function abrirEdicao(id, op = {}) {
   S.regras = lerRegrasTpl();
   // estilo salvo no template ("Salvar no template"): vale em toda edição dele, abaixo do estilo da edição
   S.estiloTpl = ((await apiJson(`/templates/${encodeURIComponent(ed.template)}/estilo?edicao=${encodeURIComponent(ed.id)}`).catch(() => null)) || {}).estilo || {};
+  // memória da foto (0042): onde as pessoas deixaram cada foto neste template; o encaixe automático usa
+  const mem = ((await apiJson(`/templates/${encodeURIComponent(ed.template)}/memoria-fotos?edicao=${encodeURIComponent(ed.id)}`).catch(() => null)) || {}).memorias;
+  S.memoriaFotos = new Map((Array.isArray(mem) ? mem : []).filter(m => m && m.arq && m.rel).map(m => [m.arq, m]));
   montarPaginas(prs ? [...prs, ...novas] : novas.length && !temEncarte ? [...base, ...novas] : null);
   montarCamadasLinhas(); // antes da ficha: mede a página de cada card pela posição do template
   aplicarCampanha(ed.campanha); // faixa de campanha: muda a grid_area da página antes das zonas
@@ -5681,9 +5684,38 @@ function arranjar(p, tipo) {
   if (tipo !== 'expandir') marcarArranjo(p, tipo); else if (p.fotosAuto) marcarArranjo(p, p.fotosAuto.tipo);
   return r;
 }
+// Memória da foto (db/gerencia/0042, teste de 15/11/2026): card com UMA foto que uma pessoa já ajustou à
+// mão neste template volta do jeito que ela deixou, em fração da casa (centro, pé e largura; a altura sai
+// do aspecto da imagem). Casa de formato muito diferente (card em pé × deitado) fica com o encaixe normal.
+function aplicarMemoriaFoto(p) {
+  if (!S.memoriaFotos || !S.memoriaFotos.size || p.fotos.length !== 1 || !p.cell) return false;
+  const im = p.fotos[0], m = S.memoriaFotos.get(im.dataset.arq);
+  if (!m) return false;
+  const c = p.cell, prop = (c.w / c.h) / (m.cellAsp || 1);
+  if (!(prop > 0.77 && prop < 1.3)) return false;
+  const r = retFoto(im), k = r.w / r.h;
+  if (!(k > 0) || !(m.rel.w > 0)) return false;
+  const w = m.rel.w * c.w, h = w / k;
+  posFoto(im, { x: c.x + m.rel.cx * c.w - w / 2, y: c.y + m.rel.pe * c.h - h, w, h });
+  p.fotoMemoria = true;
+  return true;
+}
+// montar do Hermes: o formato aprendido por área, os padrões e as receitas reposicionam as fotos depois da
+// lista; no fim ele chama isto pra memória da foto valer por cima (é a mais específica: esta foto, neste template)
+function reaplicarMemoriaFotos() {
+  const M = S.memoriaFotos;
+  const alvos = M && M.size ? S.produtos.filter(p => !p.removido && p.fotos.length === 1 && M.has(p.fotos[0].dataset.arq)) : [];
+  if (!alvos.length) return [];
+  marcar(...alvos); // desfazer (Ctrl+Z) volta pro que estava antes
+  const feitos = [];
+  for (const p of alvos) if (aplicarMemoriaFoto(p)) { marcarArranjo(p, 'auto'); render(p); feitos.push(p.num); }
+  if (feitos.length) mudou();
+  return feitos;
+}
+// (a memória só muda no servidor, quando uma PESSOA salva: o editor do agente nunca ensina a si mesmo)
 function arranjarSo(p, tipo) {
   // 'auto' = o que o editor faz sozinho (grade mudou, foto nova, lista): segue o padrão do cliente
-  if (tipo === 'auto') { padraoCard(p); const I = arranjoPadrao(); if (I && p.fotos.length && usaDiagonal(p, I)) return diagonalCheia(p, I); tipo = 'lado'; }
+  if (tipo === 'auto') { p.fotoMemoria = false; padraoCard(p); if (aplicarMemoriaFoto(p)) return; const I = arranjoPadrao(); if (I && p.fotos.length && usaDiagonal(p, I)) return diagonalCheia(p, I); tipo = 'lado'; }
   if (tipo === 'diagonal' && arranjoPadrao() && p.fotos.length >= 2) return diagonalCheia(p, arranjoPadrao());
   // padrão imagem.faixa = "ate_nome" (Rigoni): a foto ocupa o card do topo até o nome, e o selo de
   // preço fica por cima da parte de baixo dela; sem isso vale a área desenhada no template
