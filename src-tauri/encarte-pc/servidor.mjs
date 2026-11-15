@@ -25099,6 +25099,7 @@ function dadosParte(z) {
   const n = (k, v) => typeof v === "number" && v > 0 ? ` ${k}="${Math.round(v)}"` : "";
   return ` data-parte="${p.tipo === "fixo" ? "fixo" : "elastica"}" data-grupo="${esc(p.grupo)}"` + n("data-prioridade", p.prioridade) + n("data-max-linhas", p.max_linhas) + n("data-max-col", p.max_por_linha);
 }
+var modeloDe = (modelos, z) => modelos.get(z.modelo_card_id) || (z.modelo_zona ? modelos.get(z.modelo_zona) : void 0);
 function expandirZona(z, espacoPadrao) {
   if (z.tipo !== "composta" || !z.partes || !z.partes.length) return [z];
   const e = z.espaco ?? espacoPadrao, v = z.direcao !== "h", ps = z.partes;
@@ -25110,8 +25111,10 @@ function expandirZona(z, espacoPadrao) {
     const r = v ? { x: z.x, y: pos, w: z.w, h: t } : { x: pos, y: z.y, w: t, h: z.h };
     pos += t + e;
     const col = p.tipo === "fixo" ? Math.max(1, Math.round(p.n || 1)) : Math.max(1, Math.round(p.colunas || 2));
+    const lin = p.tipo === "elastica" && p.linhas && p.linhas > 0 ? Math.max(1, Math.round(p.linhas)) : 1;
     const { tipo: _t, partes: _p, direcao: _d, por_linha: _pl, divisorias: _dv, ...base } = z;
-    return { ...base, ...r, id: `${z.id}_p${i + 1}`, linhas: 1, colunas: col, parte: { ...p, grupo: z.id, i } };
+    const mod = p.modelo_card_id ? { modelo_card_id: p.modelo_card_id, modelo_zona: z.modelo_card_id } : {};
+    return { ...base, ...r, ...mod, id: `${z.id}_p${i + 1}`, linhas: lin, colunas: col, parte: { ...p, grupo: z.id, i } };
   });
 }
 var zonasAbertas = (pr, e) => pr.zonas.flatMap((z) => expandirZona(z, e));
@@ -25119,7 +25122,7 @@ function casasNormaisPorModelo(projeto) {
   const ref = /* @__PURE__ */ new Map(), primeira = /* @__PURE__ */ new Map();
   const modelos = new Map(projeto.modelos_card.map((m) => [m.id, m]));
   for (const pr of projeto.pranchetas) for (const z of zonasAbertas(pr, projeto.espaco_padrao)) {
-    const m = modelos.get(z.modelo_card_id);
+    const m = modeloDe(modelos, z);
     if (!m) continue;
     const c = casaDaZona(z, projeto.espaco_padrao);
     for (let r = 0; r < z.linhas; r++) {
@@ -25178,7 +25181,7 @@ function gerarSvgTemplate(projeto, opcoes = {}) {
       if (s) corpo.push(s);
     }
     for (const z of zonasAbertas(pr, projeto.espaco_padrao)) {
-      const m = modelos.get(z.modelo_card_id);
+      const m = modeloDe(modelos, z);
       if (!m) continue;
       const c = casaDaZona(z, projeto.espaco_padrao);
       if (!casaPorModelo.has(m.id)) casaPorModelo.set(m.id, c);

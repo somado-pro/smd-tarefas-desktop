@@ -183,8 +183,11 @@ function expandirZona(z, espacoPadrao = S.proj.espaco_padrao) {
     const t = livre * pesos[i] / soma, r = v ? { x: z.x, y: pos, w: z.w, h: t } : { x: pos, y: z.y, w: t, h: z.h };
     pos += t + e;
     const col = p.tipo === 'fixo' ? Math.max(1, Math.round(p.n || 1)) : Math.max(1, Math.round(p.colunas || 2));
+    const lin = p.tipo === 'elastica' && p.linhas > 0 ? Math.max(1, Math.round(p.linhas)) : 1;
     const { tipo, partes, direcao, por_linha, divisorias, ...base } = z;
-    return { ...base, ...r, id: `${z.id}_p${i + 1}`, linhas: 1, colunas: col, parte: { ...p, grupo: z.id, i } };
+    // modelo só desta parte (mesma conta do gerador): o que não existe mais cai no da zona
+    const mod = p.modelo_card_id && S.proj.modelos_card.some(m => m.id === p.modelo_card_id) ? { modelo_card_id: p.modelo_card_id } : {};
+    return { ...base, ...r, ...mod, id: `${z.id}_p${i + 1}`, linhas: lin, colunas: col, parte: { ...p, grupo: z.id, i } };
   });
 }
 const zonasAbertas = pr => pr.zonas.flatMap(z => expandirZona(z));
@@ -1498,11 +1501,14 @@ function formPartes(alvo, z) {
         { rot: 'Colunas no desenho', k: 'colunas', tipo: 'number', ph: '2' },
         { rot: 'Máximo de linhas', k: 'max_linhas', tipo: 'number', ph: 'automático' },
         { rot: 'Máximo por linha', k: 'max_por_linha', tipo: 'number', ph: 'automático' },
+        { rot: 'Linhas no desenho', k: 'linhas', tipo: 'number', ph: '1' },
+        { rot: 'Modelo desta parte', k: 'modelo_card_id', tipo: 'select', opcoes: [['', 'O da zona'], ...S.proj.modelos_card.map(m => [m.id, m.nome])] },
+        { dica: 'Modelo desta parte: card pequeno com outro desenho (ex. foto em cima, preço embaixo). Linhas no desenho: o card desse modelo é desenhado e medido nessa altura.' },
         { dica: 'No editor ela monta as linhas pela quantidade que cair nela. Vazia, o fixo da zona cresce e ocupa o lugar.' },
       ]),
       { rot: '↑ Subir', botao: () => { if (i) { [z.partes[i - 1], z.partes[i]] = [z.partes[i], z.partes[i - 1]]; S.sujo = true; props(); } } },
       { rot: '× Tirar esta parte', botao: () => { if (z.partes.length > 1) { z.partes.splice(i, 1); S.sujo = true; props(); } } },
-    ], p, () => { S.sujo = true; props(); });
+    ], p, () => { if (!p.modelo_card_id) delete p.modelo_card_id; if (!(p.linhas > 0)) delete p.linhas; S.sujo = true; render(); props(); });
   });
   form(alvo, 'Nova parte', [
     { rot: '+ Fixo', botao: () => { z.partes.push({ tipo: 'fixo', tam: 1, n: 1 }); S.sujo = true; props(); } },
