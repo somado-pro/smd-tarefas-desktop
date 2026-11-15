@@ -1904,7 +1904,12 @@ function renderNome(p) {
   const ultimo = p.nomeTxts[p.nomeTxts.length - 1];
   const m = b.ms[b.ms.length - 1];
   const tenta = (ls, f) => { escreverTexto(ultimo, ls, x, ancora, f, f * passo, m); return largura(ultimo, m); };
-  let fonte = b.fonte * p.escNome * kt * fatorCardBaixo(p);
+  const minCli = regraTpl('titulo_min_pt', S.padrao && S.padrao.titulo && S.padrao.titulo.min_pt);
+  const kl = escalaAteRaiz(ultimo) || 1;
+  const minPt = Math.max(PISO_PT / kl, Math.min((minCli || PISO_PT) / kl, b.fonte * p.escNome));
+  // o piso entra ANTES de escolher as linhas (Redemais, 15/11/2026): com a fonte do template menor que o
+  // piso o nome cabia em 1 linha, subia pro piso depois e passava da borda do card pequeno
+  let fonte = Math.max(b.fonte * p.escNome * kt * fatorCardBaixo(p), tarja ? 0 : minPt);
   let w = tenta(linhas, fonte);
   // "Caixa ↕" (p.nomeLinhas, escolhido à mão): o nome usa até essa quantidade de linhas antes de
   // encolher, com o menor número de linhas que couber. Quebra digitada (Enter) continua mandando.
@@ -1931,9 +1936,6 @@ function renderNome(p) {
   // que encolheu sozinho; tamanho pedido menor que ele fica, desde que não passe do piso. Com 2 linhas
   // abaixo do mínimo, tenta 3 antes de encolher. O mínimo é em pt da página: a fonte do <text> é
   // local e o texto pode ter escala própria.
-  const minCli = regraTpl('titulo_min_pt', S.padrao && S.padrao.titulo && S.padrao.titulo.min_pt);
-  const kl = escalaAteRaiz(ultimo) || 1;
-  const minPt = Math.max(PISO_PT / kl, Math.min((minCli || PISO_PT) / kl, b.fonte * p.escNome));
   if (!maxL && w > maxW && !tarja && linhas.length === 2 && fonte * maxW / w < minPt) {
     const tres = quebrarEm(linhas.join(' '), 3);
     if (tres.length === 3) { const w3 = tenta(tres, fonte); if (w3 < w) { linhas = tres; w = w3; } }
