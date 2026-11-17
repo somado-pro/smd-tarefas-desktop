@@ -26302,6 +26302,7 @@ async function exigirUsuario() {
     data: { user }
   } = jwt ? await supabase.auth.getUser(jwt) : await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (user.app_metadata?.cliente === true) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   return null;
 }
 
