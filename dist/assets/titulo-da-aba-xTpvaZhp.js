@@ -1,0 +1,1 @@
+import{gR as u,ko as a,kp as e}from"./index-Dp12O5JH.js";function l({titulo:n}){return u.useEffect(()=>(a(n?.trim()||null),()=>a(null)),[n]),null}function f(n,r){u.useEffect(()=>{const t=[n,r?.trim()].filter(Boolean).join(" ");return e(t||null),()=>e(null)},[n,r])}export{l as T,f as u};
