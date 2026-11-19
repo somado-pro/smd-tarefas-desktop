@@ -1,1 +1,1 @@
-﻿smd-gerencia 4beaf49
+﻿smd-gerencia 284e52b

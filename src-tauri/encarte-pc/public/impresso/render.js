@@ -88,9 +88,36 @@
   }
 
   // grade das fotos que deixa elas maiores; última linha centrada
-  function arranjarFotos(fotos, b, espaco) {
+  // modos: grade (padrão: a grade que deixa as fotos maiores), lado (uma fileira), sobrepor (em
+  // diagonal, uma por cima da outra: a primeira atrás), livre (cada foto com pos {x,y,w} em fração
+  // da área das fotos, mexida à mão na folha)
+  function arranjarFotos(fotos, b, espaco, modo) {
     const n = fotos.length;
     if (!n) return [];
+    const asp = f => (f.w && f.h) ? f.w / f.h : 1;
+    if (modo === 'livre') {
+      return fotos.map((f, i) => {
+        const p = f.pos || { x: 0.1 + 0.05 * i, y: 0.1 + 0.05 * i, w: 0.5 };
+        const w = p.w * b.w;
+        return { x: b.x + p.x * b.w, y: b.y + p.y * b.h, w, h: w / asp(f) };
+      });
+    }
+    if (modo === 'sobrepor' && n > 1) {
+      // cada foto ocupa ~62% da área (mais fotos = um pouco menor); passos iguais em diagonal
+      const k = Math.max(0.42, 0.7 - 0.06 * (n - 2));
+      const tam = fotos.map(f => { const a = asp(f); const w = Math.min(b.w * k, b.h * k * a); return { w, h: w / a }; });
+      const maxW = Math.max(...tam.map(t => t.w)), maxH = Math.max(...tam.map(t => t.h));
+      const dx = (b.w - maxW) / (n - 1), dy = (b.h - maxH) / (n - 1);
+      return tam.map((t, i) => ({ x: b.x + i * dx + (maxW - t.w) / 2, y: b.y + i * dy + (maxH - t.h) / 2, w: t.w, h: t.h }));
+    }
+    if (modo === 'lado') {
+      const g = b.w * (espaco ?? 0.035);
+      const cw = (b.w - (n - 1) * g) / n;
+      const tam = fotos.map(f => { const a = asp(f); const w = Math.min(cw, b.h * a); return { w, h: w / a }; });
+      const total = tam.reduce((s2, t) => s2 + t.w, 0) + (n - 1) * g;
+      let x = b.x + (b.w - total) / 2;
+      return tam.map(t => { const r = { x, y: b.y + (b.h - t.h) / 2, w: t.w, h: t.h }; x += t.w + g; return r; });
+    }
     const g = Math.min(b.w, b.h) * (espaco ?? 0.035);
     let melhor = null;
     for (let c = 1; c <= n; c++) {
@@ -194,28 +221,38 @@
     const bf = caixa(t.fotos, f);
     const esc = aj.fotos || 1;
     const bfx = { x: bf.x + bf.w * (1 - esc) / 2 + (aj.fx || 0) * bf.w, y: bf.y + bf.h * (1 - esc) / 2 + (aj.fy || 0) * bf.h, w: bf.w * esc, h: bf.h * esc };
-    const lugares = arranjarFotos(fotos, bfx, t.fotos.espaco);
+    const lugares = arranjarFotos(fotos, bfx, t.fotos.espaco, p.arranjo);
     const usadas = [];
-    fotos.forEach((ft, i) => { img(svg, o.url('foto', ft), lugares[i], 'conter'); usadas.push({ foto: ft, b: lugares[i] }); });
+    fotos.forEach((ft, i) => {
+      const im = img(svg, o.url('foto', ft), lugares[i], 'conter');
+      im.setAttribute('data-foto', i);
+      usadas.push({ foto: ft, b: lugares[i] });
+    });
 
     // nome
     const bn = caixa(t.nome, f);
+    bn.x += (aj.nx || 0) * W; bn.y += (aj.ny || 0) * H;
     let nome = String(p.nome || '').trim();
     if (t.nome.maiusculas) nome = nome.toLocaleUpperCase('pt-BR');
+    // grupos: o editor move/escala o grupo inteiro enquanto a pessoa arrasta
+    const gN = el('g', { 'data-el': 'nome' }, svg);
     if (nome) {
       const r = ajustarNome(nome, t.nome, bn, aj.nome || 1);
       const ent = t.nome.entrelinha || 1;
       const alt = r.s * 0.72 + (r.linhas.length - 1) * r.s * ent;
       const y0 = bn.y + (bn.h - alt) / 2 + r.s * 0.72;
-      r.linhas.forEach((l, i) => texto(svg, l, { x: xAncora(t.nome.alinha, bn), y: y0 + i * r.s * ent, 'font-size': r.s, 'text-anchor': ancora(t.nome.alinha) }, t.nome));
+      r.linhas.forEach((l, i) => texto(gN, l, { x: xAncora(t.nome.alinha, bn), y: y0 + i * r.s * ent, 'font-size': r.s, 'text-anchor': ancora(t.nome.alinha) }, t.nome));
     }
 
     // preço: selo (imagem ou cor) + R$ + valor + unidade
-    const P = t.preco, bp = caixa(P, f);
+    const P = t.preco, bp0 = caixa(P, f);
+    const pw = aj.pw || 1, ph = aj.ph || 1;
+    const bp = { x: bp0.x + bp0.w * (1 - pw) / 2 + (aj.px || 0) * W, y: bp0.y + bp0.h * (1 - ph) / 2 + (aj.py || 0) * H, w: bp0.w * pw, h: bp0.h * ph };
     const valor = separarPreco(p.preco);
+    const gP = el('g', { 'data-el': 'preco' }, svg);
     if (valor) {
-      if (P.fundo && P.fundo.k) img(svg, o.url('tema', P.fundo.k), bp, 'esticar');
-      else if (P.fundo_cor) el('rect', { x: bp.x, y: bp.y, width: bp.w, height: bp.h, rx: bp.h * 0.08, fill: P.fundo_cor }, svg);
+      if (P.fundo && P.fundo.k) img(gP, o.url('tema', P.fundo.k), bp, 'esticar');
+      else if (P.fundo_cor) el('rect', { x: bp.x, y: bp.y, width: bp.w, height: bp.h, rx: bp.h * 0.08, fill: P.fundo_cor }, gP);
       const un = String(p.unidade || '').trim().toUpperCase();
       const esc2 = aj.preco || 1;
       let sz = bp.h * 0.7 * esc2;
@@ -226,11 +263,11 @@
       const total = medida();
       let x = bp.x + (bp.w - total) / 2;
       const base = bp.y + bp.h / 2 + sz * 0.36;
-      texto(svg, 'R$', { x, y: base - sz * 0.42, 'font-size': sz * P.rs_escala }, { ...P, cor: P.rs_cor });
+      texto(gP, 'R$', { x, y: base - sz * 0.42, 'font-size': sz * P.rs_escala }, { ...P, cor: P.rs_cor });
       x += largura('R$', P.fonte, sz * P.rs_escala) + gap();
-      texto(svg, valor, { x, y: base, 'font-size': sz }, P);
+      texto(gP, valor, { x, y: base, 'font-size': sz }, P);
       x += largura(valor, P.fonte, sz) + gap();
-      if (un) texto(svg, un, { x, y: base, 'font-size': sz * P.un_escala }, { ...P, cor: P.un_cor });
+      if (un) texto(gP, un, { x, y: base, 'font-size': sz * P.un_escala }, { ...P, cor: P.un_cor });
     }
 
     t.camadas.filter(c => c.acima).forEach(camada);
@@ -251,7 +288,7 @@
         el('line', { x1: cx, y1: cy + dy * ini, x2: cx, y2: cy + dy * fim }, g);
       }
     }
-    return { svg, fotos: usadas, formato: f, margem: m };
+    return { svg, fotos: usadas, areaFotos: bfx, caixaNome: bn, caixaPreco: bp, formato: f, margem: m };
   }
 
   root.Impresso = { TEMA_PADRAO, temaCompleto, formatoResolvido, montarFolha, arranjarFotos, separarPreco, MARCAS_MM, clone };

@@ -153,8 +153,10 @@ async function desenhar() {
   await garantirFontes();
   if (n !== desenhando) return;
   const p = atual() || EXEMPLO;
-  const { svg, formato } = Impresso.montarFolha({ tema: S.tema, formato: S.ed.formato, produto: p, validade: S.ed.ficha.validade || (S.modoTema ? 'Ofertas válidas até 30/11' : ''), url: (t, r) => url(t, r, false), guias: $('#guias').checked });
+  const r = Impresso.montarFolha({ tema: S.tema, formato: S.ed.formato, produto: p, validade: S.ed.ficha.validade || (S.modoTema ? 'Ofertas válidas até 30/11' : ''), url: (t, r2) => url(t, r2, false), guias: $('#guias').checked });
+  const { svg, formato } = r;
   if (S.modoTema) alcas(svg, formato);
+  else if (atual() && !S.arrastando) alcasProduto(svg, r);
   $('#palco').replaceChildren(svg);
 }
 
@@ -229,71 +231,273 @@ function painelProduto() {
   const p = atual();
   if (!p) return h('div', {}, h('p', { className: 'dica' }, 'Sem produtos. Use "Colar lista" ou "＋ Produto".'), h('p', { className: 'dica' }, 'Pra mudar fundo, cabeçalho, fontes e cores: botão 🎨 Tema.'));
   p.aj = p.aj || {};
+  p.fotos = p.fotos || [];
   const muda = fn => v => { fn(v); mudou(); listar(); desenhar(); };
-  const busca = h('input', { placeholder: 'Buscar foto no banco…', style: 'flex:1;min-width:120px' });
-  const res = h('div', { className: 'resultados' });
-  const buscar = async () => {
-    const q = busca.value.trim(); res.replaceChildren();
-    if (!q) return;
-    const ind = await carregarIndice();
-    for (const r of window.SomadoBusca.buscar(q, ind, { limite: 40 })) {
-      const ref = { arq: r.item.arq };
-      res.append(h('button', { title: r.item.nome, style: `background-image:url("${url('foto', ref, false)}")`, on: { click: () => adicionarFoto(p, ref) } }));
-    }
+  const passo = (chave, d, min, max) => () => {
+    p.aj[chave] = Math.round(Math.min(max, Math.max(min, (p.aj[chave] ?? 1) + d)) * 100) / 100;
+    mudou(); desenhar(); painel();
   };
-  let tb; busca.addEventListener('input', () => { clearTimeout(tb); tb = setTimeout(buscar, 250); });
-  const fotos = h('div', { className: 'fotos' }, ...(p.fotos || []).map((ft, i) => h('div', { className: 'foto', title: ft.arq ? ft.arq.split('/').pop() : 'enviada', style: `background-image:url("${url('foto', ft, false)}")` },
-    h('button', { className: 'x', title: 'Tirar', on: { click: () => { p.fotos.splice(i, 1); mudou(); tudo(); } } }, '×'))));
-  const faixa = (rot, chave, min, max, passo, padrao) => campo(rot, inp(p.aj[chave] ?? padrao, muda(v => { p.aj[chave] = v; }), { type: 'range', min, max, step: passo, style: 'flex:1' }),
-    h('button', { className: 'bt', title: 'Voltar ao padrão', on: { click: () => { delete p.aj[chave]; mudou(); tudo(); } } }, '↺'));
+  const linhaTam = (rot, chave, min, max, dica) => h('div', { className: 'pp-lin', title: dica || '' },
+    h('span', {}, rot),
+    h('span', { className: 'stp' },
+      h('button', { className: 'step', title: 'Diminuir', on: { click: passo(chave, -0.05, min, max) } }, '−'),
+      h('b', { className: 'val' }, Math.round((p.aj[chave] ?? 1) * 100) + '%'),
+      h('button', { className: 'step', title: 'Aumentar', on: { click: passo(chave, 0.05, min, max) } }, '+')));
   const nome = h('textarea', { rows: 2, on: { input: e => muda(v => { p.nome = v; })(e.target.value) } });
   nome.value = p.nome || '';
+  const sec = (titulo, aberta, ...filhos) => { const d = h('details', { className: 'pp-sec' }, h('summary', {}, titulo), ...filhos); d.open = aberta; return d; };
+  const arr = p.arranjo || 'grade';
+  const btArr = (v, rot, dica) => h('button', { className: 'seg-bt' + (arr === v ? ' ativo' : ''), title: dica, on: { click: () => mudarArranjo(p, v) } }, rot);
+  const fotos = h('div', { className: 'fotos' }, ...p.fotos.map((ft, i) => h('div', {
+      className: 'foto' + (S.selEl && S.selEl.tipo === 'foto' && S.selEl.i === i ? ' sel' : ''),
+      title: ft.arq ? ft.arq.split('/').pop() : 'enviada do computador',
+      style: `background-image:url("${url('foto', ft, false)}")`,
+      on: { click: e => { if (e.target.closest('button')) return; S.selEl = { tipo: 'foto', i }; desenhar(); painel(); } },
+    },
+    h('div', { className: 'foto-acoes' },
+      h('button', { title: 'Trocar esta foto', on: { click: () => abrirFotos(p, i) } }, '⇄'),
+      h('button', { title: 'Mandar pra trás', on: { click: () => ordemFoto(p, i, -1) } }, '◀'),
+      h('button', { title: 'Trazer pra frente', on: { click: () => ordemFoto(p, i, 1) } }, '▶'),
+      h('button', { title: 'Tirar', className: 'perigo', on: { click: () => { p.fotos.splice(i, 1); S.selEl = null; mudou(); tudo(); } } }, '×')))));
   return h('div', {},
-    h('h3', {}, `Folha ${S.i + 1}`),
-    campo('Nome', nome),
-    h('p', { className: 'dica' }, 'Enter no nome força a quebra de linha.'),
-    campo('Preço', inp(p.preco, muda(v => { p.preco = v; }), { placeholder: '7,99', style: 'width:90px' }),
-      h('input', { list: 'uns', value: p.unidade || '', style: 'width:70px', placeholder: 'UN', on: { input: e => muda(v => { p.unidade = v; })(e.target.value) } }),
-      h('datalist', { id: 'uns' }, ...UNIDADES.map(u => new Option(u, u)))),
-    h('h3', {}, `Fotos (${(p.fotos || []).length})`),
-    fotos,
-    h('div', { className: 'linha', style: 'margin-top:6px' }, busca, enviarArquivo(a => enviarFoto(p, a), 'Do computador')),
-    res,
-    h('h3', {}, 'Ajustes desta folha'),
-    faixa('Nome', 'nome', 0.4, 1.3, 0.02, 1),
-    faixa('Preço', 'preco', 0.4, 1.4, 0.02, 1),
-    faixa('Fotos', 'fotos', 0.4, 1.4, 0.02, 1),
-    faixa('Fotos ↔', 'fx', -0.4, 0.4, 0.01, 0),
-    faixa('Fotos ↕', 'fy', -0.4, 0.4, 0.01, 0),
-    h('h3', {}, 'Folha'),
-    h('div', { className: 'linha' },
-      h('button', { className: 'bt', on: { click: () => mover(-1) } }, '↑ Antes'),
-      h('button', { className: 'bt', on: { click: () => mover(1) } }, '↓ Depois'),
-      h('button', { className: 'bt', on: { click: () => { produtos().splice(S.i + 1, 0, { ...Impresso.clone(p), id: novoId() }); S.i++; mudou(); tudo(); } } }, 'Duplicar'),
-      h('button', { className: 'bt perigo', on: { click: () => { if (!confirm('Excluir esta folha?')) return; produtos().splice(S.i, 1); S.i = Math.max(0, Math.min(S.i, produtos().length - 1)); mudou(); tudo(); } } }, 'Excluir')));
+    h('div', { className: 'pp-cab' }, h('b', {}, `Folha ${S.i + 1} de ${produtos().length}`),
+      h('span', { className: 'pp-acoes' },
+        h('button', { className: 'ic', title: 'Folha antes', on: { click: () => mover(-1) } }, '↑'),
+        h('button', { className: 'ic', title: 'Folha depois', on: { click: () => mover(1) } }, '↓'),
+        h('button', { className: 'ic', title: 'Duplicar folha', on: { click: () => { produtos().splice(S.i + 1, 0, { ...Impresso.clone(p), id: novoId() }); S.i++; mudou(); tudo(); } } }, '⧉'),
+        h('button', { className: 'ic perigo', title: 'Excluir folha', on: { click: () => { if (!confirm('Excluir esta folha?')) return; produtos().splice(S.i, 1); S.i = Math.max(0, Math.min(S.i, produtos().length - 1)); mudou(); tudo(); } } }, '🗑'))),
+    sec('Conteúdo', true,
+      campo('Nome', nome),
+      campo('Preço', inp(p.preco, muda(v => { p.preco = v; }), { placeholder: '7,99', style: 'width:90px' }),
+        h('input', { list: 'uns', value: p.unidade || '', style: 'width:70px', placeholder: 'UN', on: { input: e => muda(v => { p.unidade = v; })(e.target.value) } }),
+        h('datalist', { id: 'uns' }, ...UNIDADES.map(u => new Option(u, u)))),
+      h('p', { className: 'dica' }, 'Enter no nome quebra a linha.')),
+    sec(`Fotos (${p.fotos.length})`, true,
+      h('div', { className: 'seg' },
+        btArr('grade', 'Grade', 'Organiza em grade, o maior possível'),
+        btArr('lado', 'Lado a lado', 'Todas numa fileira'),
+        btArr('sobrepor', 'Sobrepostas', 'Uma por cima da outra, em diagonal (a última fica na frente)'),
+        btArr('livre', 'Livre', 'Cada foto onde você arrastar na folha')),
+      fotos,
+      h('div', { className: 'linha', style: 'margin-top:8px' },
+        h('button', { className: 'bt primario', on: { click: () => abrirFotos(p, null) } }, '＋ Adicionar foto'),
+        enviarArquivo(a => enviarFoto(p, a, null), 'Do computador')),
+      linhaTam('Tamanho das fotos', 'fotos', 0.3, 1.6, 'A área das fotos inteira'),
+      h('p', { className: 'dica' }, 'Na folha: clique numa foto pra selecionar, arraste pra mover, puxe o canto pra aumentar. Delete tira a foto selecionada.')),
+    sec('Tamanhos e posição', true,
+      linhaTam('Nome', 'nome', 0.4, 1.5),
+      linhaTam('Preço (selo largura)', 'pw', 0.4, 1.6),
+      linhaTam('Preço (selo altura)', 'ph', 0.4, 1.6),
+      h('p', { className: 'dica' }, 'Nome e preço também se arrastam na folha.'),
+      h('button', { className: 'bt', on: { click: () => { p.aj = {}; p.arranjo = undefined; p.fotos.forEach(f => delete f.pos); mudou(); tudo(); } } }, '↺ Voltar tudo ao padrão do tema')));
 }
 function mover(d) {
   const l = produtos(), j = S.i + d;
   if (j < 0 || j >= l.length) return;
   [l[S.i], l[j]] = [l[j], l[S.i]]; S.i = j; mudou(); tudo();
 }
+function ordemFoto(p, i, d) {
+  const j = i + d;
+  if (j < 0 || j >= p.fotos.length) return;
+  [p.fotos[i], p.fotos[j]] = [p.fotos[j], p.fotos[i]];
+  if (S.selEl && S.selEl.tipo === 'foto') S.selEl.i = j;
+  mudou(); tudo();
+}
+// "livre" guarda onde cada foto está agora (posição do arranjo atual) pra começar de onde estava
+function congelarFotos(p) {
+  if (p.arranjo === 'livre') return;
+  const r = Impresso.montarFolha({ tema: S.tema, formato: S.ed.formato, produto: p, url: () => '' });
+  const a = r.areaFotos;
+  r.fotos.forEach((u, i) => { p.fotos[i].pos = { x: (u.b.x - a.x) / a.w, y: (u.b.y - a.y) / a.h, w: u.b.w / a.w }; });
+  p.arranjo = 'livre';
+}
+function mudarArranjo(p, v) {
+  if (v === 'livre') congelarFotos(p);
+  else { p.arranjo = v === 'grade' ? undefined : v; p.fotos.forEach(f => delete f.pos); }
+  mudou(); tudo();
+}
 // proporção da foto: o arranjo precisa dela (a miniatura tem a mesma proporção do original)
 function medir(ref) {
   return new Promise(res => { const i = new Image(); i.onload = () => res({ w: i.naturalWidth, h: i.naturalHeight }); i.onerror = () => res(null); i.src = url('foto', ref, false); });
 }
-async function adicionarFoto(p, ref) {
-  const d = await medir(ref);
-  p.fotos = p.fotos || [];
-  p.fotos.push({ ...ref, ...(d || {}) });
+// troca = mesma posição e tamanho da que sai (no livre), proporção da nova
+function porFoto(p, nova, troca) {
+  if (troca !== null && troca !== undefined && p.fotos[troca]) {
+    const pos = p.fotos[troca].pos;
+    p.fotos[troca] = { ...nova, ...(pos ? { pos } : {}) };
+  } else {
+    if (p.arranjo === 'livre') nova.pos = { x: 0.25, y: 0.2, w: 0.5 };
+    p.fotos.push(nova);
+  }
+  lembrarFoto(nova);
   mudou(); tudo();
 }
-async function enviarFoto(p, arq) {
+async function adicionarFoto(p, ref, troca = null) {
+  const d = await medir(ref);
+  porFoto(p, { ...ref, ...(d || {}) }, troca);
+}
+async function enviarFoto(p, arq, troca = null) {
   aviso('enviando foto…', 0);
   try {
     const r = await apiJson(`edicoes/${S.ed.id}/foto?nome=${enc(arq.name)}`, { method: 'PUT', body: arq });
-    p.fotos = p.fotos || []; p.fotos.push({ k: r.k, w: r.w, h: r.h });
-    aviso('foto enviada'); mudou(); tudo();
+    aviso('foto enviada');
+    porFoto(p, { k: r.k, w: r.w, h: r.h }, troca);
   } catch (e) { aviso('não enviou: ' + e.message, 5000); }
+}
+
+// ------------------------------------------------------------------ banco de fotos (Busca · Recentes · ★)
+const guardar = {
+  ler(k, p) { try { return JSON.parse(localStorage.getItem('impresso:' + k)) ?? p; } catch { return p; } },
+  por(k, v) { try { localStorage.setItem('impresso:' + k, JSON.stringify(v)); } catch { /* sem storage */ } },
+};
+const chaveFoto = f => f.arq || f.k;
+function lembrarFoto(f) {
+  const l = guardar.ler('recentes', []).filter(x => chaveFoto(x) !== chaveFoto(f));
+  l.unshift({ arq: f.arq, k: f.k }); guardar.por('recentes', l.slice(0, 40));
+}
+function favorita(f) { return guardar.ler('favoritas', []).some(x => chaveFoto(x) === chaveFoto(f)); }
+function alternarFavorita(f) {
+  let l = guardar.ler('favoritas', []);
+  l = favorita(f) ? l.filter(x => chaveFoto(x) !== chaveFoto(f)) : [{ arq: f.arq, k: f.k }, ...l];
+  guardar.por('favoritas', l);
+}
+const FB = { p: null, troca: null, aba: 'busca' };
+function abrirFotos(p, troca) {
+  FB.p = p; FB.troca = troca;
+  $('#fb-titulo').textContent = troca === null ? 'Adicionar foto' : `Trocar a foto ${troca + 1}`;
+  if (!$('#fb-q').value) $('#fb-q').value = (p.nome || '').split('\n')[0];
+  mostrarFotos();
+  $('#dlg-fotos').showModal();
+  setTimeout(() => $('#fb-q').focus(), 50);
+}
+async function mostrarFotos() {
+  for (const b of document.querySelectorAll('#dlg-fotos [data-aba]')) b.classList.toggle('ativo', b.dataset.aba === FB.aba);
+  $('#fb-q').classList.toggle('oculto', FB.aba !== 'busca');
+  const res = $('#fb-res'); res.replaceChildren();
+  let lista;
+  if (FB.aba === 'busca') {
+    const q = $('#fb-q').value.trim();
+    if (!q) { res.append(h('p', { className: 'dica' }, 'Digite o nome do produto.')); return; }
+    const ind = await carregarIndice();
+    lista = window.SomadoBusca.buscar(q, ind, { limite: 60 }).map(r => ({ arq: r.item.arq }));
+  } else lista = guardar.ler(FB.aba === 'recentes' ? 'recentes' : 'favoritas', []);
+  if (!lista.length) { res.append(h('p', { className: 'dica' }, FB.aba === 'busca' ? 'Nada no banco com esse nome. Tente menos palavras ou envie do computador.' : 'Vazio por enquanto.')); return; }
+  for (const f of lista) {
+    const estrela = h('button', { className: 'estrela' + (favorita(f) ? ' on' : ''), title: 'Favorita', on: { click: e => { e.stopPropagation(); alternarFavorita(f); estrela.classList.toggle('on', favorita(f)); } } }, '★');
+    res.append(h('button', {
+      className: 'fb-item', title: f.arq ? f.arq.split('/').pop() : 'enviada',
+      style: `background-image:url("${url('foto', f, false)}")`,
+      on: { click: () => { $('#dlg-fotos').close(); adicionarFoto(FB.p, f, FB.troca); } },
+    }, estrela));
+  }
+}
+function ligarBancoFotos() {
+  for (const b of document.querySelectorAll('#dlg-fotos [data-aba]')) b.onclick = () => { FB.aba = b.dataset.aba; mostrarFotos(); };
+  let t; $('#fb-q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(mostrarFotos, 250); });
+  $('#fb-arquivo').addEventListener('change', e => {
+    const a = e.target.files[0]; e.target.value = '';
+    if (a && FB.p) { $('#dlg-fotos').close(); enviarFoto(FB.p, a, FB.troca); }
+  });
+  $('#fb-enviar').onclick = () => $('#fb-arquivo').click();
+}
+
+// ------------------------------------------------------------------ mexer direto na folha (nome, preço, fotos)
+function alcasProduto(svg, r) {
+  const p = atual();
+  if (!p) return;
+  const W = r.formato.largura_mm, H = r.formato.altura_mm;
+  const g = svgEl('g', { class: 'alcas-prod' });
+  svg.appendChild(g);
+  const itens = [
+    ...r.fotos.map((u, i) => ({ sel: { tipo: 'foto', i }, b: u.b })),
+    { sel: { tipo: 'nome' }, b: r.caixaNome },
+    { sel: { tipo: 'preco' }, b: r.caixaPreco },
+  ];
+  // fotos por baixo do nome/preço na ordem de clique; a selecionada por cima de todas
+  const ehSel = s2 => S.selEl && S.selEl.tipo === s2.tipo && (s2.tipo !== 'foto' || S.selEl.i === s2.i);
+  itens.sort((a, b) => ehSel(a.sel) - ehSel(b.sel));
+  for (const it of itens) {
+    const sel = ehSel(it.sel);
+    const ret = svgEl('rect', { x: it.b.x, y: it.b.y, width: it.b.w, height: it.b.h, class: 'alca-prod' + (sel ? ' sel' : '') });
+    g.appendChild(ret);
+    arrastarProduto(svg, ret, p, it, W, H, false);
+    if (sel) {
+      const c = svgEl('rect', { x: it.b.x + it.b.w - 2.5, y: it.b.y + it.b.h - 2.5, width: 5, height: 5, class: 'canto-prod' });
+      g.appendChild(c);
+      arrastarProduto(svg, c, p, it, W, H, true);
+    }
+  }
+}
+function arrastarProduto(svg, alvo, p, it, W, H, redimensiona) {
+  alvo.addEventListener('pointerdown', ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    S.selEl = it.sel;
+    alvo.setPointerCapture(ev.pointerId);
+    const m = svg.getScreenCTM().inverse();
+    const pt = e => new DOMPoint(e.clientX, e.clientY).matrixTransform(m);
+    const ini = pt(ev);
+    const aj0 = { ...p.aj };
+    let mexeu = false, fx = null, area = null;
+    // foto: só vira "livre" quando arrasta de verdade (clicar só seleciona)
+    const prepararFoto = () => {
+      if (fx) return;
+      congelarFotos(p);
+      fx = { ...p.fotos[it.sel.i].pos };
+      area = Impresso.montarFolha({ tema: S.tema, formato: S.ed.formato, produto: p, url: () => '' }).areaFotos;
+    };
+    const r3 = v => Math.round(v * 1000) / 1000;
+    const mover2 = e => {
+      const q = pt(e), dx = q.x - ini.x, dy = q.y - ini.y;
+      if (Math.abs(dx) + Math.abs(dy) > 0.3) mexeu = true;
+      if (!mexeu) return;
+      if (it.sel.tipo === 'foto') {
+        prepararFoto();
+        const pos = p.fotos[it.sel.i].pos;
+        if (redimensiona) pos.w = r3(Math.max(0.08, fx.w + dx / area.w));
+        else { pos.x = r3(fx.x + dx / area.w); pos.y = r3(fx.y + dy / area.h); }
+      } else if (it.sel.tipo === 'nome') {
+        if (redimensiona) p.aj.nome = r3(Math.max(0.3, (aj0.nome ?? 1) * (1 + dy / it.b.h)));
+        else { p.aj.nx = r3((aj0.nx || 0) + dx / W); p.aj.ny = r3((aj0.ny || 0) + dy / H); }
+      } else {
+        if (redimensiona) { p.aj.pw = r3(Math.max(0.3, (aj0.pw ?? 1) * (1 + 2 * dx / it.b.w))); p.aj.ph = r3(Math.max(0.3, (aj0.ph ?? 1) * (1 + 2 * dy / it.b.h))); }
+        else { p.aj.px = r3((aj0.px || 0) + dx / W); p.aj.py = r3((aj0.py || 0) + dy / H); }
+      }
+      visual(dx, dy);
+    };
+    // enquanto arrasta só mexe no que está na tela (redesenhar a folha mataria o arrasto); ao soltar, redesenha
+    const visual = (dx, dy) => {
+      const caixa = (e, b) => { e.setAttribute('x', b.x); e.setAttribute('y', b.y); e.setAttribute('width', b.w); e.setAttribute('height', b.h); };
+      if (it.sel.tipo === 'foto') {
+        const f = p.fotos[it.sel.i], pos = f.pos, a = (f.w && f.h) ? f.w / f.h : 1;
+        const b = { x: area.x + pos.x * area.w, y: area.y + pos.y * area.h, w: pos.w * area.w };
+        b.h = b.w / a;
+        const im = svg.querySelector(`image[data-foto="${it.sel.i}"]`);
+        if (im) caixa(im, b);
+        if (!redimensiona) caixa(alvo, b);
+        return;
+      }
+      const g = svg.querySelector(`[data-el="${it.sel.tipo}"]`);
+      if (!g) return;
+      const b = it.b, cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+      if (!redimensiona) {
+        g.setAttribute('transform', `translate(${dx} ${dy})`);
+        alvo.setAttribute('transform', `translate(${dx} ${dy})`);
+      } else if (it.sel.tipo === 'nome') {
+        const k = (p.aj.nome ?? 1) / (aj0.nome ?? 1);
+        g.setAttribute('transform', `translate(${cx} ${cy}) scale(${k}) translate(${-cx} ${-cy})`);
+      } else {
+        const kx = (p.aj.pw ?? 1) / (aj0.pw ?? 1), ky = (p.aj.ph ?? 1) / (aj0.ph ?? 1);
+        g.setAttribute('transform', `translate(${cx} ${cy}) scale(${kx} ${ky}) translate(${-cx} ${-cy})`);
+      }
+    };
+    const soltar = () => {
+      alvo.removeEventListener('pointermove', mover2); alvo.removeEventListener('pointerup', soltar);
+      if (mexeu) mudou();
+      desenhar(); painel();
+    };
+    alvo.addEventListener('pointermove', mover2);
+    alvo.addEventListener('pointerup', soltar);
+  });
 }
 
 // ------------------------------------------------------------------ painel do tema
@@ -497,8 +701,9 @@ function ligarEventos() {
   $('#tema').addEventListener('change', e => trocarTema(e.target.value));
   $('#bt-tema').onclick = () => { S.modoTema = !S.modoTema; tudo(); };
   $('#guias').addEventListener('change', desenhar);
-  $('#ant').onclick = () => { if (S.i > 0) { S.i--; tudo(); } };
-  $('#prox').onclick = () => { if (S.i < produtos().length - 1) { S.i++; tudo(); } };
+  $('#ant').onclick = () => { if (S.i > 0) { S.i--; S.selEl = null; tudo(); } };
+  $('#prox').onclick = () => { if (S.i < produtos().length - 1) { S.i++; S.selEl = null; tudo(); } };
+  ligarBancoFotos();
   $('#bt-add').onclick = () => { produtos().splice(S.i + 1, 0, { id: novoId(), nome: 'Produto', preco: '', unidade: 'UN', fotos: [], aj: {} }); S.i = produtos().length === 1 ? 0 : S.i + 1; S.modoTema = false; mudou(); tudo(); };
   $('#bt-lista').onclick = () => $('#dlg-lista').showModal();
   $('#lista-ok').onclick = montarLista;
@@ -507,6 +712,8 @@ function ligarEventos() {
   $('#bx-ok').onclick = () => ImpressoExportar.gerar();
   document.addEventListener('keydown', e => {
     if (e.target.closest('input,textarea,select')) return;
+    if ((e.key === 'Delete' || e.key === 'Backspace') && S.selEl && S.selEl.tipo === 'foto' && atual()) { atual().fotos.splice(S.selEl.i, 1); S.selEl = null; mudou(); tudo(); return; }
+    if (e.key === 'Escape') { S.selEl = null; desenhar(); painel(); return; }
     if (e.key === 'ArrowRight') $('#prox').click();
     if (e.key === 'ArrowLeft') $('#ant').click();
   });

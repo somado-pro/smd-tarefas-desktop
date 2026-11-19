@@ -79,3 +79,46 @@ dialog h2{margin:0 0 8px;font-size:18px}
 .lista-simples a:hover{background:var(--fundo)}
 .lista-simples small{color:var(--fraco)}
 @media (max-width:900px){.corpo{grid-template-columns:1fr}.esq,.dir{max-height:40vh}}
+
+/* painel do produto no estilo do encarte */
+.pp-cab{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.pp-acoes{display:flex;gap:4px}
+.ic{border:1px solid var(--borda);background:var(--painel);color:var(--texto);border-radius:6px;width:30px;height:30px;cursor:pointer;font:inherit}
+.ic:hover{border-color:var(--pri)}
+.ic.perigo{color:var(--erro)}
+.pp-sec{border:1px solid var(--borda);border-radius:10px;padding:6px 10px;margin-bottom:8px}
+.pp-sec>summary{cursor:pointer;font-weight:600;padding:4px 0;list-style:none}
+.pp-sec>summary::before{content:'▸ ';color:var(--fraco)}
+.pp-sec[open]>summary::before{content:'▾ '}
+.pp-sec[open]>summary{margin-bottom:6px}
+.pp-lin{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0;font-size:13px}
+.stp{display:inline-flex;align-items:center;gap:4px}
+.step{width:28px;height:28px;border:1px solid var(--borda);background:var(--painel);color:var(--texto);border-radius:6px;cursor:pointer;font:600 15px system-ui}
+.step:hover{border-color:var(--pri)}
+.val{min-width:46px;text-align:center;font-variant-numeric:tabular-nums}
+.seg{display:flex;border:1px solid var(--borda);border-radius:8px;overflow:hidden;margin-bottom:8px}
+.seg-bt{flex:1;border:0;border-right:1px solid var(--borda);background:var(--painel);color:var(--texto);padding:6px 4px;cursor:pointer;font:12px system-ui}
+.seg-bt:last-child{border-right:0}
+.seg-bt.ativo{background:var(--pri);color:var(--pri-t)}
+.foto{cursor:pointer}
+.foto.sel{outline:2px solid var(--pri);outline-offset:1px}
+.foto-acoes{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:2px;padding:2px;background:rgba(0,0,0,.55);border-radius:0 0 6px 6px;opacity:.9}
+.foto-acoes button{border:0;background:transparent;color:#fff;cursor:pointer;font:13px system-ui;padding:2px 5px;border-radius:4px}
+.foto-acoes button:hover{background:rgba(255,255,255,.2)}
+.foto-acoes button.perigo{color:#fca5a5}
+.palco .alca-prod{fill:transparent;stroke:transparent;stroke-width:.5;cursor:move}
+.palco .alca-prod:hover{stroke:var(--pri);stroke-dasharray:1.5 1}
+.palco .alca-prod.sel{stroke:var(--pri);stroke-width:.6;stroke-dasharray:none}
+.palco .canto-prod{fill:var(--pri);stroke:#fff;stroke-width:.4;cursor:nwse-resize}
+/* banco de fotos */
+.dlg-fotos{width:min(760px,96vw)}
+.fb-cab{display:flex;justify-content:space-between;align-items:center}
+.fb-abas{display:flex;gap:6px;align-items:center;margin:8px 0}
+.aba{border:1px solid var(--borda);background:var(--painel);color:var(--texto);border-radius:999px;padding:5px 12px;cursor:pointer;font:13px system-ui}
+.aba.ativo{background:var(--pri);border-color:var(--pri);color:var(--pri-t)}
+#fb-q{width:100%;margin-bottom:8px}
+.fb-res{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;max-height:60vh;overflow:auto}
+.fb-item{position:relative;aspect-ratio:1;border:1px solid var(--borda);border-radius:8px;background:#fff center/contain no-repeat;cursor:pointer}
+.fb-item:hover{border-color:var(--pri);box-shadow:0 0 0 2px color-mix(in srgb,var(--pri) 30%,transparent)}
+.estrela{position:absolute;top:3px;right:3px;border:0;background:rgba(0,0,0,.45);color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;padding:0}
+.estrela.on{color:#facc15}

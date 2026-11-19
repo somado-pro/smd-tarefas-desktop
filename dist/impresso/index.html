@@ -103,6 +103,21 @@
   <div class="acoes"><button class="bt" onclick="this.closest('dialog').close()">Fechar</button><button id="bx-ok" class="bt primario">Gerar</button></div>
 </dialog>
 
+<!-- banco de fotos: adicionar ou trocar -->
+<dialog id="dlg-fotos" class="dlg-fotos">
+  <div class="fb-cab"><h2 id="fb-titulo">Adicionar foto</h2><button class="bt" onclick="this.closest('dialog').close()">✕</button></div>
+  <div class="fb-abas">
+    <button class="aba ativo" data-aba="busca">Busca</button>
+    <button class="aba" data-aba="recentes">Recentes</button>
+    <button class="aba" data-aba="favoritas">★ Favoritas</button>
+    <span style="flex:1"></span>
+    <button class="bt" id="fb-enviar">📤 Do computador</button>
+    <input type="file" id="fb-arquivo" accept="image/png,image/jpeg,image/webp" class="oculto">
+  </div>
+  <input id="fb-q" placeholder="ex.: arroz 5kg" autocomplete="off">
+  <div id="fb-res" class="fb-res"></div>
+</dialog>
+
 <script src="/encarte/busca.js"></script>
 <script src="render.js"></script>
 <script src="exportar.js"></script>
