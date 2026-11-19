@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Impresso · Somado Tarefas</title>
+<link rel="stylesheet" href="/api/impresso/fontes.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div id="alerta" class="oculto"><span></span></div>
+
+<!-- lista (sem ?edicao) -->
+<section id="inicio" class="oculto">
+  <header class="barra"><a id="ini-voltar" class="bt" href="/">← Somado Tarefas</a><h1>Impressos</h1></header>
+  <div class="inicio-corpo">
+    <div class="cartao">
+      <h2>Novo impresso</h2>
+      <label>Título <input id="ini-titulo" placeholder="Ex.: Black November · Heeller"></label>
+      <label>Tema <select id="ini-tema"></select></label>
+      <button id="ini-criar" class="bt primario">Criar</button>
+    </div>
+    <div class="cartao">
+      <h2>Últimos impressos</h2>
+      <div id="ini-lista" class="lista-simples"></div>
+    </div>
+  </div>
+</section>
+
+<!-- editor -->
+<section id="editor" class="oculto">
+  <header class="barra">
+    <a id="voltar" class="bt" href="/">←</a>
+    <input id="titulo" class="titulo" placeholder="Título do impresso">
+    <span class="sep"></span>
+    <label class="mini">Tema <select id="tema"></select></label>
+    <button id="bt-tema" class="bt" title="Editar o tema (identidade visual)">🎨 Tema</button>
+    <span class="sep"></span>
+    <label class="mini">Formato
+      <select id="fmt-id"><option>A3</option><option selected>A4</option><option>A5</option><option value="personalizado">Personalizado</option></select>
+    </label>
+    <select id="fmt-or" class="mini"><option value="retrato">Retrato</option><option value="paisagem">Paisagem</option></select>
+    <span id="fmt-pers" class="oculto">
+      <input id="fmt-w" class="num" type="number" min="50" max="1200" step="0.5"> ×
+      <input id="fmt-h" class="num" type="number" min="50" max="1200" step="0.5"> mm
+    </span>
+    <label class="mini">Sangria <input id="fmt-sang" class="num" type="number" min="0" max="10" step="0.5"> mm</label>
+    <span class="sep"></span>
+    <span id="salvo" class="status"></span>
+    <button id="bt-salvar" class="bt">Salvar</button>
+    <button id="bt-baixar" class="bt primario">⬇ Baixar para impressão</button>
+  </header>
+
+  <div class="corpo">
+    <aside class="esq">
+      <div class="esq-topo">
+        <button id="bt-lista" class="bt primario">Colar lista</button>
+        <button id="bt-add" class="bt">＋ Produto</button>
+      </div>
+      <label class="validade">Validade (vai no campo "Validade" do tema)
+        <input id="validade" placeholder="Ofertas válidas de 20/11 a 23/11">
+      </label>
+      <div id="produtos" class="produtos"></div>
+    </aside>
+
+    <main class="centro">
+      <div class="nav">
+        <button id="ant" class="bt">‹</button>
+        <span id="pos">—</span>
+        <button id="prox" class="bt">›</button>
+        <label class="mini"><input type="checkbox" id="guias" checked> Guias de corte e segurança</label>
+      </div>
+      <div id="palco" class="palco"></div>
+      <p class="legenda"><span class="lg corte"></span> corte · <span class="lg seg"></span> área segura · escuro = sangria (some no corte)</p>
+    </main>
+
+    <aside class="dir" id="painel"></aside>
+  </div>
+</section>
+
+<!-- colar lista -->
+<dialog id="dlg-lista">
+  <h2>Colar lista</h2>
+  <p class="dica">Um produto por linha. Aceita <b>NOME ; PREÇO ; UNIDADE</b> ou a linha corrida (<i>Chocolate Lacta 80g 7,99 un</i>). As fotos são buscadas no banco pelo nome.</p>
+  <textarea id="lista-txt" rows="14" placeholder="CHOCOLATE LACTA 80G ; 7,99 ; UN&#10;ALHO IMPORTADO 15,99 KG"></textarea>
+  <label class="mini"><input type="checkbox" id="lista-substituir"> Substituir os produtos que já estão</label>
+  <div class="acoes"><button class="bt" value="cancelar" formmethod="dialog" onclick="this.closest('dialog').close()">Cancelar</button><button id="lista-ok" class="bt primario">Montar</button></div>
+</dialog>
+
+<!-- baixar -->
+<dialog id="dlg-baixar">
+  <h2>Baixar para impressão</h2>
+  <div class="opcoes-saida">
+    <label><input type="radio" name="saida" value="pdf-cmyk" checked> <b>PDF CMYK</b> <small>pra gráfica (convertido na VPS)</small></label>
+    <label><input type="radio" name="saida" value="pdf-rgb"> <b>PDF RGB</b> <small>impressora comum / gráfica que converte</small></label>
+    <label><input type="radio" name="saida" value="jpg"> <b>JPG 300 DPI</b></label>
+    <label><input type="radio" name="saida" value="png"> <b>PNG 300 DPI</b></label>
+  </div>
+  <label class="mini"><input type="checkbox" id="bx-marcas" checked> Marcas de corte</label>
+  <label class="mini"><input type="checkbox" id="bx-atual"> Só a folha que está na tela</label>
+  <div id="bx-check" class="check"></div>
+  <div id="bx-status" class="status"></div>
+  <div class="acoes"><button class="bt" onclick="this.closest('dialog').close()">Fechar</button><button id="bx-ok" class="bt primario">Gerar</button></div>
+</dialog>
+
+<script src="/encarte/busca.js"></script>
+<script src="render.js"></script>
+<script src="exportar.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+:root{--fundo:#f4f5f7;--painel:#fff;--borda:#e2e4e8;--texto:#1f2328;--fraco:#6b7280;--pri:#7c3aed;--pri-t:#fff;--erro:#dc2626;--aviso:#d97706;--ok:#16a34a}
+@media (prefers-color-scheme:dark){:root{--fundo:#16181d;--painel:#1f2228;--borda:#33363d;--texto:#e7e9ee;--fraco:#9aa0aa}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--fundo);color:var(--texto);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+.oculto{display:none!important}
+.bt{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--borda);background:var(--painel);color:var(--texto);border-radius:8px;padding:6px 10px;cursor:pointer;text-decoration:none;font:inherit;white-space:nowrap}
+.bt:hover{border-color:var(--pri)}
+.bt.primario{background:var(--pri);border-color:var(--pri);color:var(--pri-t)}
+.bt.perigo{color:var(--erro)}
+.bt:disabled{opacity:.5;cursor:default}
+input,select,textarea{font:inherit;color:var(--texto);background:var(--painel);border:1px solid var(--borda);border-radius:6px;padding:5px 7px}
+textarea{width:100%;resize:vertical}
+.num{width:70px}
+label{display:block}
+label.mini{display:inline-flex;align-items:center;gap:6px;color:var(--fraco);font-size:13px}
+.barra{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--painel);border-bottom:1px solid var(--borda);flex-wrap:wrap}
+.barra h1{font-size:18px;margin:0}
+.titulo{font-weight:600;min-width:220px;flex:0 1 300px}
+.sep{width:1px;height:24px;background:var(--borda)}
+.status{color:var(--fraco);font-size:13px}
+#alerta{position:fixed;top:0;left:0;right:0;background:var(--erro);color:#fff;padding:8px 14px;z-index:50;text-align:center}
+#editor{display:flex;flex-direction:column;height:100vh}
+.corpo{flex:1;display:grid;grid-template-columns:270px 1fr 330px;min-height:0}
+.esq,.dir{background:var(--painel);overflow:auto;padding:10px}
+.esq{border-right:1px solid var(--borda)}
+.dir{border-left:1px solid var(--borda)}
+.esq-topo{display:flex;gap:6px;margin-bottom:8px}
+.validade{font-size:12px;color:var(--fraco);margin-bottom:10px}
+.validade input{width:100%;margin-top:3px}
+.produtos{display:flex;flex-direction:column;gap:4px}
+.prod{display:flex;gap:8px;align-items:center;padding:6px;border:1px solid var(--borda);border-radius:8px;cursor:pointer}
+.prod.sel{border-color:var(--pri);box-shadow:0 0 0 2px color-mix(in srgb,var(--pri) 25%,transparent)}
+.prod .n{font-size:12px;color:var(--fraco);width:20px;text-align:right}
+.prod .t{flex:1;min-width:0}
+.prod .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.prod .t small{color:var(--fraco)}
+.prod .av{width:8px;height:8px;border-radius:50%}
+.av.ok{background:var(--ok)}.av.aviso{background:var(--aviso)}.av.erro{background:var(--erro)}
+.centro{display:flex;flex-direction:column;min-width:0;min-height:0}
+.nav{display:flex;align-items:center;gap:8px;padding:8px;justify-content:center}
+.palco{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:10px 20px;overflow:auto}
+.palco svg{max-width:100%;max-height:100%;width:auto;height:auto;box-shadow:0 4px 24px rgba(0,0,0,.25);background:#fff}
+.palco .alca{fill:rgba(124,58,237,.12);stroke:var(--pri);stroke-width:.4;cursor:move}
+.palco .alca.sel{fill:rgba(124,58,237,.22);stroke-width:.7}
+.palco .canto{fill:var(--pri);cursor:nwse-resize}
+.palco .rot{font:3px system-ui;fill:var(--pri);pointer-events:none}
+.legenda{text-align:center;color:var(--fraco);font-size:12px;margin:4px}
+.lg{display:inline-block;width:18px;height:0;border-top:2px dashed;vertical-align:middle}
+.lg.corte{border-color:#e11d48}.lg.seg{border-color:#0284c7}
+.dir h3{margin:14px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--fraco)}
+.dir h3:first-child{margin-top:0}
+.campo{display:grid;grid-template-columns:96px 1fr;gap:6px;align-items:center;margin-bottom:6px;font-size:13px}
+.campo>span{color:var(--fraco)}
+.campo input,.campo select,.campo textarea{width:100%}
+.linha{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.fotos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.foto{position:relative;border:1px solid var(--borda);border-radius:6px;aspect-ratio:1;background:#fff center/contain no-repeat}
+.foto .x{position:absolute;top:2px;right:2px;border:0;background:rgba(0,0,0,.6);color:#fff;border-radius:50%;width:20px;height:20px;cursor:pointer;line-height:20px;padding:0}
+.foto .dpi{position:absolute;left:2px;bottom:2px;font-size:10px;padding:1px 4px;border-radius:4px;color:#fff}
+.resultados{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;max-height:280px;overflow:auto;margin-top:6px}
+.resultados button{border:1px solid var(--borda);border-radius:6px;aspect-ratio:1;background:#fff center/contain no-repeat;cursor:pointer}
+.resultados button:hover{border-color:var(--pri)}
+.dica{color:var(--fraco);font-size:12px;margin:4px 0}
+dialog{border:1px solid var(--borda);border-radius:12px;background:var(--painel);color:var(--texto);width:min(560px,94vw);padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog h2{margin:0 0 8px;font-size:18px}
+.acoes{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.opcoes-saida{display:flex;flex-direction:column;gap:6px;margin:8px 0 12px}
+.opcoes-saida label{display:flex;gap:8px;align-items:center;padding:8px;border:1px solid var(--borda);border-radius:8px;cursor:pointer}
+.opcoes-saida small{color:var(--fraco)}
+.check{margin:10px 0;font-size:13px;max-height:200px;overflow:auto}
+.check .erro{color:var(--erro)}.check .aviso{color:var(--aviso)}.check .ok{color:var(--ok)}
+.inicio-corpo{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;padding:16px;max-width:1000px;margin:0 auto}
+.cartao{background:var(--painel);border:1px solid var(--borda);border-radius:12px;padding:16px}
+.cartao h2{margin:0 0 10px;font-size:16px}
+.cartao label{margin-bottom:8px;color:var(--fraco);font-size:13px}
+.cartao input,.cartao select{width:100%;margin-top:3px}
+.lista-simples a{display:block;padding:8px;border-bottom:1px solid var(--borda);color:var(--texto);text-decoration:none}
+.lista-simples a:hover{background:var(--fundo)}
+.lista-simples small{color:var(--fraco)}
+@media (max-width:900px){.corpo{grid-template-columns:1fr}.esq,.dir{max-height:40vh}}
