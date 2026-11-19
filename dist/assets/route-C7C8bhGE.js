@@ -1,0 +1,1 @@
+import{N as n}from"./next-server-CskxMWOZ.js";import{gN as o}from"./index-0CfIlzI8.js";async function c(e,t){const{taskId:a}=await t.params,s=await o(a);return n.json({attachments:s})}export{c as GET};

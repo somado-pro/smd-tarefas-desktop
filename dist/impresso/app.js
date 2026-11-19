@@ -109,7 +109,8 @@ async function abrir(id) {
   if (URLP.get('tema') === '1') S.modoTema = true;
   ligarEventos();
   await tudo();
-  carregarIndice();
+  if (!SO_GERAR) carregarIndice();
+  window.IMPRESSO_PRONTO = true;
 }
 function usarTema(reg) {
   S.temaReg = reg; S.tema = Impresso.temaCompleto(reg && reg.tema);
@@ -414,7 +415,9 @@ async function trocarTema(id) {
 
 // ------------------------------------------------------------------ salvar a edição
 let tSalvar, salvando = null;
-function mudou() { S.sujo = true; aviso('alterado…', 0); clearTimeout(tSalvar); tSalvar = setTimeout(() => salvar(), 1200); }
+// ?vps=1: aberto pela VPS só pra gerar o arquivo (agente pelo MCP): nunca grava
+const SO_GERAR = URLP.get('vps') === '1';
+function mudou() { if (SO_GERAR) return; S.sujo = true; aviso('alterado…', 0); clearTimeout(tSalvar); tSalvar = setTimeout(() => salvar(), 1200); }
 async function salvar(versao = false) {
   clearTimeout(tSalvar);
   if (salvando) await salvando;
@@ -435,11 +438,15 @@ async function salvar(versao = false) {
   })();
   return salvando;
 }
-window.addEventListener('beforeunload', e => { if (S.sujo || S.temaSujo) { salvar(); salvarTema(false); e.preventDefault(); } });
+window.addEventListener('beforeunload', e => { if (SO_GERAR) return; if (S.sujo || S.temaSujo) { salvar(); salvarTema(false); e.preventDefault(); } });
 
 // ------------------------------------------------------------------ lista
 function lerLinha(l) {
   l = l.trim(); if (!l) return null;
+  l = l.replace(/^\d{1,3}[\s.)-]+(?=\D)/, ''); // número do item da lista
+  let extra = '';
+  const par = l.match(/\s*\(([^)]*)\)\s*$/); // "(sabores)" depois do preço → 2ª linha do nome
+  if (par) { extra = par[1].trim(); l = l.slice(0, par.index).trim(); }
   let nome, preco = '', un = '';
   const partes = l.split(/\s*[;|\t]\s*/);
   if (partes.length >= 2) [nome, preco = '', un = ''] = partes;
@@ -448,7 +455,8 @@ function lerLinha(l) {
     if (m && m[1]) { nome = m[1]; preco = m[2]; un = m[3] || ''; } else nome = l;
   }
   un = (un || '').trim().toUpperCase().replace(/^(UND|UNID|UNIDADE)$/, 'UN').replace(/^L$/, 'LT');
-  return { id: novoId(), nome: (nome || '').trim(), preco: (preco || '').trim(), unidade: un, fotos: [], aj: {} };
+  nome = (nome || '').trim() + (extra ? `\n(${extra})` : '');
+  return { id: novoId(), nome, preco: (preco || '').trim(), unidade: un, fotos: [], aj: {} };
 }
 async function montarLista() {
   const novos = $('#lista-txt').value.split('\n').map(lerLinha).filter(Boolean);

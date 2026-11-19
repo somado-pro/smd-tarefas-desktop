@@ -192,53 +192,77 @@
     if (!n) mostrar([['erro', 'Sem produtos: cole a lista primeiro.']]);
     $('#dlg-baixar').showModal();
   }
+  // O arquivo pronto, sem baixar: usado pelo botão (gerar) e pela VPS (agente pelo MCP, Chrome sem
+  // tela, ver scripts/impresso/vps/impresso-gerar.py). pdf-cmyk devolve o PDF RGB (quem chama manda
+  // converter). Com erro de DPI e sem forcar: { bloqueado: true, linhas }.
+  async function gerarArquivo({ saida, marcas, soAtual = false, forcar: f = false, salvar = true, status = () => {} }) {
+    const lista = soAtual ? [A().atual()].filter(Boolean) : A().produtos().slice();
+    if (!lista.length) throw new Error('sem produtos');
+    if (salvar) { status('salvando…'); await A().salvarTema(false); await A().salvar(true); }
+    await A().garantirFontes();
+    const { linhas, erros } = await conferir(lista, marcas, status);
+    if (erros && !f) return { bloqueado: true, linhas, erros };
+    const tipo = saida === 'png' ? 'image/png' : 'image/jpeg';
+    const paginas = [];
+    let dpiMin = DPI;
+    for (const [i, p] of lista.entries()) {
+      status(`desenhando folha ${i + 1} de ${lista.length} a 300 DPI…`);
+      const r = await renderizar(p, marcas, tipo);
+      dpiMin = Math.min(dpiMin, r.dpi);
+      paginas.push({ ...r, nome: `${String(i + 1).padStart(2, '0')} ${(p.nome || 'folha').replace(/[\\/:*?"<>|\n]+/g, ' ').trim().slice(0, 60)}.${saida === 'png' ? 'png' : 'jpg'}` });
+    }
+    const nome = nomeArquivo(saida, paginas.length);
+    let blob;
+    if (saida === 'jpg' || saida === 'png') {
+      if (paginas.length === 1) blob = paginas[0].blob;
+      else { status('juntando no .zip…'); blob = zip(await Promise.all(paginas.map(async p => ({ nome: p.nome, bytes: new Uint8Array(await p.blob.arrayBuffer()) })))); }
+    } else {
+      status('montando o PDF…');
+      for (const p of paginas) p.bytes = new Uint8Array(await p.blob.arrayBuffer());
+      blob = pdf(paginas);
+    }
+    blobs.clear();
+    return { blob, nome, linhas, erros, dpiMin, folhas: paginas.length };
+  }
+
   async function gerar() {
     if (ocupado) return;
     const { S } = A();
     const status = t => { $('#bx-status').textContent = t; };
     const saida = document.querySelector('input[name=saida]:checked').value;
     const marcas = $('#bx-marcas').checked;
-    const lista = $('#bx-atual').checked ? [A().atual()].filter(Boolean) : A().produtos().slice();
-    if (!lista.length) return mostrar([['erro', 'Sem produtos.']]);
     ocupado = true; $('#bx-ok').disabled = true;
     try {
-      status('salvando…');
-      await A().salvarTema(false); await A().salvar(true);
-      await A().garantirFontes();
-      if (!forcar) {
-        const { linhas, erros } = await conferir(lista, marcas, status);
-        mostrar(linhas.length ? linhas : [['ok', 'Fotos e imagens com resolução boa pra impressão.']]);
-        if (erros) {
-          forcar = true; status('Tem imagem com resolução baixa. Troque a foto ou gere mesmo assim.');
-          $('#bx-ok').textContent = 'Gerar mesmo assim'; return;
-        }
+      const r = await gerarArquivo({ saida, marcas, soAtual: $('#bx-atual').checked, forcar, status });
+      mostrar(r.linhas.length ? r.linhas : [['ok', 'Fotos e imagens com resolução boa pra impressão.']]);
+      if (r.bloqueado) {
+        forcar = true; status('Tem imagem com resolução baixa. Troque a foto ou gere mesmo assim.');
+        $('#bx-ok').textContent = 'Gerar mesmo assim'; return;
       }
-      const tipo = saida === 'png' ? 'image/png' : 'image/jpeg';
-      const paginas = [];
-      let dpiMin = DPI;
-      for (const [i, p] of lista.entries()) {
-        status(`desenhando folha ${i + 1} de ${lista.length} a 300 DPI…`);
-        const r = await renderizar(p, marcas, tipo);
-        dpiMin = Math.min(dpiMin, r.dpi);
-        paginas.push({ ...r, nome: `${String(i + 1).padStart(2, '0')} ${(p.nome || 'folha').replace(/[\\/:*?"<>|\n]+/g, ' ').trim().slice(0, 60)}.${saida === 'png' ? 'png' : 'jpg'}` });
-      }
-      const nome = nomeArquivo(saida, paginas.length);
-      if (saida === 'jpg' || saida === 'png') {
-        if (paginas.length === 1) baixar(paginas[0].blob, nome);
-        else { status('juntando no .zip…'); baixar(zip(await Promise.all(paginas.map(async p => ({ nome: p.nome, bytes: new Uint8Array(await p.blob.arrayBuffer()) })))), nome); }
-        status(`Pronto: ${nome}` + (dpiMin < DPI ? ` (tamanho grande: saiu com ${dpiMin} DPI)` : ''));
+      if (saida !== 'pdf-cmyk') {
+        baixar(r.blob, r.nome);
+        status(`Pronto: ${r.nome}` + (r.dpiMin < DPI ? ` (tamanho grande: saiu com ${r.dpiMin} DPI)` : ''));
         return;
       }
-      status('montando o PDF…');
-      for (const p of paginas) p.bytes = new Uint8Array(await p.blob.arrayBuffer());
-      const arq = pdf(paginas);
-      if (saida === 'pdf-rgb') { baixar(arq, nome); status(`Pronto: ${nome}`); return; }
-      status(`enviando o PDF pra VPS converter em CMYK (${(arq.size / 1048576).toFixed(1)} MB)…`);
-      const { exportacao } = await A().apiJson(`edicoes/${S.ed.id}/exportar?nome=${encodeURIComponent(nome)}&marcas=${marcas ? 1 : 0}`, { method: 'POST', headers: { 'Content-Type': 'application/pdf' }, body: arq });
+      status(`enviando o PDF pra VPS converter em CMYK (${(r.blob.size / 1048576).toFixed(1)} MB)…`);
+      const { exportacao } = await A().apiJson(`edicoes/${S.ed.id}/exportar?nome=${encodeURIComponent(r.nome)}&marcas=${marcas ? 1 : 0}`, { method: 'POST', headers: { 'Content-Type': 'application/pdf' }, body: r.blob });
       await acompanhar(exportacao.id, status);
     } catch (e) {
       status('Erro: ' + e.message);
     } finally { ocupado = false; $('#bx-ok').disabled = false; blobs.clear(); }
+  }
+
+  // VPS: gera e guarda o arquivo em window.__impresso pra ler em pedaços (base64) pelo Playwright
+  async function gerarParaVps(saida, marcas) {
+    const r = await gerarArquivo({ saida, marcas, forcar: true, salvar: false });
+    window.__impresso = r.blob;
+    return { nome: r.nome, bytes: r.blob.size, folhas: r.folhas, avisos: r.linhas.map(l => l[1]) };
+  }
+  async function pedacoVps(ini, fim) {
+    const b = new Uint8Array(await window.__impresso.slice(ini, fim).arrayBuffer());
+    let s = '';
+    for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+    return btoa(s);
   }
   async function acompanhar(id, status) {
     const { S } = A();
@@ -257,5 +281,5 @@
     status('A conversão está demorando. Abra "Baixar" de novo daqui a pouco.');
   }
 
-  window.ImpressoExportar = { abrir, gerar, pdf, zip };
+  window.ImpressoExportar = { abrir, gerar, gerarArquivo, gerarParaVps, pedacoVps, pdf, zip };
 })();

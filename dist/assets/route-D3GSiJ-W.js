@@ -1,4 +1,0 @@
-import{f as i,p as n}from"./index-CAJQ7ASw.js";import{p as r,E as f,a as m,b as p}from"./arquivos-DdZiOirt.js";const h="nodejs",u="force-dynamic";async function y(){const e=new Set,o=[];for(const s of r()){const c=await i.readdir(s).catch(()=>[]);for(const t of c.sort()){if(!f.includes(n.extname(t).toLowerCase()))continue;const a=n.basename(t,n.extname(t)).replace(/'/g,"");e.has(a)||(e.add(a),o.push(`@font-face{font-family:'${a}';src:url('/api/encarte/fonte/${encodeURIComponent(t)}')`+(m(t)?";font-weight:100 900;font-stretch:50% 200%":"")+(p(t)?";font-style:italic":"")+";font-display:block}"))}}return new Response(`/* famílias: ${[...e].join(", ")} */
-${o.join(`
-`)}
-`,{headers:{"Content-Type":"text/css; charset=utf-8","Cache-Control":"private, max-age=3600"}})}export{y as GET,u as dynamic,h as runtime};
