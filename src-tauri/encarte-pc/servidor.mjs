@@ -14791,9 +14791,12 @@ async function lerSvgPreparado(canonico) {
 }
 function familiasDoSvg(texto) {
   const out = /* @__PURE__ */ new Set();
-  for (const m of texto.matchAll(/font-family\s*[:=]\s*([^;}>,\n]+)/g)) {
-    const fam = m[1].replace(/&(apos|quot);/g, "").replace(/["']/g, "").trim();
+  const add = (lista) => {
+    const fam = lista.split(",")[0].replace(/&(apos|quot);/g, "").replace(/["']/g, "").trim();
     if (fam) out.add(fam);
+  };
+  for (const m of texto.matchAll(/font-family\s*(?:=\s*(?:"([^"]*)"|'([^']*)')|:\s*([^;}>"\n]+))/g)) {
+    add(m[1] ?? m[2] ?? m[3] ?? "");
   }
   return [...out];
 }
