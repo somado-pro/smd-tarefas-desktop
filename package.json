@@ -1,7 +1,7 @@
 {
   "name": "smd-tarefas-desktop",
   "private": true,
-  "version": "0.3.49",
+  "version": "0.3.50",
   "scripts": {
     "tauri": "tauri"
   },

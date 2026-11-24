@@ -1,0 +1,1 @@
+import{N as e}from"./next-server-CskxMWOZ.js";import{k as a,gR as o}from"./index-3DbKm56c.js";async function p(){const t=await a();if(!t)return e.json({templates:[]});const s=await o(t);return e.json({templates:s})}export{p as GET};
