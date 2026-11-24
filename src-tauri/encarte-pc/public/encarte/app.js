@@ -6576,7 +6576,8 @@ async function entregar(blob, nome) {
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 // ---------------------------------------------------------------- pasta de trabalho do cliente
-// CLIENTE/POSTAGENS - FLYERS/<ano>/<MM - MÊS>/<DD-MM NOME>/ com as artes em 1x/ (igual ao Illustrator)
+// encarte novo: CLIENTE/04 ENTREGAS/<ano>/<MM - MÊS>/<AAAA-MM-DD NOME>/ com as artes em 1x/ (padrão de pastas 24/11/2026);
+// encarte que já tem pastaTrabalho continua na pasta dele (as antigas ficam em POSTAGENS - FLYERS)
 function pastaCliente() {
   const tpl = S.template || {};
   if (tpl.pastaCliente) return tpl.pastaCliente;

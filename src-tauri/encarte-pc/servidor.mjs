@@ -15007,16 +15007,29 @@ function limparNome(nome) {
   const n = nome.replace(/[<>:"/\\|?*\x00-\x1f]+/g, " ").trim();
   return /^\.*$/.test(n) ? "" : n;
 }
+var GENERICAS = /* @__PURE__ */ new Set(["SUP", "SUPER", "SUPERMERCADO", "SUPERMERCADOS", "MERCADO", "E", "DE", "DA", "DO", "DAS", "DOS"]);
+function tituloSemMercado(titulo, pastaCliente) {
+  let t = titulo.includes("|") ? titulo.slice(titulo.lastIndexOf("|") + 1) : titulo;
+  const proprias = pastaCliente.replace(/^\d+\.?\s*/, "").toUpperCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 2 && !GENERICAS.has(w));
+  if (proprias.length) {
+    const partes = t.split(/\s*(?::|·|\s-\s)\s*/);
+    const doMercado = (p) => p.toUpperCase().split(/[^\p{L}\p{N}]+/u).some((w) => proprias.includes(w));
+    const restantes = partes.filter((p) => p.trim() && !doMercado(p));
+    if (restantes.length && restantes.length < partes.length) t = restantes.join(" - ");
+  }
+  return t.trim() || titulo.trim();
+}
 async function sugerirPasta(cliente, titulo, data) {
-  const [ano, mes, dia] = data.split("-");
-  const baseCanon = `${cliente.canonico}/POSTAGENS - FLYERS/${ano}`;
-  const baseLocal = path.join(cliente.local, "POSTAGENS - FLYERS", ano);
+  const [ano, mes] = data.split("-");
+  const baseCanon = `${cliente.canonico}/04 ENTREGAS/${ano}`;
+  const baseLocal = path.join(cliente.local, "04 ENTREGAS", ano);
   let pastaMes = `${mes} - ${MESES[Number(mes) - 1]}`;
   const reMes = new RegExp(`^${mes}\\s*-`);
   const existente = (await lerPasta(baseLocal)).filter((d) => d.isDirectory()).map((d) => d.name.normalize("NFC")).sort(porCodigo).find((n) => reMes.test(n));
   if (existente) pastaMes = existente;
-  let nome = titulo.replace(/[<>:"/\\|?*]+/g, " ").trim().toUpperCase() || "ENCARTE";
-  if (!/^\d{2}/.test(nome)) nome = `${dia}-${mes} ${nome}`;
+  const pastaCli = cliente.canonico.split("/").pop() ?? "";
+  let nome = tituloSemMercado(titulo, pastaCli).replace(/[<>:"/\\|?*]+/g, " ").replace(/\s{2,}/g, " ").trim().toUpperCase() || "ENCARTE";
+  if (!/^\d{4}-\d{2}-\d{2}/.test(nome)) nome = `${data} ${nome}`;
   return `${baseCanon}/${pastaMes}/${nome}`;
 }
 async function criarPastaAberta(pasta) {
